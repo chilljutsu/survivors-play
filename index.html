@@ -101,6 +101,15 @@
   .tree-head { display:flex; align-items:baseline; justify-content:space-between; }
   .tree-head h2 { margin:0; }
   #tree-pts { color:var(--amber); font-size:15px; }
+  .qrow { border:1px solid var(--line); border-radius:6px; padding:10px 12px; display:grid; grid-template-columns:1fr auto; gap:6px 10px; align-items:center; }
+  .qrow.done { border-color:rgba(255,179,71,0.6); } .qrow.claimed { opacity:0.5; }
+  .qrow b { font-weight:500; font-size:14px; } .qrow em { font-style:normal; color:var(--amber); font-size:13px; text-align:right; }
+  .qrow .qbar { grid-column:1 / span 2; height:4px; background:var(--line); border-radius:2px; overflow:hidden; } .qrow .qbar i { display:block; height:100%; background:var(--cyan); }
+  .qrow button { grid-column:1 / span 2; text-align:center; border-color:var(--amber); color:var(--amber); padding:9px; }
+  .qrow small { grid-column:1 / span 2; color:var(--dim); font-size:12px; }
+  select, input[type=number] { font:inherit; color:var(--ink); background:var(--field); border:1px solid var(--line); border-radius:6px; padding:11px 12px; width:100%; box-sizing:border-box; }
+  button.row.mod { border-style:dashed; } button.row.mod.on { border-style:solid; border-color:var(--amber); } button.row.mod.on em { color:var(--amber); }
+  #btn-quests { position:relative; } #btn-quests.pts::after { content:''; position:absolute; top:50%; right:14px; width:9px; height:9px; margin-top:-4px; border-radius:50%; background:var(--amber); }
   #btn-pause { position:relative; }
   #btn-pause.pts::after { content:''; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:var(--amber); }
   .tabs { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
@@ -162,6 +171,7 @@
   <div class="stat" id="m-streak"></div>
   <div class="stat" id="m-cleared"></div>
   <button class="primary" id="btn-zones">Enter the field</button>
+  <button id="btn-quests">Quests and goals</button>
   <button id="btn-lattice">Workshop: permanent upgrades</button>
   <button id="btn-log">Log a workout</button>
   <button id="btn-help">How it works</button>
@@ -173,6 +183,8 @@
 <div id="zones" class="screen"><div class="col">
   <h2>Zones</h2>
   <p>Destroy every hive, or survive to the boss and kill it. Each zone is one sitting.</p>
+  <div class="itip" id="it-mod" hidden></div>
+  <button id="btn-mod" class="row mod"></button>
   <div class="itip" id="it-zones" hidden></div>
   <div class="itip" id="it-hard" hidden></div>
   <div id="zone-list" class="col"></div>
@@ -199,6 +211,22 @@
   <button id="btn-log-history">History and charts</button>
   <h2 style="font-size:16px;margin-top:6px">Recent</h2>
   <div id="log-hist" class="col"></div>
+  <button class="back">Back</button>
+</div></div>
+
+<div id="quests" class="screen"><div class="col">
+  <h2>Quests and goals</h2>
+  <div class="itip" id="it-quests" hidden></div>
+  <h3 class="hgroup">Today</h3><div id="q-day" class="col"></div>
+  <h3 class="hgroup">This week</h3><div id="q-week" class="col"></div>
+  <h3 class="hgroup">Your goals</h3><div id="q-goals" class="col"></div>
+  <details id="q-add"><summary>Add a goal</summary><div class="col" style="padding-top:8px">
+    <select id="g-ex"></select>
+    <input id="g-target" type="number" inputmode="decimal" step="any" placeholder="Target">
+    <select id="g-by"><option value="week">By the end of this week</option><option value="month">By the end of this month</option><option value="year">By the end of this year</option></select>
+    <button class="primary" id="btn-goal-add">Add goal</button>
+  </div></details>
+  <p id="q-msg"></p>
   <button class="back">Back</button>
 </div></div>
 
@@ -339,12 +367,13 @@ const BASE_R = 70;
 const ENEMY_CAP = 300;
 const PLAYER_VISION = 250, MOTE_VISION = 300;
 
+// difficulty steps smoothed 10-08 (Lance: zone 5 was a wall): 1.35/1.6/1.9 -> 1.32/1.5/1.68, see BALANCE_LOG
 const ZONES = [
   { name: 'Zone 1',  dur: 180, diff: 1.00, gold: 60,  desc: 'Swarm, Rushers and 3 hives. Destroy the hives or survive to the boss.' },
   { name: 'Zone 2',  dur: 210, diff: 1.15, gold: 100, desc: 'Jammers appear. They blind perched Drones.' },
-  { name: 'Zone 3',  dur: 240, diff: 1.35, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
-  { name: 'Zone 4',  dur: 270, diff: 1.6,  gold: 220, desc: 'Everything, faster. Heat climbs and the base gets hit.' },
-  { name: 'Zone 5',  dur: 300, diff: 1.9,  gold: 320, desc: 'Five minutes to the boss. Everything you have.' },
+  { name: 'Zone 3',  dur: 240, diff: 1.32, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
+  { name: 'Zone 4',  dur: 270, diff: 1.5,  gold: 220, desc: 'Everything, faster. Heat climbs and the base gets hit.' },
+  { name: 'Zone 5',  dur: 300, diff: 1.68, gold: 320, desc: 'Five minutes to the boss. Everything you have.' },
 ];
 
 /* Difficulty. Hard is the original tuning, untouched. Normal scales pressure down; tuned with tests/bal.js,
@@ -443,7 +472,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s4';
+const BUILD_ID = 'playtest 2026-10-08 s5';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -527,7 +556,7 @@ function logWorkout(id, now, detail) {
     if (b > (before[x.lift] ?? -1)) { bonus += BAND_BONUS * (b - (before[x.lift] ?? -1)); before[x.lift] = b; line += ' (new band)'; }
     lines.push(line + '.');
   }
-  SAVE.gold += gold + bonus;
+  SAVE.gold += gold + bonus; statAdd('workouts', 1, now);
   SAVE.logs.unshift({ id, day: today, gold, bonus, ts: now.getTime(), detail: detail || null });
   SAVE.logs = SAVE.logs.slice(0, 400);
   persist(SAVE);
@@ -536,7 +565,7 @@ function logWorkout(id, now, detail) {
 // undo one entry: refund what it paid and replay the streak from what is left, so undo is exact
 function undoLog(ts) {
   const i = SAVE.logs.findIndex(l => l.ts === ts); if (i < 0) return null;
-  const l = SAVE.logs.splice(i, 1)[0];
+  const l = SAVE.logs.splice(i, 1)[0]; statAdd('workouts', -1);
   SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0));
   const st = { streak: 0, freezes: 2, lastLog: null };
   const days = [...new Set(SAVE.logs.map(x => x.day))].sort((a, b) => daysBetween(b, a));
@@ -545,6 +574,82 @@ function undoLog(ts) {
   persist(SAVE);
   return l;
 }
+
+/* ---------- quests, goals, daily modifier (stage 5) ----------
+   Quests count lifetime stats in SAVE.stat from the moment they are handed out. Daily quests always include one
+   workout. Goals are Lance's PR targets (10-07): an exercise, a number, and a deadline; the ledger proves them. */
+const QUESTS = {
+  day: [
+    { stat: 'workouts', need: 1, gold: 150, text: 'Log a workout', fit: true },
+    { stat: 'kills', need: 300, gold: 80, text: 'Defeat 300 enemies' },
+    { stat: 'hives', need: 2, gold: 120, text: 'Destroy 2 hives' },
+    { stat: 'perches', need: 5, gold: 80, text: 'Perch a Drone 5 times' },
+    { stat: 'zones', need: 1, gold: 150, text: 'Clear a zone' },
+    { stat: 'units', need: 2, gold: 100, text: 'Build 2 gun drones or scavengers' },
+    { stat: 'strikes', need: 3, gold: 90, text: 'Land 3 artillery shells' },
+    { stat: 'caches', need: 3, gold: 90, text: 'Collect 3 caches' },
+  ],
+  week: [
+    { stat: 'workouts', need: 3, gold: 600, text: 'Log 3 workouts', fit: true },
+    { stat: 'hives', need: 8, gold: 500, text: 'Destroy 8 hives' },
+    { stat: 'zones', need: 3, gold: 600, text: 'Clear 3 zones' },
+    { stat: 'kills', need: 2000, gold: 400, text: 'Defeat 2000 enemies' },
+    { stat: 'perches', need: 25, gold: 400, text: 'Perch a Drone 25 times' },
+  ],
+  perDay: 3, perWeek: 2,
+};
+const GOALS = {
+  reward: { week: 400, month: 1500, year: 6000 },
+  ex: { // what a goal can measure, read from the ledger; less = lower is better
+    squat: { name: 'Squat, est. 1 rep max (lb)' }, bench: { name: 'Bench press, est. 1 rep max (lb)' }, deadlift: { name: 'Deadlift, est. 1 rep max (lb)' },
+    press: { name: 'Overhead press, est. 1 rep max (lb)' }, clean: { name: 'Power clean, est. 1 rep max (lb)' },
+    run_mi: { name: 'Run distance in one run (mi)' }, run_pace: { name: 'Run pace (minutes per mile)', less: true }, cindy: { name: 'Cindy rounds' },
+  },
+};
+const MODS = [ // one per calendar day, opt in on the zone screen
+  { id: 'rush', name: 'Rushers move 30% faster', gold: 1.5, spikeSpd: 1.3 },
+  { id: 'dim', name: 'Your sight is 20% shorter', gold: 1.4, sight: 0.8 },
+  { id: 'hives', name: 'One extra hive', gold: 1.3, hives: 1 },
+  { id: 'glass', name: 'You deal and take 25% more damage', gold: 1.25, dmgOut: 1.25, dmgIn: 1.25 },
+];
+const hashStr = t => { let h = 2166136261; for (const c of t) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const todayMod = d => MODS[hashStr('mod' + dayKey(d || new Date())) % MODS.length];
+const modVal = (run, k, d) => (run.mod && run.mod[k] != null ? run.mod[k] : d);
+const playerSight = run => PLAYER_VISION * (run.p.area || 1) * modVal(run, 'sight', 1); // Aperture widens it, 'dim' shortens it
+function weekKey(d) { const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return dayKey(m); } // Monday
+function statAdd(k, n, now) { ensureQuests(now); SAVE.stat[k] = (SAVE.stat[k] || 0) + (n || 1); } // deal first: the first event of a new day counts
+function pickQuests(pool, n, seed) { // deterministic from the date; a fitness quest always makes the list
+  const fit = pool.filter(q => q.fit), rest = pool.filter(q => !q.fit).map(q => [hashStr(seed + q.text), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  return [...fit, ...rest].slice(0, n);
+}
+function ensureQuests(now) {
+  now = now || new Date(); const st = SAVE.stat || (SAVE.stat = {}), Q = SAVE.quests || (SAVE.quests = {});
+  const deal = (period, key, pool, n) => { if (Q[period] && Q[period].key === key) return; Q[period] = { key, list: pickQuests(pool, n, key).map(q => ({ ...q, base: st[q.stat] || 0, claimed: false })) }; };
+  deal('day', dayKey(now), QUESTS.day, QUESTS.perDay); deal('week', weekKey(now), QUESTS.week, QUESTS.perWeek);
+  return Q;
+}
+const questProg = q => Math.min(q.need, ((SAVE.stat || {})[q.stat] || 0) - q.base);
+function claimQuest(period, i) { const q = SAVE.quests[period].list[i]; if (!q || q.claimed || questProg(q) < q.need) return 0; q.claimed = true; SAVE.gold += q.gold; persist(SAVE); return q.gold; }
+function goalEnd(period, now) { const y = now.getFullYear(), m = now.getMonth(); return (period === 'week' ? new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7) + 7) : period === 'month' ? new Date(y, m + 1, 1) : new Date(y + 1, 0, 1)).getTime(); }
+function addGoal(ex, target, period, now) {
+  now = now || new Date(); if (!GOALS.ex[ex] || !(target > 0) || !GOALS.reward[period]) return null;
+  const g = { ex, target: +target, period, from: new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), until: goalEnd(period, now), reward: GOALS.reward[period], claimed: false };
+  (SAVE.goals || (SAVE.goals = [])).push(g); persist(SAVE); return g;
+}
+function goalBest(g) { // best value logged for this goal's exercise inside its window
+  let best = null; const better = (v) => { if (v == null || !isFinite(v)) return; if (best == null || (GOALS.ex[g.ex].less ? v < best : v > best)) best = v; };
+  for (const l of SAVE.logs) {
+    if (!l.ts || l.ts < g.from || l.ts >= g.until || !l.detail) continue; const d = l.detail;
+    if (LIFTS[g.ex]) for (const x of d.lifts || []) if (x.lift === g.ex) better(e1rm(x.w, x.reps));
+    if (g.ex === 'run_mi' && l.id === 'run') better(+d.mi);
+    if (g.ex === 'run_pace' && l.id === 'run' && d.mi > 0 && d.min > 0) better(d.min / d.mi);
+    if (g.ex === 'cindy' && l.id === 'cindy') better(+d.rounds + (+d.extra || 0) / 30); // 30 reps a round, as in the history chart
+  }
+  return best;
+}
+const goalMet = g => { const b = goalBest(g); return b != null && (GOALS.ex[g.ex].less ? b <= g.target : b >= g.target); };
+function claimGoal(i) { const g = (SAVE.goals || [])[i]; if (!g || g.claimed || !goalMet(g)) return 0; g.claimed = true; SAVE.gold += g.reward; persist(SAVE); return g.reward; }
+const anyClaimable = () => { const Q = SAVE.quests || {}; return ['day', 'week'].some(k => Q[k] && Q[k].list.some(q => !q.claimed && questProg(q) >= q.need)) || (SAVE.goals || []).some(g => !g.claimed && goalMet(g)); };
 
 /* ---------- audio + haptics ---------- */
 let actx = null;
@@ -577,7 +682,15 @@ const SFX = {
   dead:   () => { beep(240, 0.8, 'sawtooth', 0.08, 0.15); buzz(300); },
   mote:   () => beep(1500, 0.08, 'sine', 0.03, 0.7),
   jam:    () => beep(150, 0.12, 'square', 0.03, 1.4),
+  // stage 5 pass: every new system gets its own cue (all respect the Sound setting through beep/buzz)
+  hiveHit: () => beep(95, 0.09, 'triangle', 0.05, 0.7),
+  hiveDown: () => { beep(160, 0.5, 'sawtooth', 0.08, 0.25); setTimeout(() => beep(520, 0.18, 'triangle', 0.06, 1.5), 180); buzz([60, 40, 120]); },
+  order:  () => { beep(880, 0.05, 'sine', 0.04); setTimeout(() => beep(1320, 0.06, 'sine', 0.04), 60); },
+  pickup: () => beep(1250, 0.06, 'triangle', 0.035, 1.2),
+  block:  () => { beep(1800, 0.05, 'square', 0.025, 0.4); buzz(10); },
+  quest:  () => { for (let i = 0; i < 4; i++) setTimeout(() => beep(660 * Math.pow(1.26, i), 0.12, 'triangle', 0.06), i * 80); buzz([30, 30, 60]); },
 };
+function cue(run, key, gap, f) { const T = run.sfxT || (run.sfxT = {}), now = run.fogT || 0; if (now - (T[key] ?? -1e9) < gap) return; T[key] = now; f(); } // throttled sound
 function buzz(p) { if (HAS_DOM && navigator.vibrate && !SAVE.muted) { try { navigator.vibrate(p); } catch (e) { /* ignore */ } } }
 
 /* ---------- run state ---------- */
@@ -601,7 +714,7 @@ function newRun(zoneIdx, mode) {
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
-    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], units: [], order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max),
+    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, units: [], order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max),
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800, maxhp: 800, alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
@@ -701,7 +814,7 @@ function visionPoly(run, x, y, r) {
   return { x, y, r, pts };
 }
 function computeVision(run) {
-  const v = [visionPoly(run, run.p.x, run.p.y, PLAYER_VISION * (run.p.area || 1))]; // Aperture widens your sight too
+  const v = [visionPoly(run, run.p.x, run.p.y, playerSight(run))]; // Aperture widens your sight too
   for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) { const q = visionPoly(run, m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1)); q.perched = true; v.push(q); } else if (m.state === 'follow' && m.bat > 10) v.push(visionPoly(run, m.x, m.y, 150)); }
   run.vis = v;
 }
@@ -741,7 +854,7 @@ function revealCircle(run, cx, cy, rad) {
 }
 function updateFog(run) {
   run.fog.seen.fill(0);
-  revealCircle(run, run.p.x, run.p.y, PLAYER_VISION * (run.p.area || 1));
+  revealCircle(run, run.p.x, run.p.y, playerSight(run));
   for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) revealCircle(run, m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1)); else if (m.state === 'follow' && m.bat > 10) revealCircle(run, m.x, m.y, 150); }
 }
 function isSeen(run, x, y) { return run.fog.seen[cellIdx(x, y)] === 1; }
@@ -783,6 +896,7 @@ function makeEnemy(run, type, x, y) {
   const e = { type, x, y, r: b.r, hp: b.hp * hpMult, maxhp: b.hp * hpMult, spd: b.spd * (1 + 0.02 * min) * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
     dmg: b.dmg * (1 + 0.05 * min) * Math.sqrt(diff) * run.M.dmg, xp: b.xp, gold: b.gold, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0 };
   if (type === 'resonator') { e.hp *= 1; e.maxhp = e.hp; e.cd = 3; e.spawnCd = 4; }
+  if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1);
   run.enemies.push(e);
   return e;
 }
@@ -893,7 +1007,7 @@ const HIVE = {
 };
 function placeHives(run) {
   run.blocked = buildBlocked(run); run.fields = new Map(); run.hives = [];
-  const n = HIVE.count[run.zone] || 3;
+  const n = (HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0);
   for (let tries = 0; run.hives.length < n && tries < 3000; tries++) {
     const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
     if (dist2(x, y, run.base.x, run.base.y) < HIVE.minBaseDist * HIVE.minBaseDist) continue;
@@ -1014,12 +1128,12 @@ function hiveProduce(run, h) {
   e.hive = h; e.role = role;
 }
 function hiveDestroyed(run, h) {
-  h.dead = true;
+  h.dead = true; statAdd('hives');
   const parts = Math.round(HIVE.lootParts + h.stock * HIVE.lootPerStock);
   if (hivesAlive(run).length) run.gems.push({ x: h.x, y: h.y, v: 0, part: parts, t: 0 }); else run.parts += parts; // the last hive ends the zone: bank its loot now
   run.gold += HIVE.lootGold + h.stock;
   for (const e of run.enemies) if (e.hive === h && !e.isCore) { if (e.tgt && e.tgt.claim) e.tgt.claim = false; e.hive = null; e.role = null; e.tgt = null; e.target = null; }
-  toast(run, `Hive destroyed: +${parts} parts, +${HIVE.lootGold + h.stock} gold`); tip(run, 'hive_down', { at: run.p }); SFX.win();
+  toast(run, `Hive destroyed: +${parts} parts, +${HIVE.lootGold + h.stock} gold`); tip(run, 'hive_down', { at: run.p }); if (hivesAlive(run).length) SFX.hiveDown(); else SFX.win();
   if (!hivesAlive(run).length && !run.over) { toast(run, 'Every hive destroyed. Zone cleared.'); endRun(run, true); }
 }
 function updateHives(run, dt) {
@@ -1115,6 +1229,8 @@ const TIPS = {
   hard:     { group: 'Between runs', title: 'Hard mode unlocked', body: 'You cleared a zone, so its Hard mode is open: the original tuning, about twice the enemies and harder hits. The zone bonus pays 1.5x on Hard.' },
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
+  quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are yours: pick an exercise and a number, like a squat 1 rep max or a run pace, and a deadline. Log it in the workout ledger before then and claim the reward: 400 gold for a week, 1500 for a month, 6000 for a year.' },
+  modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. Lines show what opens what (the number is the level needed). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
   u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Up to 6. Enemies that touch them or shoot them wear them down.' },
@@ -1358,7 +1474,7 @@ function updateMotes(run, dt) {
       const tx = m.state === 'flying' ? m.anchor.x : p.x, ty = m.state === 'flying' ? m.anchor.y : p.y;
       const d = Math.hypot(tx - m.x, ty - m.y), sp = 240 * (run.tier >= 1 ? DRONE_TIERS[1].speed : 1);
       if (d < 14 || d < sp * dt) {
-        if (m.state === 'flying') { m.state = 'perched'; m.x = m.anchor.x; m.y = m.anchor.y; m.anchor.mote = m; toast(run, 'Drone perched. Watching this area.'); SFX.mote(); }
+        if (m.state === 'flying') { statAdd('perches'); m.state = 'perched'; m.x = m.anchor.x; m.y = m.anchor.y; m.anchor.mote = m; toast(run, 'Drone perched. Watching this area.'); SFX.mote(); }
         else { m.state = 'follow'; droneHandover(run, m); }
       } else { m.x += (tx - m.x) / d * sp * dt; m.y += (ty - m.y) / d * sp * dt; }
       m.bat = Math.max(0, m.bat - 1.5 * dt);
@@ -1404,7 +1520,7 @@ function droneSkills(run, dt) {
     if (sk.dshield && m.state === 'follow' && (m.icd = (m.icd || 0) - dt) <= 0) { // Intercept: shoot down the nearest enemy bullet
       let hit = null, bd = INTERCEPT.r * INTERCEPT.r; for (const b of run.ebullets) { const d = dist2(b.x, b.y, m.x, m.y); if (d < bd && b.t > 0) { bd = d; hit = b; } }
       if (hit) {
-        hit.t = 0; m.icd = INTERCEPT.every[sk.dshield]; spark(run, hit.x, hit.y, '#7ff5ff'); run.intercepts = (run.intercepts || 0) + 1; tip(run, 'intercept', { at: m });
+        hit.t = 0; m.icd = INTERCEPT.every[sk.dshield]; spark(run, hit.x, hit.y, '#7ff5ff'); cue(run, 'block', 0.2, SFX.block); run.intercepts = (run.intercepts || 0) + 1; tip(run, 'intercept', { at: m });
         m.hp -= INTERCEPT.hpCost[sk.dshield]; if (m.hp <= 0) { dimMote(run, m, 'block'); continue; }
       }
     }
@@ -1520,19 +1636,20 @@ function updateEnemies(run, dt) {
 function hurtPlayer(run, dmg) {
   const p = run.p;
   if (p.inv > 0) return;
+  dmg *= modVal(run, 'dmgIn', 1);
   p.hp -= dmg; p.inv = 0.45; run.shake = 1; SFX.hurt();
   for (let i = 0; i < 6; i++) spark(run, p.x, p.y, '#ff6b5c');
 }
 
 function killEnemy(run, e, idx) {
   const p = run.p;
-  run.kills++; run.lastKillT = run.t; run.heat = Math.min(10, run.heat + e.heatv);
+  run.kills++; run.lastKillT = run.t; statAdd('kills'); run.heat = Math.min(10, run.heat + e.heatv);
   run.gold += e.gold;
   run.gems.push({ x: e.x + rnd(-6, 6), y: e.y + rnd(-6, 6), v: e.xp, t: 0 });
   if (Math.random() < (e.type === 'static' ? 0.02 : 0.08)) run.gems.push({ x: e.x, y: e.y, v: 0, heal: 12, t: 0 });
   if (Math.random() < ENEMY[e.type].parts) run.gems.push({ x: e.x + rnd(-8, 8), y: e.y + rnd(-8, 8), v: 0, part: e.type === 'resonator' ? 20 : 1, t: 0 });
   for (let i = 0; i < (e.type === 'resonator' ? 40 : 4); i++) spark(run, e.x, e.y, ENEMY_COLOR[e.type]);
-  SFX.kill();
+  SFX.kill(); if (e.maxhp >= 200 && !e.isCore && e.type !== 'resonator') buzz(18); // a big kill you can feel
   if (e.type === 'resonator') { run.boss = null; SFX.win(); endRun(run, true); }
   if (e.tgt && e.tgt.claim) e.tgt.claim = false; // free the cache this gatherer was after
   if (e.carry) run.gems.push({ x: e.x, y: e.y, v: 0, part: Math.round(e.carry / 2), t: 0 }); // a gatherer drops what it carried
@@ -1540,7 +1657,8 @@ function killEnemy(run, e, idx) {
   if (e.isCore) hiveDestroyed(run, e.hive);
 }
 function damageEnemy(run, e, dmg, kx, ky) {
-  e.hp -= dmg; e.flash = 0.08;
+  if (e.isCore) cue(run, 'hive', 0.25, SFX.hiveHit);
+  e.hp -= dmg * modVal(run, 'dmgOut', 1); e.flash = 0.08;
   if (kx && !e.isCore) { e.x = clamp(e.x + kx, e.r, WORLD - e.r); e.y = clamp(e.y + ky, e.r, WORLD - e.r); }
 }
 function reapDead(run) {
@@ -1855,7 +1973,7 @@ function callStrike(run, x, y) {
   }
   if (!spotted && run.tut && run.tut.arty && run.motes.some(m => m.state === 'perched')) { const e = run.tut.arty.find(q => run.enemies.includes(q)); if (e) { x = e.x; y = e.y; spotted = true; } }
   if (!spotted) { toast(run, 'No perched drone has eyes on that spot'); beep(200, 0.15, 'square', 0.04); return false; }
-  run.shells -= 1;
+  run.shells -= 1; statAdd('strikes');
   run.strikes.push({ x, y, t: 1.6, r: 130 });
   if (run.tut) run.tut.called = true;
   toast(run, 'Shell inbound'); beep(300, 0.3, 'sawtooth', 0.05, 0.4); buzz(30); run.aim = null;
@@ -1893,16 +2011,16 @@ function build(run, kind) {
 }
 
 const CACHE = { ammo: 120, parts: 8, shells: 2 };
-function cacheReward(run, what) { run.ammo = Math.min(run.maxAmmo, run.ammo + CACHE.ammo); run.parts += CACHE.parts; run.shells = Math.min(run.maxShells, run.shells + CACHE.shells); toast(run, `${what}: +${CACHE.ammo} ammo, +${CACHE.parts} parts, +${CACHE.shells} shells`); SFX.levelup(); }
+function cacheReward(run, what) { statAdd('caches'); run.ammo = Math.min(run.maxAmmo, run.ammo + CACHE.ammo); run.parts += CACHE.parts; run.shells = Math.min(run.maxShells, run.shells + CACHE.shells); toast(run, `${what}: +${CACHE.ammo} ammo, +${CACHE.parts} parts, +${CACHE.shells} shells`); SFX.levelup(); }
 function buildUnit(run, kind) {
   const U = UNITS[kind], p = run.p;
   if (run.parts < U.cost) { toast(run, `Need ${U.cost} parts for a ${U.name}`); return false; }
   if (run.units.filter(u => u.kind === kind).length >= U.max) { toast(run, `${U.max} ${U.name}s max`); return false; }
-  run.parts -= U.cost; run.units.push({ kind, x: p.x, y: p.y, hp: U.hp, maxhp: U.hp, r: U.r, cd: 0, carry: null, tgt: null });
+  run.parts -= U.cost; statAdd('units'); run.units.push({ kind, x: p.x, y: p.y, hp: U.hp, maxhp: U.hp, r: U.r, cd: 0, carry: null, tgt: null });
   toast(run, `${U.name} ready`); SFX.mote(); tip(run, 'u_' + kind, { at: p }); return true;
 }
 function setOrder(run, mode, x, y) {
-  run.order = { mode, x: x == null ? run.p.x : x, y: y == null ? run.p.y : y }; run.pickAttack = false;
+  run.order = { mode, x: x == null ? run.p.x : x, y: y == null ? run.p.y : y }; run.pickAttack = false; SFX.order();
   toast(run, mode === 'follow' ? 'Gun drones: follow me' : mode === 'hold' ? 'Gun drones: hold this spot' : 'Gun drones: attack there');
 }
 function scavTarget(run, u) { // nearest remembered cache or parts pile it can reach
@@ -1932,7 +2050,7 @@ function updateUnits(run, dt) {
         if (!u.tgt && (u.look = (u.look || 0) - dt) <= 0) { u.look = 0.5; u.tgt = scavTarget(run, u); }
         if (u.tgt) { const g = u.tgt.gem; tx = g ? g.x : u.tgt.x; ty = g ? g.y : u.tgt.y;
           if (dist2(u.x, u.y, tx, ty) < 22 * 22) {
-            if (u.tgt.cache) { u.tgt.cache.taken = true; u.carry = { cache: 1 }; } else { run.gems.splice(run.gems.indexOf(u.tgt.gem), 1); u.carry = { parts: u.tgt.gem.part }; }
+            cue(run, 'pickup', 0.3, SFX.pickup); if (u.tgt.cache) { u.tgt.cache.taken = true; u.carry = { cache: 1 }; } else { run.gems.splice(run.gems.indexOf(u.tgt.gem), 1); u.carry = { parts: u.tgt.gem.part }; }
             u.tgt = null;
           }
         }
@@ -1965,12 +2083,13 @@ function endRun(run, won) {
   if (run.over) return; // a boss and the last hive can die in the same frame
   run.over = true; run.result = won ? 'win' : 'lose';
   const salvage = 0.4 + latVal('salvage');
-  const runGold = Math.round(run.gold);
+  const runGold = Math.round(run.gold * (run.mod ? run.mod.gold : 1)); // today's modifier pays extra
   const bonus = run.base.breached ? 0 : Math.round(run.z.gold * run.M.gold);
   const kept = won ? runGold + bonus : Math.round(runGold * salvage);
   run.summary = { won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached, byHives: won && !!run.hives && run.hives.length > 0 && !hivesAlive(run).length };
   run.summary.carry = Math.min(PARTS_CARRY_CAP, won ? run.parts : Math.floor(run.parts / 2)); SAVE.carryParts = run.summary.carry;
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
+  if (won) statAdd('zones');
   if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
   if (won && run.mode === 'hard' && run.zone + 1 > (SAVE.clearedHard || 0)) SAVE.clearedHard = run.zone + 1;
   persist(SAVE);
@@ -2200,7 +2319,7 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests'];
   let curScreen = 'menu';
   UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause' || id === 'dial'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
@@ -2285,10 +2404,14 @@ if (HAS_DOM) {
     { const pips = (n, c) => ZONES.map((z, i) => `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); // cleared zones as marks, not words (Lance 10-07)
       el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
     el('m-ver').textContent = BUILD_ID;
+    ensureQuests(); el('btn-quests').classList.toggle('pts', anyClaimable()); // amber dot: a reward is waiting
   };
   const hardOpen = i => i < SAVE.cleared || SAVE.playtest;
   UI.zones = () => {
-    UI.go('zones'); inlineTip('it-zones', 'zones'); if (ZONES.some((z, i) => hardOpen(i))) inlineTip('it-hard', 'hard'); else el('it-hard').hidden = true;
+    UI.go('zones'); { const first = !tipSeen('zones'); inlineTip('it-zones', 'zones'); if (first) el('it-mod').hidden = true; else inlineTip('it-mod', 'modifier'); } // one new card per visit if (ZONES.some((z, i) => hardOpen(i))) inlineTip('it-hard', 'hard'); else el('it-hard').hidden = true;
+    { const md = todayMod(), b = el('btn-mod'); b.classList.toggle('on', !!SAVE.modOn);
+      b.innerHTML = `<b>Today's modifier</b><em>${SAVE.modOn ? 'On' : 'Off'}</em><span>${md.name}. Run gold x${md.gold}. Tap to turn ${SAVE.modOn ? 'off' : 'on'}.</span>`;
+      b.onclick = () => { SAVE.modOn = !SAVE.modOn; persist(SAVE); UI.zones(); }; }
     const box = el('zone-list'); box.innerHTML = '';
     ZONES.forEach((z, i) => {
       const locked = i > SAVE.cleared && !SAVE.playtest;
@@ -2310,6 +2433,32 @@ if (HAS_DOM) {
     return { pos: LAT_SKY, links, stars, sel: latSel, groups: LAT_GROUPS };
   }
   window.latStarXY = id => { const c = el('lat-sky'), r = c.getBoundingClientRect(), [x, y] = skyXY(c, LAT_SKY[id]); return { x: r.left + x, y: r.top + y }; }; // for tests
+  UI.quests = msg => {
+    UI.go('quests'); inlineTip('it-quests', 'quests'); const Q = ensureQuests();
+    const row = (text, prog, need, gold, claimed, onClaim, sub) => {
+      const d = document.createElement('div'), done = prog >= need; d.className = 'qrow' + (claimed ? ' claimed' : done ? ' done' : '');
+      d.innerHTML = `<b>${text}</b><em>${claimed ? 'Claimed' : '+' + gold + ' gold'}</em><div class="qbar"><i style="width:${Math.round(Math.min(1, prog / need) * 100)}%"></i></div>` + (sub ? `<small>${sub}</small>` : '');
+      if (done && !claimed) { const c = document.createElement('button'); c.textContent = `Claim ${gold} gold`; c.onclick = onClaim; d.appendChild(c); }
+      return d;
+    };
+    for (const k of ['day', 'week']) {
+      const box = el('q-' + k); box.innerHTML = '';
+      Q[k].list.forEach((q, i) => box.appendChild(row(q.text, questProg(q), q.need, q.gold, q.claimed, () => { const g = claimQuest(k, i); if (g) { SFX.quest(); UI.quests(`+${g} gold`); } }, `${Math.max(0, questProg(q))} of ${q.need}`)));
+    }
+    const gb = el('q-goals'); gb.innerHTML = ''; const now = Date.now();
+    (SAVE.goals || []).forEach((g, i) => {
+      const ex = GOALS.ex[g.ex], best = goalBest(g), met = goalMet(g), over = now >= g.until && !met;
+      const shown = best == null ? 'nothing logged yet' : `best ${Math.round(best * 100) / 100}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
+      const prog = best == null ? 0 : ex.less ? (met ? 1 : Math.min(0.99, g.target / best)) : Math.min(1, best / g.target);
+      const d = row(`${ex.name}: ${g.target}`, prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } }, over ? `Missed (${shown}). Hold Remove to clear it.` : `${shown}, ${left} day${left === 1 ? '' : 's'} left`);
+      if (over || g.claimed) { const hs = holdSell('Hold to remove', () => { SAVE.goals.splice(i, 1); persist(SAVE); UI.quests(); }); d.appendChild(hs); }
+      gb.appendChild(d);
+    });
+    if (!(SAVE.goals || []).length) gb.innerHTML = '<p>No goals yet. Pick an exercise and a number below: hit it in your ledger before the deadline.</p>';
+    el('q-msg').textContent = typeof msg === 'string' ? msg : '';
+  };
+  { const ge = el('g-ex'); ge.innerHTML = Object.entries(GOALS.ex).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+    el('btn-goal-add').onclick = () => { const g = addGoal(ge.value, parseFloat(el('g-target').value), el('g-by').value); if (!g) { el('q-msg').textContent = 'Enter a target number above zero.'; return; } el('g-target').value = ''; el('q-add').open = false; beep(660, 0.08, 'triangle', 0.05); UI.quests(`Goal added: ${GOALS.ex[g.ex].name} ${g.target}, worth ${g.reward} gold.`); }; }
   UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
     el('l-gold').textContent = Math.round(SAVE.gold);
@@ -2635,7 +2784,7 @@ if (HAS_DOM) {
     else { nb.style.display = ''; nb.textContent = 'Retry'; nb.onclick = () => startRun(run.zone, run.mode); }
     UI.go('end'); inlineTip('it-end', s.won ? 'win' : (!tipSeen('lose') ? 'lose' : 'workshop_death'));
   };
-  el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
+  el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests(); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
   const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', logform: 'log', hist: 'log' };
   function goBack() {
@@ -2915,7 +3064,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
