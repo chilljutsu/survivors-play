@@ -134,6 +134,7 @@
   .statgrid b { color:var(--ink); font-weight:500; text-align:right; }
   .wdet summary { font-size:12px; padding:2px 12px; }
   .wdet p { font-size:13px; padding:0 12px 6px; }
+  .hgroup.ember { color:#ff9a5a; }
   .hgroup { font-size:13px; font-weight:500; color:var(--cyan); letter-spacing:0.1em; text-transform:uppercase; margin:14px 0 0; }
   textarea { font:inherit; font-size:16px; color:var(--ink); background:rgba(255,255,255,0.04); border:1px solid var(--line); border-radius:6px; padding:10px; width:100%; resize:vertical; -webkit-user-select:text; user-select:text; touch-action:auto; }
   #m-ver { font-size:12px; }
@@ -312,6 +313,7 @@
   <button class="row" id="btn-tips"></button>
   <button class="row" id="btn-tips-reset"><b>Replay the tutorial</b><span>Shows the practice run and every tip card again from your next run.</span></button>
   <button class="row" id="btn-playtest"></button>
+  <button class="row" id="btn-skin"></button>
   <button class="row" id="btn-spawn"></button>
   <button class="row" id="btn-backup"><b>Backup or restore save</b><span>Your save as text, for moving to a new install.</span></button>
   <button class="back">Back</button>
@@ -379,7 +381,22 @@ const ZONES = [
   { name: 'Zone 3',  dur: 240, diff: 1.32, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
   { name: 'Zone 4',  dur: 270, diff: 1.5,  gold: 220, desc: 'Everything, faster. Heat climbs and the base gets hit.' },
   { name: 'Zone 5',  dur: 300, diff: 1.68, gold: 320, desc: 'Five minutes to the boss. Everything you have.' },
+  // World 2 (Lance 10-07: after zone 5 the next zones get a new look; beat them and the look is yours in Settings)
+  { name: 'Zone 6',  dur: 240, diff: 1.86, gold: 420, world: 2, desc: 'World 2, the Ember fields. Everything from World 1, hotter. More hives.' },
+  { name: 'Zone 7',  dur: 270, diff: 2.04, gold: 520, world: 2, hiveRate: 0.8, desc: 'Hives grow faster from here on: hit them early.' },
+  { name: 'Zone 8',  dur: 270, diff: 2.22, gold: 620, world: 2, hiveRate: 0.8, desc: 'Tougher everything, six hives. Walls are your friends.' },
+  { name: 'Zone 9',  dur: 300, diff: 2.4,  gold: 740, world: 2, hiveRate: 0.8, desc: 'Long and loud. Bring gun drones.' },
+  { name: 'Zone 10', dur: 300, diff: 2.6,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Ember look for every zone.' },
 ];
+const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Ember', skin: 'ember' } };
+// colours the map is drawn with; a zone uses its world's skin, World 1 uses the skin you picked once Ember is earned
+const THEMES = {
+  static: { name: 'Static', bg: '#0f1420', grid: 'rgba(120,170,210,0.16)', wall: '#1c2434', wallDim: '#161c29', edge: 'rgba(160,190,220,0.6)', edgeDim: 'rgba(120,140,170,0.25)', edgeMem: 'rgba(160,190,220,0.5)', fog: 'rgba(6,8,14,0.74)', noise: [0, 3, 9] },
+  ember:  { name: 'Ember', bg: '#1a1110', grid: 'rgba(255,150,90,0.14)', wall: '#2f1d17', wallDim: '#241510', edge: 'rgba(255,180,130,0.6)', edgeDim: 'rgba(200,130,90,0.25)', edgeMem: 'rgba(255,180,130,0.5)', fog: 'rgba(16,8,5,0.76)', noise: [12, 2, -6] },
+};
+const EMBER_AT = 10; // clearing this many zones earns the Ember skin
+const chosenSkin = () => (SAVE.skin === 'ember' && SAVE.cleared >= EMBER_AT ? 'ember' : 'static'); // World 1 look
+const skinFor = z => ((z.world || 1) > 1 ? WORLDS[z.world].skin : chosenSkin());
 
 /* Difficulty. Hard is the original tuning, untouched. Normal scales pressure down; tuned with tests/bal.js,
    numbers in docs/BALANCE_LOG.md. gold multiplies the zone clear bonus. */
@@ -484,7 +501,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s5b';
+const BUILD_ID = 'playtest 2026-10-08 s5c';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -726,7 +743,7 @@ function newRun(zoneIdx, mode) {
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
-    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, units: [], order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max),
+    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max),
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800, maxhp: 800, alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
@@ -1008,7 +1025,7 @@ function steer(run, e, tx, ty, d, dt) {
 /* ---------- hives: self-interested enemy bases (Lance 10-07). They start blind, scout, gather, grow, and only raid
    what their own units have found, picking by value and risk. Pure functions over run state (headless-safe). ---------- */
 const HIVE = {
-  count: [3, 3, 4, 4, 5], minBaseDist: 1100, minGap: 900,
+  count: [3, 3, 4, 4, 5, 5, 5, 6, 6, 6], minBaseDist: 1100, minGap: 900,
   hp: 500, hpPerTier: 250, tierEvery: 15,               // stock (parts-equivalent) per growth tier
   decideEvery: 2, prodEvery: 7, prodPerTier: 0.85,      // seconds between units, x0.85 per tier
   scoutsMax: 2, gatherersMax: 1, guardsBase: 6, guardsPerTier: 2, sight: 260, lookEvery: 0.5, guardR: 140, engageR: 220,
@@ -1154,7 +1171,7 @@ function updateHives(run, dt) {
   if (run.tut) return;
   for (const h of run.hives) {
     if (h.dead) continue;
-    const tier = Math.floor(h.stock / HIVE.tierEvery);
+    const tier = Math.floor(h.stock / (HIVE.tierEvery * (run.z.hiveRate || 1))); // hiveRate < 1: zones where hives grow faster
     if (tier > h.tier) { const add = (tier - h.tier) * HIVE.hpPerTier * run.z.diff; h.core.maxhp += add; h.core.hp += add; h.tier = tier; }
     if (h.tier >= 1) { // a grown hive defends itself
       h.turretT -= dt; const p = run.p;
@@ -1166,7 +1183,7 @@ function updateHives(run, dt) {
     h.decideT -= dt; if (h.decideT <= 0) { h.decideT = HIVE.decideEvery; hiveDecide(run, h); }
     h.prodT -= dt;
     if (h.prodT <= 0) { // a watched hive cannot produce (same rule as all spawning)
-      h.prodT = HIVE.prodEvery * Math.pow(HIVE.prodPerTier, h.tier) / Math.sqrt(run.M.spawn * 2);
+      h.prodT = HIVE.prodEvery * (run.z.hiveRate || 1) * Math.pow(HIVE.prodPerTier, h.tier) / Math.sqrt(run.M.spawn * 2);
       if (!isSeen(run, h.x, h.y) && run.enemies.length < ENEMY_CAP - 5) hiveProduce(run, h);
     }
     if (!h.parent && h.stock >= HIVE.outpostAt && h.outposts < HIVE.maxOutposts) { // grow outward
@@ -1244,6 +1261,7 @@ const TIPS = {
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are yours: pick an exercise and a number, like a squat 1 rep max or a run pace, and a deadline. Log it in the workout ledger before then and claim the reward: 400 gold for a week, 1500 for a month, 6000 for a year.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
+  world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look and tougher numbers: more hives, more pressure. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. Lines show what opens what (the number is the level needed). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
   u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Up to 6. Enemies that touch them or shoot them wear them down.' },
@@ -1266,7 +1284,8 @@ function updateTips(run, dt) {
   run.tipT = 0.2;
   const p = run.p, vw2 = run.view ? run.view.w / 2 - 40 : 1e9, vh2 = run.view ? run.view.h / 2 - 90 : 1e9;
   const near = (x, y, r) => dist2(x, y, p.x, p.y) < r * r && Math.abs(x - run.cam.x) < vw2 && Math.abs(y - run.cam.y) < vh2;
-  if (run.t > 30 && !tipSeen('zoom')) tip(run, 'zoom', { at: p }); // pinch zoom is invisible until someone says so
+  if (run.t > 30 && !tipSeen('zoom')) tip(run, 'zoom', { at: p });
+  if ((run.z.world || 1) > 1 && !tipSeen('world2')) tip(run, 'world2', { at: run.base }); // after any tutorial // pinch zoom is invisible until someone says so
   for (const e of run.enemies) if (e.type !== 'resonator' && !tipSeen('e_' + e.type) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, 'e_' + e.type, { at: e });
   for (const g of run.gems) {
     if (g.part) { if (!tipSeen('part') && near(g.x, g.y, 330)) tip(run, 'part', { at: g }); }
@@ -2135,6 +2154,7 @@ function endRun(run, won) {
   run.summary.carry = Math.min(PARTS_CARRY_CAP, won ? run.parts : Math.floor(run.parts / 2)); SAVE.carryParts = run.summary.carry;
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won) statAdd('zones');
+  const earnedEmber = won && run.zone + 1 === EMBER_AT && SAVE.cleared < EMBER_AT; run.summary.ember = earnedEmber;
   if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
   if (won && run.mode === 'hard' && run.zone + 1 > (SAVE.clearedHard || 0)) SAVE.clearedHard = run.zone + 1;
   persist(SAVE);
@@ -2145,7 +2165,7 @@ function endRun(run, won) {
 
 /* ---------- rendering ---------- */
 const ENEMY_COLOR = { static: '#8b93a3', spike: '#ff5a4a', null: '#a86bff', harmonic: '#4fd8ff', resonator: '#ffb347', hive: '#ff8a3d', scout: '#9dff7a', gatherer: '#ffd166' };
-let noiseTile = null, fogCv = null, fogCtx = null, fogDpr = 1;
+let noiseTile = null, noiseTiles = {}, fogCv = null, fogCtx = null, fogDpr = 1;
 const MM = 112;
 let MM_Y = 44; // set by the browser from the HUD's bottom edge so the minimap never sits under the status rows
 function drawMinimap(ctx, run, vw, vh) {
@@ -2175,10 +2195,12 @@ function drawMinimap(ctx, run, vw, vh) {
 function makeNoise() {
   if (!HAS_DOM) return;
   fogCv = document.createElement('canvas'); fogCtx = fogCv.getContext('2d'); fogDpr = Math.min(2, window.devicePixelRatio || 1);
-  noiseTile = document.createElement('canvas'); noiseTile.width = noiseTile.height = 128;
-  const c = noiseTile.getContext('2d'), img = c.createImageData(128, 128);
-  for (let i = 0; i < img.data.length; i += 4) { const v = 22 + Math.random() * 40; img.data[i] = v; img.data[i + 1] = v + 3; img.data[i + 2] = v + 9; img.data[i + 3] = 255; }
-  c.putImageData(img, 0, 0);
+  for (const k in THEMES) { // tinted static per skin
+    const t = document.createElement('canvas'); t.width = t.height = 128; const tc = t.getContext('2d'), im = tc.createImageData(128, 128), [dr, dg, db] = THEMES[k].noise;
+    for (let i = 0; i < im.data.length; i += 4) { const v = 22 + Math.random() * 40; im.data[i] = v + dr; im.data[i + 1] = v + dg; im.data[i + 2] = v + db; im.data[i + 3] = 255; }
+    tc.putImageData(im, 0, 0); noiseTiles[k] = t;
+  }
+  noiseTile = noiseTiles.static;
 }
 function poly(ctx, x, y, r, n, ang) { ctx.beginPath(); for (let i = 0; i < n; i++) { const a = ang + i / n * Math.PI * 2; ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); }
 
@@ -2187,7 +2209,8 @@ function render(ctx, run, vw, vh, now) {
   const shx = run.shake > 0 ? rnd(-4, 4) * run.shake : 0, shy = run.shake > 0 ? rnd(-4, 4) * run.shake : 0;
   const z = run.zoom || 1, hw = vw / 2 / z, hh = vh / 2 / z; // pinch zoom: world units per screen half-width
   const ox = Math.round(vw / 2 - cam.x * z + shx), oy = Math.round(vh / 2 - cam.y * z + shy);
-  ctx.fillStyle = '#0f1420'; ctx.fillRect(0, 0, vw, vh);
+  const TH = THEMES[run.skin] || THEMES.static;
+  ctx.fillStyle = TH.bg; ctx.fillRect(0, 0, vw, vh);
   ctx.save(); ctx.translate(ox, oy); ctx.scale(z, z);
   // fog cells in view
   const c0 = clamp(Math.floor((cam.x - hw) / CELL), 0, COLS - 1), c1 = clamp(Math.floor((cam.x + hw) / CELL), 0, COLS - 1);
@@ -2196,7 +2219,7 @@ function render(ctx, run, vw, vh, now) {
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
     const i = r * COLS + c, x = c * CELL, y = r * CELL;
     if (!mapped[i]) { /* drawn opaque after the fog pass */ } else {
-      ctx.strokeStyle = 'rgba(120,170,210,0.16)';
+      ctx.strokeStyle = TH.grid;
       ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, CELL, CELL);
     }
   }
@@ -2204,8 +2227,8 @@ function render(ctx, run, vw, vh, now) {
   for (const o of run.walls) {
     if (o.x + o.w < cam.x - hw - 20 || o.x > cam.x + hw + 20 || o.y + o.h < cam.y - hh - 20 || o.y > cam.y + hh + 20) continue;
     const vis = seen[cellIdx(o.x + o.w / 2, o.y + o.h / 2)] || seen[cellIdx(o.x + 5, o.y + 5)] || seen[cellIdx(o.x + o.w - 5, o.y + o.h - 5)];
-    ctx.fillStyle = vis ? '#1c2434' : '#161c29'; ctx.fillRect(o.x, o.y, o.w, o.h);
-    ctx.strokeStyle = vis ? 'rgba(160,190,220,0.6)' : 'rgba(120,140,170,0.25)'; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
+    ctx.fillStyle = vis ? TH.wall : TH.wallDim; ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.strokeStyle = vis ? TH.edge : TH.edgeDim; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
   }
   // base
   { const b = run.base, alarm = b.alarm > 0 && Math.floor(now * 8) % 2;
@@ -2308,7 +2331,7 @@ function render(ctx, run, vw, vh, now) {
   if (run.vis && fogCv) {
     if (fogCv.width !== Math.round(vw * fogDpr) || fogCv.height !== Math.round(vh * fogDpr)) { fogCv.width = Math.round(vw * fogDpr); fogCv.height = Math.round(vh * fogDpr); }
     const f = fogCtx; f.setTransform(fogDpr, 0, 0, fogDpr, 0, 0);
-    f.globalCompositeOperation = 'source-over'; f.fillStyle = 'rgba(6,8,14,0.74)'; f.fillRect(0, 0, vw, vh);
+    f.globalCompositeOperation = 'source-over'; f.fillStyle = TH.fog; f.fillRect(0, 0, vw, vh);
     f.globalCompositeOperation = 'destination-out';
     for (const v of run.vis) { f.beginPath(); for (let i = 0; i < v.pts.length; i++) f[i ? 'lineTo' : 'moveTo'](v.pts[i][0] * z + ox, v.pts[i][1] * z + oy); f.closePath(); f.fill(); }
     ctx.drawImage(fogCv, 0, 0, vw, vh);
@@ -2317,12 +2340,13 @@ function render(ctx, run, vw, vh, now) {
     ctx.restore();
     // unexplored cells stay opaque static on top of everything
     ctx.save(); ctx.translate(ox, oy); ctx.scale(z, z);
-    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (!mapped[r * COLS + c]) { const x = c * CELL, y = r * CELL; if (noiseTile) ctx.drawImage(noiseTile, ((now * 13 + c * 37) | 0) % 64, ((now * 7 + r * 53) | 0) % 64, 64, 64, x, y, CELL, CELL); else { ctx.fillStyle = '#2a2f3a'; ctx.fillRect(x, y, CELL, CELL); } }
+    const nt = noiseTiles[run.skin] || noiseTile;
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (!mapped[r * COLS + c]) { const x = c * CELL, y = r * CELL; if (nt) ctx.drawImage(nt, ((now * 13 + c * 37) | 0) % 64, ((now * 7 + r * 53) | 0) % 64, 64, 64, x, y, CELL, CELL); else { ctx.fillStyle = '#2a2f3a'; ctx.fillRect(x, y, CELL, CELL); } }
     // walls you have seen stay drawn over the static so they never read as holes
     for (const o of run.walls) {
       if (o.x + o.w < cam.x - hw - 20 || o.x > cam.x + hw + 20 || o.y + o.h < cam.y - hh - 20 || o.y > cam.y + hh + 20) continue;
       if (!(mapped[cellIdx(o.x - 5, o.y - 5)] || mapped[cellIdx(o.x + o.w + 5, o.y - 5)] || mapped[cellIdx(o.x - 5, o.y + o.h + 5)] || mapped[cellIdx(o.x + o.w + 5, o.y + o.h + 5)] || mapped[cellIdx(o.x + o.w / 2, o.y + o.h / 2)])) continue;
-      ctx.fillStyle = '#1c2434'; ctx.fillRect(o.x, o.y, o.w, o.h); ctx.strokeStyle = 'rgba(160,190,220,0.5)'; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
+      ctx.fillStyle = TH.wall; ctx.fillRect(o.x, o.y, o.w, o.h); ctx.strokeStyle = TH.edgeMem; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
     }
     // last-known enemy markers: dashed ring in the enemy's colour, fading over FOG.memoryT
     ctx.setLineDash([5, 4]); ctx.lineWidth = 2.5; ctx.textAlign = 'center'; ctx.font = 'bold 12px Roboto, Arial, sans-serif';
@@ -2460,6 +2484,7 @@ if (HAS_DOM) {
       b.onclick = () => { SAVE.modOn = !SAVE.modOn; persist(SAVE); UI.zones(); }; }
     const box = el('zone-list'); box.innerHTML = '';
     ZONES.forEach((z, i) => {
+      if (i === 0 || (z.world || 1) !== (ZONES[i - 1].world || 1)) { const h3 = document.createElement('h3'); h3.className = 'hgroup ' + WORLDS[z.world || 1].skin; h3.textContent = WORLDS[z.world || 1].name; box.appendChild(h3); }
       const locked = i > SAVE.cleared && !SAVE.playtest;
       const d = document.createElement('button'); d.className = 'row' + (locked ? ' locked' : '');
       d.innerHTML = `<b>${i + 1}. ${z.name} <small>Normal</small></b><span>${locked ? 'Clear the previous zone first' : z.desc}</span><em>${i < SAVE.cleared ? '<i class="ck"></i>' : ''}${fmtT(z.dur)} to the boss</em>`;
@@ -2815,6 +2840,7 @@ if (HAS_DOM) {
     el('end-title').textContent = s.won ? `${run.z.name} cleared (${run.M.name})` : 'You died';
     el('end-body').innerHTML = [
       s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
+      s.ember ? '<b>Ember look earned.</b> Pick it in Settings > Map look.' : '',
       `${s.kills} kills in ${fmtT(s.time)}, level ${s.level}.`,
       `${Math.round(s.coverage * 100)}% of the map explored.`,
       `<b>+${s.kept} gold</b> (${Math.round(SAVE.gold)} banked).`,
@@ -3066,10 +3092,12 @@ if (HAS_DOM) {
     setRow('btn-mute', 'Sound and vibration', SAVE.muted ? 'Off' : 'On', 'Beeps and haptic buzzes.');
     setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
     setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
+    setRow('btn-skin', 'Map look', THEMES[chosenSkin()].name, SAVE.cleared >= EMBER_AT ? 'Ember is yours: World 1 can use it too.' : `Clear Zone ${EMBER_AT} to use the Ember look from World 2 everywhere.`);
     setRow('btn-spawn', 'Enemy spawns', SAVE.spawnAnywhere ? 'Anywhere off screen' : 'Only unwatched', 'Normally enemies only appear where neither you nor a Drone can see, so scouting matters. The other option spawns them anywhere outside your view.');
   };
   el('btn-settings').onclick = () => UI.settings();
   el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.settings(); };
+  el('btn-skin').onclick = () => { if (SAVE.cleared < EMBER_AT) { UI.settings(`Clear Zone ${EMBER_AT} first.`); return; } SAVE.skin = SAVE.skin === 'ember' ? 'static' : 'ember'; persist(SAVE); UI.settings(); };
   el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.settings(); };
   el('btn-tips').onclick = () => { SAVE.tipsOff = !SAVE.tipsOff; persist(SAVE); UI.settings(); };
   el('btn-tips-reset').onclick = () => { SAVE.seenTips = {}; SAVE.tipsOff = false; persist(SAVE); UI.settings('Tutorial reset. It replays on your next run.'); };
@@ -3113,7 +3141,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
