@@ -38,6 +38,12 @@
   button.row.hard { border-color:rgba(255,90,74,0.55); padding:9px 14px; margin-top:-4px; }
   button.row.hard em { color:var(--red); }
   button.row.evo em { color:var(--amber); }
+  button.row em .ck { display:inline-block; width:22px; height:22px; border-radius:50%; background:currentColor; vertical-align:middle; margin-right:8px; position:relative; }
+  button.row em .ck::after { content:''; position:absolute; left:8px; top:4px; width:5px; height:10px; border:solid var(--field); border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
+  .zpips { display:flex; gap:9px; margin:7px 0; justify-content:center; }
+  .zpips .zp { width:14px; height:14px; transform:rotate(45deg); border:1.5px solid var(--line); }
+  .zpips .zp.on { background:var(--cyan); border-color:var(--cyan); }
+  .zpips .zp.on.hard { background:var(--red); border-color:var(--red); }
   .back { border:none; color:var(--dim); text-align:center; padding:10px; }
   .hist { list-style:none; margin:4px 0 0; padding:0; color:var(--dim); font-size:13px; line-height:1.6; }
   #hud { position:fixed; inset:0; display:none; pointer-events:none; padding:max(10px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
@@ -96,7 +102,7 @@
   .tabs { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .tabs button { text-align:center; padding:9px 4px; font-size:14px; border-radius:18px; }
   .tabs button.on { border-color:var(--cyan); color:var(--cyan); }
-  #tree-sky { position:static; display:block; width:100%; height:min(46vh, 400px); border-radius:10px; border:1px solid var(--line); touch-action:pan-y; }
+  canvas.sky { position:static; display:block; width:100%; height:min(46vh, 400px); border-radius:10px; border:1px solid var(--line); touch-action:pan-y; }
   .tpanel { border:1px solid var(--line); border-radius:10px; padding:12px 14px; min-height:150px; display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); }
   .tpanel .t { display:flex; justify-content:space-between; align-items:baseline; }
   .tpanel .t b { font-size:18px; font-weight:500; }
@@ -108,18 +114,9 @@
   .holdsell { align-self:flex-end; position:relative; overflow:hidden; font-size:12px; color:var(--dim); border:1px dashed var(--line); border-radius:14px; padding:6px 12px; margin-top:6px; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none; }
   .holdsell i { position:absolute; left:0; top:0; bottom:0; width:0; background:rgba(255,90,74,0.25); }
   .holdsell span { position:relative; }
-  .node { border:1px solid var(--line); border-radius:6px; display:flex; align-items:stretch; }
-  .node.can { border-color:rgba(127,245,255,0.55); }
-  .node.evo.can { border-color:var(--amber); }
-  .node .buy { border:none; flex:1; display:grid; grid-template-columns:1fr auto; column-gap:10px; row-gap:3px; padding:10px 12px; }
-  .node .buy b { font-weight:500; } .node .buy b small { color:var(--dim); font-weight:400; margin-left:6px; letter-spacing:2px; }
-  .node .buy span { grid-column:1 / span 2; color:var(--dim); font-size:13px; }
-  .node .buy em { font-style:normal; font-size:13px; color:var(--cyan); white-space:nowrap; }
-  .node:not(.can) .buy em { color:var(--dim); }
   details summary { cursor:pointer; color:var(--dim); font-size:14px; padding:4px 0; }
   .statgrid { display:grid; grid-template-columns:1fr auto; gap:3px 12px; font-size:13px; color:var(--dim); padding:6px 2px; }
   .statgrid b { color:var(--ink); font-weight:500; text-align:right; }
-  .wnode { display:flex; flex-direction:column; gap:2px; }
   .wdet summary { font-size:12px; padding:2px 12px; }
   .wdet p { font-size:13px; padding:0 12px 6px; }
   .hgroup { font-size:13px; font-weight:500; color:var(--cyan); letter-spacing:0.1em; text-transform:uppercase; margin:14px 0 0; }
@@ -170,7 +167,7 @@
 
 <div id="zones" class="screen"><div class="col">
   <h2>Zones</h2>
-  <p>Survive to the boss, then kill it. Each zone is one sitting.</p>
+  <p>Destroy every hive, or survive to the boss and kill it. Each zone is one sitting.</p>
   <div class="itip" id="it-zones" hidden></div>
   <div class="itip" id="it-hard" hidden></div>
   <div id="zone-list" class="col"></div>
@@ -180,10 +177,11 @@
 <div id="lattice" class="screen"><div class="col">
   <h2>Workshop</h2>
   <div class="itip" id="it-lattice" hidden></div>
-  <p><b id="l-gold">0</b> gold. Upgrades are permanent and apply to every run. Costs rise 35% per level; Sell refunds half.</p>
+  <p><b id="l-gold">0</b> gold. Tap a star. Upgrades are permanent.</p>
   <p id="l-msg"></p>
-  <details open><summary>Your permanent bonuses</summary><div id="l-stats" class="statgrid"></div></details>
-  <div id="lattice-list" class="col"></div>
+  <details><summary>Your permanent bonuses</summary><div id="l-stats" class="statgrid"></div></details>
+  <canvas id="lat-sky" class="sky"></canvas>
+  <div id="lat-panel" class="tpanel"></div>
   <button class="back">Back</button>
 </div></div>
 
@@ -212,17 +210,29 @@
   <div class="itip" id="it-draft" hidden></div>
   <details id="tree-stats"><summary>Your stats</summary><div id="tree-stat-list" class="statgrid"></div></details>
   <div id="tree-tabs" class="tabs"></div>
-  <canvas id="tree-sky"></canvas>
+  <canvas id="tree-sky" class="sky"></canvas>
   <div id="tree-panel" class="tpanel"></div>
   <div id="tree-extra" class="col"></div>
   <button class="primary" id="btn-tree-close">Continue</button>
 </div></div>
 
+<div id="dial" class="screen"><div class="col">
+  <h2>Drone positions</h2>
+  <p>A clock around you: 12 is straight ahead. Pick a Drone, then tap a spot. Inner ring: close beside you. Outer ring: out scouting.</p>
+  <div id="dial-drones" class="tabs"></div>
+  <canvas id="dial-sky" class="sky"></canvas>
+  <button id="btn-dial-reset">Reset: all Drones spread ahead</button>
+  <button class="back">Back</button>
+</div></div>
+
 <div id="pause" class="screen"><div class="col">
   <h2>Paused</h2>
   <p>Nothing moves while you are away.</p>
+  <div class="itip" id="it-pause" hidden></div>
   <button class="primary" id="btn-resume">Resume</button>
   <button id="btn-pause-tree">Skill tree</button>
+  <button id="btn-pause-dial">Drone positions</button>
+  <button id="btn-pause-help">How it works</button>
   <button id="btn-pause-note">Write a feedback note</button>
   <p id="pause-msg"></p>
   <button id="btn-quit">Abandon run (salvage applies)</button>
@@ -401,7 +411,22 @@ const LATTICE_INFO = {
   salvage:   ['Runs', 'When you die you keep more of that run\'s gold (you always keep all of it when you clear a zone).'],
   rerolls:   ['Runs', 'Skill points ready to spend in the skill tree the moment a run starts.'],
 };
+const DIAL = { nearR: 55, farR: 160 }; // follower Drone distances for the clock slots
 const LATTICE_SELL = 0.5; // selling a level refunds half of what that level cost
+// Workshop constellation (Lance 10-07: "why does the workshop not look like a skill tree?"). Gates apply to the
+// first level only, so levels already owned in old saves stay. Positions are 0..1 of the sky, clusters by branch.
+const LAT_LINKS = { gain: [['signal', 2]], clock: [['capacitor', 1]], magnet: [['capacitor', 1]], battery: [['tier', 1]], motes: [['battery', 2]], rerolls: [['salvage', 2]] };
+const LAT_SKY = {
+  signal: [0.16, 0.4], gain: [0.3, 0.13],
+  capacitor: [0.8, 0.4], clock: [0.62, 0.13], magnet: [0.94, 0.13],
+  tier: [0.1, 0.93], battery: [0.27, 0.74], motes: [0.44, 0.56],
+  salvage: [0.84, 0.93], rerolls: [0.76, 0.68],
+};
+const LAT_GROUPS = [['Combat', 0.03, 0.03, 'left'], ['Survival', 0.97, 0.03, 'right'], ['Drones', 0.03, 0.62, 'left'], ['Runs', 0.97, 0.56, 'right']];
+const latName = id => LATTICE.find(u => u.id === id).name;
+function latWhy(id) { if (lat(id) > 0) return ''; const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); return miss.length ? 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ') : ''; }
+function latSellBlock(id) { const lvl = lat(id); for (const dep in LAT_LINKS) for (const [k, l] of LAT_LINKS[dep]) if (k === id && lat(dep) > 0 && lvl - 1 < l) return `${latName(dep)} needs it at ${l}`; return ''; }
+const latUnlocks = id => Object.keys(LAT_LINKS).filter(d => LAT_LINKS[d].some(([k]) => k === id)).map(d => `${latName(d)} (at ${LAT_LINKS[d].find(([k]) => k === id)[1]})`);
 
 const WORKOUTS = [
   { id: 'cindy', name: 'Cindy (20 min AMRAP)', gold: 300 },
@@ -413,7 +438,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s2';
+const BUILD_ID = 'playtest 2026-10-08 s2b';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1039,9 +1064,11 @@ const TIPS = {
   part:     { group: 'Pickups', title: 'Parts', body: 'Small orange hexagons are parts. They pay for Turrets and Jammers from the buttons at the bottom. Tougher enemies drop more. Unspent parts carry to your next run (all after a clear, half after a death, up to 90).' },
   cache:    { group: 'Pickups', title: 'Supply cache', body: 'The yellow box is a supply cache: +120 ammo, +8 parts and +2 artillery shells. Walk over it to grab it. Each one can be taken once.' },
   ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache. Orbit, Nova and Field never use ammo, so drafting one keeps you fighting.' },
+  jammer_on: { group: 'Pickups', title: 'Your Jammer', body: 'Enemies inside the dashed purple ring are blinded while they stay in it (a purple arc spins on them): they wander instead of chasing you, Rushers cannot dash and Gunners cannot shoot. It does not hurt them, and the boss ignores it. Enemies that touch it wear it down. Fight inside the ring, or drop it to cover the base or a perch.' },
   build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything it can see. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down.' },
   // drones
   perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains while perched (not on the base perch, which charges it). Tap the perch again, or press Recall, to bring it home.' },
+  dial:      { group: 'Drones', title: 'Drone positions', body: 'Pause, then Drone positions: a clock around you where 12 is straight ahead. Pick a Drone and tap a spot. The inner ring keeps it close beside you, the outer ring sends it out to scout. Reset puts them back to spreading ahead. Your choice is kept for every run.' },
   artillery: { group: 'Drones', title: 'Artillery', body: 'With a Drone perched you can call artillery. Tap Shell: time slows to 30% and the camera shows the Drone feed (Next feed flips between perched Drones). Tap a spot it can see; the shell lands 1.6 seconds later and hurts you too if you stand in it. The base makes a shell every 20 seconds. There is a perch on the base itself, handy for raids.' },
   jammed:    { group: 'Drones', title: 'Drone jammed', body: 'A Jammer is close to your perched Drone, so it went blind (purple). Kill the Jammer or recall the Drone.' },
   downed:    { group: 'Drones', title: 'Drone down', body: 'A Drone ran out of battery or got knocked down. It is not lost: walk over it to pick it up at half charge.' },
@@ -1062,7 +1089,7 @@ const TIPS = {
   hard:     { group: 'Between runs', title: 'Hard mode unlocked', body: 'You cleared a zone, so its Hard mode is open: the original tuning, about twice the enemies and harder hits. The zone bonus pays 1.5x on Hard.' },
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
-  workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold. They apply to every future run. Costs rise 35% per level and stop at a cap.' },
+  workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. Lines show what opens what (the number is the level needed). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
 };
 const INTRO = ['move', 'base', 'ammo', 'drones', 'fog', 'goal'];
@@ -1286,7 +1313,9 @@ function updateMotes(run, dt) {
     if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < HANDOVER_R * HANDOVER_R) droneHandover(run, m);
     if (m.state === 'follow') {
       // scout ahead of your heading so you see what you are walking into
-      const lead = 150 + m.id * 40, a = p.ang + (m.id - (run.motes.length - 1) / 2) * 0.5;
+      // Drone positions (pause > Drone positions): a clock slot around your heading, else the default spread ahead
+      const slot = (SAVE.droneSlots || {})[m.id], lead = slot ? (slot.near ? DIAL.nearR : DIAL.farR) : 150 + m.id * 40;
+      const a = slot ? p.ang + slot.h * Math.PI / 6 : p.ang + (m.id - (run.motes.length - 1) / 2) * 0.5;
       let tx = p.x + Math.cos(a) * lead, ty = p.y + Math.sin(a) * lead;
       if (!losClear(run, p.x, p.y, tx, ty)) { tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 40; }
       m.x += (tx - m.x) * Math.min(1, dt * 4); m.y += (ty - m.y) * Math.min(1, dt * 4);
@@ -1811,7 +1840,9 @@ function build(run, kind) {
   if (run.parts < b.cost) { toast(run, `Need ${b.cost} parts for a ${b.name}`); return false; }
   if (run.builds.length >= 6) { toast(run, 'Six constructions max'); return false; }
   if (inWall(run, p.x, p.y) || run.builds.some(c => dist2(c.x, c.y, p.x, p.y) < 90 * 90)) { toast(run, 'Too close to another construction'); return false; }
-  run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp: 220, maxhp: 220, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote(); return true;
+  run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp: 220, maxhp: 220, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
+  if (kind === 'jammer') tip(run, 'jammer_on', { at: p });
+  return true;
 }
 
 /* ---------- particles ---------- */
@@ -1953,6 +1984,7 @@ function render(ctx, run, vw, vh, now) {
       for (let i = 0; i < Math.min(5, e.hive.tier); i++) { ctx.beginPath(); ctx.arc(e.x - 12 + i * 6, e.y + e.r + 12, 2, 0, 6.283); ctx.fill(); }
       continue;
     }
+    if (e.blind > 0) { ctx.strokeStyle = 'rgba(168,107,255,0.85)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, now * 5, now * 5 + 2.4); ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 2; } // jammed: spinning purple arc
     if (e.type === 'scout') { poly(ctx, e.x, e.y, e.r + 2, 4, Math.atan2(e.y - (e.py || e.y), e.x - (e.px || e.x))); ctx.fill(); e.px = e.x; e.py = e.y; continue; }
     if (e.type === 'gatherer') { ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 6.283); ctx.stroke(); if (e.carry) { ctx.fillStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, 6.283); ctx.fill(); } continue; }
     if (e.type === 'static') { ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang); ctx.fillRect(-e.r, -e.r, e.r * 2, e.r * 2); ctx.restore(); }
@@ -2039,9 +2071,9 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial'];
   let curScreen = 'menu';
-  UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
+  UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause' || id === 'dial'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
   /* input */
   let joyId = null, taps = new Map();
@@ -2093,15 +2125,15 @@ if (HAS_DOM) {
   window.addEventListener('keyup', ev => { input.keys[ev.key] = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden && screen === 'run') togglePause(); });
 
-  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
+  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; inlineTip('it-pause', 'dial'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
 
   /* menus */
   UI.menu = () => {
     UI.go('menu');
     el('m-gold').textContent = Math.round(SAVE.gold);
     el('m-streak').textContent = `${SAVE.streak} day streak, ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'}, ${streakMult(SAVE.streak).toFixed(2)}x`;
-    el('m-cleared').textContent = SAVE.cleared ? `${SAVE.cleared} of ${ZONES.length} zones cleared` : 'No zones cleared yet';
-    el('btn-notes').textContent = `Feedback notes (${SAVE.notes.length})`;
+    { const pips = (n, c) => ZONES.map((z, i) => `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); // cleared zones as marks, not words (Lance 10-07)
+      el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
     el('m-ver').textContent = BUILD_ID;
   };
   const hardOpen = i => i < SAVE.cleared || SAVE.playtest;
@@ -2111,46 +2143,56 @@ if (HAS_DOM) {
     ZONES.forEach((z, i) => {
       const locked = i > SAVE.cleared && !SAVE.playtest;
       const d = document.createElement('button'); d.className = 'row' + (locked ? ' locked' : '');
-      d.innerHTML = `<b>${i + 1}. ${z.name} <small>Normal</small></b><span>${locked ? 'Clear the previous zone first' : z.desc}</span><em>${fmtT(z.dur)} to the boss${i < SAVE.cleared ? ', cleared' : ''}</em>`;
+      d.innerHTML = `<b>${i + 1}. ${z.name} <small>Normal</small></b><span>${locked ? 'Clear the previous zone first' : z.desc}</span><em>${i < SAVE.cleared ? '<i class="ck"></i>' : ''}${fmtT(z.dur)} to the boss</em>`;
       if (!locked) d.onclick = () => startRun(i, 'normal');
       box.appendChild(d);
       if (hardOpen(i)) {
         const h = document.createElement('button'); h.className = 'row hard';
-        h.innerHTML = `<b>${i + 1}. ${z.name} <small>Hard</small></b><em>${i < (SAVE.clearedHard || 0) ? 'cleared, ' : ''}bonus ${Math.round(z.gold * MODES.hard.gold)}</em>`;
+        h.innerHTML = `<b>${i + 1}. ${z.name} <small>Hard</small></b><em>${i < (SAVE.clearedHard || 0) ? '<i class="ck"></i>' : ''}bonus ${Math.round(z.gold * MODES.hard.gold)}</em>`;
         h.onclick = () => startRun(i, 'hard'); box.appendChild(h);
       }
     });
   };
+  let latSel = null, latCache = null;
+  function latModel() {
+    const stars = LATTICE.map(u => { const lvl = lat(u.id), why = latWhy(u.id), maxed = lvl >= u.max; return { key: u.id, name: u.name, lvl, max: u.max, can: !why && !maxed && SAVE.gold >= latticeCost(u, lvl), locked: !!why }; });
+    const links = []; for (const d in LAT_LINKS) for (const [k, need] of LAT_LINKS[d]) links.push([k, d, need, lat(k) >= need, true]);
+    return { pos: LAT_SKY, links, stars, sel: latSel, groups: LAT_GROUPS };
+  }
+  window.latStarXY = id => { const c = el('lat-sky'), r = c.getBoundingClientRect(), [x, y] = skyXY(c, LAT_SKY[id]); return { x: r.left + x, y: r.top + y }; }; // for tests
   UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
     el('l-gold').textContent = Math.round(SAVE.gold);
-    el('l-msg').textContent = msg || '';
+    el('l-msg').textContent = typeof msg === 'string' ? msg : '';
     const owned = LATTICE.filter(u => lat(u.id) > 0);
     el('l-stats').innerHTML = owned.length ? owned.map(u => `<span>${u.name}</span><b>${u.fmt(lat(u.id) * u.per)}</b>`).join('') : '<span>No upgrades yet.</span><b></b>';
-    const box = el('lattice-list'); box.innerHTML = ''; let g = null;
-    for (const u of LATTICE.slice().sort((a, b) => ['Combat', 'Survival', 'Drones', 'Runs'].indexOf(LATTICE_INFO[a.id][0]) - ['Combat', 'Survival', 'Drones', 'Runs'].indexOf(LATTICE_INFO[b.id][0]))) {
-      const [branch, detail] = LATTICE_INFO[u.id];
-      if (branch !== g) { g = branch; const h = document.createElement('h3'); h.className = 'hgroup'; h.textContent = g; box.appendChild(h); }
-      const lvl = lat(u.id), maxed = lvl >= u.max, cost = latticeCost(u, lvl), can = !maxed && SAVE.gold >= cost;
-      const wrap = document.createElement('div'); wrap.className = 'wnode';
-      const row = document.createElement('div'); row.className = 'node' + (can ? ' can' : '');
-      const b = document.createElement('button'); b.className = 'buy';
-      b.innerHTML = `<b>${u.name}<small>${lvl}/${u.max}</small></b><em>${maxed ? 'Maxed' : cost + ' gold'}</em><span>${lvl ? 'Now: ' + u.fmt(lvl * u.per) : 'Not bought'}${maxed ? '' : '. Next: ' + u.fmt((lvl + 1) * u.per)}</span>`;
-      b.onclick = () => { if (!can) return; SAVE.gold -= cost; SAVE.lattice[u.id] = lvl + 1; persist(SAVE); beep(660, 0.1, 'triangle', 0.05); keepScroll(() => UI.lattice()); };
-      row.appendChild(b);
-      const det = document.createElement('details'); det.className = 'wdet'; det.innerHTML = `<summary>Details${lvl > 0 ? ' and sell' : ''}</summary><p>${detail}</p>`;
-      if (lvl > 0) { // selling lives inside Details and needs a 1 s hold, so it never sits next to Buy
-        const refund = Math.floor(latticeCost(u, lvl - 1) * LATTICE_SELL);
-        const hs = holdSell(`Hold to sell 1 level (+${refund} gold)`, () => {
-          SAVE.lattice[u.id] = lvl - 1; SAVE.gold += refund; persist(SAVE); beep(330, 0.08, 'triangle', 0.05);
-          keepScroll(() => UI.lattice(`Sold a level of ${u.name}: +${refund} gold.`));
-        });
-        hs.classList.add('wsell'); hs.style.margin = '0 12px 8px auto'; hs.style.width = 'max-content'; det.appendChild(hs);
-      }
-      wrap.appendChild(row); wrap.appendChild(det); box.appendChild(wrap);
-    }
+    if (!latSel || !LAT_SKY[latSel]) { const m = latModel().stars; latSel = (m.find(n => n.can) || m[0]).key; }
+    latCache = null; latPanel(LATTICE.find(u => u.id === latSel));
+    if (!treeAnim) treeAnim = requestAnimationFrame(skyLoop);
   };
   const keepScroll = f => { const sc = el('lattice'), y = sc.scrollTop; f(); sc.scrollTop = y; };
+  function latPanel(u) {
+    const box = el('lat-panel'), lvl = lat(u.id), maxed = lvl >= u.max, cost = latticeCost(u, lvl), why = latWhy(u.id), can = !why && !maxed && SAVE.gold >= cost;
+    const [branch, detail] = LATTICE_INFO[u.id], ul = latUnlocks(u.id);
+    box.innerHTML = `<div class="t"><b>${u.name}</b><small>${branch}</small></div>`
+      + `<p>${lvl ? 'Now: ' + u.fmt(lvl * u.per) : 'Not bought yet'}${maxed ? '. Maxed.' : '. Next level: ' + u.fmt((lvl + 1) * u.per)}</p>`
+      + (why ? `<p class="why">${why}</p>` : '') + (ul.length ? `<p>Unlocks: ${ul.join(', ')}</p>` : '')
+      + `<details class="wdet"><summary>Details</summary><p>${detail}</p></details>`;
+    const buy = document.createElement('button'); buy.className = 'buybig'; buy.disabled = !can;
+    buy.textContent = maxed ? 'Maxed' : why ? 'Locked' : can ? `Buy level ${lvl + 1} (${cost} gold)` : `Need ${cost} gold`;
+    buy.onclick = () => { if (!can) return; SAVE.gold -= cost; SAVE.lattice[u.id] = lvl + 1; persist(SAVE); beep(660, 0.1, 'triangle', 0.05); buzz(15); keepScroll(() => UI.lattice()); };
+    box.appendChild(buy);
+    const sb = lvl > 0 ? latSellBlock(u.id) : 'none';
+    if (!sb) { // selling needs a deliberate 1 second hold and never sits next to Buy
+      const refund = Math.floor(latticeCost(u, lvl - 1) * LATTICE_SELL);
+      const hs = holdSell(`Hold to sell 1 level (+${refund} gold)`, () => {
+        SAVE.lattice[u.id] = lvl - 1; SAVE.gold += refund; persist(SAVE); beep(330, 0.08, 'triangle', 0.05); buzz(30);
+        keepScroll(() => UI.lattice(`Sold a level of ${u.name}: +${refund} gold.`));
+      });
+      hs.id = 'lat-sell'; box.appendChild(hs);
+    } else if (sb !== 'none') { const p = document.createElement('p'); p.style.cssText = 'font-size:12px;text-align:right'; p.textContent = `Can't sell: ${sb}`; box.appendChild(p); }
+  }
+  el('lat-sky').addEventListener('click', ev => { const k = skyPick(el('lat-sky'), ev, LAT_SKY); if (k) { latSel = k; latCache = null; latPanel(LATTICE.find(u => u.id === k)); beep(900, 0.03, 'sine', 0.02); } });
   /* workout ledger: pick an activity, fill in details, undo mistakes, see history */
   const FORMS = {
     cindy: [{ k: 'rounds', label: 'Rounds' }, { k: 'extra', label: 'Extra reps' }],
@@ -2353,51 +2395,63 @@ if (HAS_DOM) {
       hs.id = 'tree-sell'; box.appendChild(hs);
     } else if (n.sellWhy !== 'none') { const p = document.createElement('p'); p.style.cssText = 'font-size:12px;text-align:right'; p.textContent = `Can't sell: ${n.sellWhy}`; box.appendChild(p); }
   }
-  window.treeStarXY = key => { const t = TABS.find(t => TREE_SKY[t][key]), c = el('tree-sky'), r = c.getBoundingClientRect(), q = TREE_SKY[t][key]; return { tab: t, x: r.left + 24 + q[0] * (c.clientWidth - 48), y: r.top + 28 + q[1] * (c.clientHeight - 64) }; }; // for tests
-  function skyGeom() { const c = el('tree-sky'), W = c.clientWidth || 360, H = c.clientHeight || 360; return { c, W, H, pos: k => { const q = TREE_SKY[treeTab][k]; return [24 + q[0] * (W - 48), 28 + q[1] * (H - 64)]; } }; }
-  function skyLoop(now) {
-    treeAnim = 0;
-    if (!el('tree').classList.contains('on') || !treeRun) return;
-    const { c, W, H, pos } = skyGeom(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  window.treeStarXY = key => { const t = TABS.find(t => TREE_SKY[t][key]), c = el('tree-sky'), r = c.getBoundingClientRect(), [x, y] = skyXY(c, TREE_SKY[t][key]); return { tab: t, x: r.left + x, y: r.top + y }; }; // for tests
+  // shared constellation drawing (skill tree and Workshop). A model gives normalized star positions, star states and links.
+  const skyXY = (c, q) => { const W = c.clientWidth || 360, H = c.clientHeight || 360; return [24 + q[0] * (W - 48), 28 + q[1] * (H - 64)]; };
+  function drawSky(c, now, M) {
+    const W = c.clientWidth || 360, H = c.clientHeight || 360, dpr = Math.min(3, window.devicePixelRatio || 1);
     if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
     const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#070a14'; g.fillRect(0, 0, W, H);
     for (const [x, y, r] of SKY_STARS) { g.fillStyle = `rgba(200,220,255,${0.08 + 0.05 * r + 0.04 * Math.sin(now / 900 + x * 40)})`; g.fillRect(x * W, y * H, r * 0.7, r * 0.7); }
-    const run = treeRun, nodes = treeNodesCache.filter(n => TREE_SKY[treeTab][n.key]), pulse = 0.5 + 0.5 * Math.sin(now / 260);
-    // links: prerequisite -> skill, bright when the requirement is met
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260), pos = k => skyXY(c, M.pos[k]);
+    for (const [t, x, y, al] of M.groups || []) { const [gx, gy] = skyXY(c, [x, y]); g.fillStyle = 'rgba(127,245,255,0.35)'; g.font = '10px Roboto, Arial, sans-serif'; g.textAlign = al; g.fillText(t.toUpperCase(), gx, gy); }
     g.lineWidth = 2; g.font = '10px Roboto, Arial, sans-serif'; g.textAlign = 'center';
-    for (const n of nodes) {
-      const links = (TREE_LINKS[n.key] || []).concat(n.evo ? [['w:' + n.key.slice(2), MAX_LVL]] : []);
-      for (const [k, need] of links) {
-        if (!TREE_SKY[treeTab][k]) continue;
-        const [x0, y0] = pos(k), [x1, y1] = pos(n.key), met = nodeLvl(run, k) >= need;
-        g.strokeStyle = met ? 'rgba(127,245,255,0.55)' : 'rgba(120,140,170,0.22)'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-        if (!n.evo) { g.fillStyle = met ? 'rgba(127,245,255,0.8)' : 'rgba(139,147,163,0.6)'; g.fillText(`${need}`, (x0 + x1) / 2 + 7, (y0 + y1) / 2); } // evolution lines always need 5: the panel says so
+    for (const [a, b, need, met, label] of M.links) { // prerequisite -> skill, bright when the requirement is met
+      const [x0, y0] = pos(a), [x1, y1] = pos(b);
+      g.strokeStyle = met ? 'rgba(127,245,255,0.55)' : 'rgba(120,140,170,0.22)'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      if (label) { // the level needed, 40% along from the prerequisite and nudged off the line, clear of star names
+        const L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L, side = nx >= 0 ? 1 : -1;
+        g.fillStyle = met ? 'rgba(127,245,255,0.8)' : 'rgba(139,147,163,0.6)'; g.fillText(`${need}`, x0 + (x1 - x0) * 0.4 + nx * side * 9, y0 + (y1 - y0) * 0.4 + ny * side * 9 + 3);
       }
     }
-    // stars
-    for (const n of nodes) {
-      const [x, y] = pos(n.key), can = !n.why && n.cost <= run.points, owned = n.lvl > 0, locked = !!n.why && !owned && n.why !== 'Maxed';
-      const R = n.evo ? 13 : 15, col = n.evo ? '255,179,71' : '127,245,255';
-      if (can) { g.fillStyle = `rgba(255,179,71,${0.12 + 0.18 * pulse})`; g.beginPath(); g.arc(x, y, R + 12, 0, 6.283); g.fill(); }
-      g.fillStyle = owned ? `rgba(${col},0.9)` : locked ? 'rgba(60,70,90,0.9)' : `rgba(${col},0.25)`;
+    for (const n of M.stars) {
+      const [x, y] = pos(n.key), R = n.evo ? 13 : 15, col = n.evo ? '255,179,71' : '127,245,255', owned = n.lvl > 0;
+      if (n.can) { g.fillStyle = `rgba(255,179,71,${0.12 + 0.18 * pulse})`; g.beginPath(); g.arc(x, y, R + 12, 0, 6.283); g.fill(); }
+      g.fillStyle = owned ? `rgba(${col},0.9)` : n.locked ? 'rgba(60,70,90,0.9)' : `rgba(${col},0.25)`;
       if (n.evo) { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * 0.5 : R + 3; g[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); }
       else { g.beginPath(); g.arc(x, y, R, 0, 6.283); g.fill(); }
       if (n.max > 1) for (let i = 0; i < n.max; i++) { // level ring segments
-        const a0 = -Math.PI / 2 + i / n.max * 6.283 + 0.08, a1 = -Math.PI / 2 + (i + 1) / n.max * 6.283 - 0.08;
+        const gap = Math.min(0.08, 1.2 / n.max), a0 = -Math.PI / 2 + i / n.max * 6.283 + gap, a1 = -Math.PI / 2 + (i + 1) / n.max * 6.283 - gap;
         g.strokeStyle = i < n.lvl ? `rgba(${col},0.95)` : 'rgba(120,140,170,0.3)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R + 5, a0, a1); g.stroke();
       }
-      if (n.key === treeSel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + 10, 0, 6.283); g.stroke(); }
-      g.fillStyle = locked ? 'rgba(139,147,163,0.7)' : '#f6efe0'; g.font = '11px Roboto, Arial, sans-serif'; g.fillText(n.name, x, y + R + 18);
-      if (n.evo && !owned) { g.fillStyle = 'rgba(255,179,71,0.75)'; g.font = '9px Roboto, Arial, sans-serif'; g.fillText(`+ ${PASSIVES[WEAPONS[n.key.slice(2)].partner].name} 3`, x, y + R + 29); }
+      if (n.key === M.sel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + 10, 0, 6.283); g.stroke(); }
+      g.fillStyle = n.locked ? 'rgba(139,147,163,0.7)' : '#f6efe0'; g.font = '11px Roboto, Arial, sans-serif'; g.fillText(n.name, x, y + R + 18);
+      if (n.sub) { g.fillStyle = 'rgba(255,179,71,0.75)'; g.font = '9px Roboto, Arial, sans-serif'; g.fillText(n.sub, x, y + R + 29); }
     }
+  }
+  function skyPick(c, ev, posMap) {
+    const r = c.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+    let best = null, bd = 34 * 34;
+    for (const k in posMap) { const [px, py] = skyXY(c, posMap[k]), d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; best = k; } }
+    return best;
+  }
+  function treeModel() {
+    const run = treeRun, pos = TREE_SKY[treeTab], nodes = treeNodesCache.filter(n => pos[n.key]), links = [];
+    for (const n of nodes) for (const [k, need] of (TREE_LINKS[n.key] || []).concat(n.evo ? [['w:' + n.key.slice(2), MAX_LVL]] : [])) if (pos[k]) links.push([k, n.key, need, nodeLvl(run, k) >= need, !n.evo]); // evolution lines always need 5: the panel says so
+    const stars = nodes.map(n => ({ key: n.key, name: n.name, lvl: n.lvl, max: n.max, evo: n.evo, can: !n.why && n.cost <= run.points, locked: !!n.why && !n.lvl && n.why !== 'Maxed', sub: n.evo && !n.lvl ? `+ ${PASSIVES[WEAPONS[n.key.slice(2)].partner].name} 3` : '' }));
+    return { pos, links, stars, sel: treeSel };
+  }
+  function skyLoop(now) {
+    treeAnim = 0;
+    if (el('tree').classList.contains('on') && treeRun) drawSky(el('tree-sky'), now, treeModel());
+    else if (el('lattice').classList.contains('on')) drawSky(el('lat-sky'), now, latCache || (latCache = latModel())); // rebuilt only on buy, sell or select
+    else return;
     treeAnim = requestAnimationFrame(skyLoop);
   }
   el('tree-sky').addEventListener('click', ev => {
     if (!treeRun) return;
-    const { c, pos } = skyGeom(), r = c.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
-    let best = null, bd = 34 * 34;
-    for (const k in TREE_SKY[treeTab]) { const [px, py] = pos(k), d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; best = k; } }
+    const best = skyPick(el('tree-sky'), ev, TREE_SKY[treeTab]);
     if (best) { treeSel = best; treePanel(treeRun, treeNodes(treeRun).find(n => n.key === best)); beep(900, 0.03, 'sine', 0.02); }
   });
   function afterChange(run) {
@@ -2431,13 +2485,14 @@ if (HAS_DOM) {
     else { nb.style.display = ''; nb.textContent = 'Retry'; nb.onclick = () => startRun(run.zone, run.mode); }
     UI.go('end'); inlineTip('it-end', s.won ? 'win' : (!tipSeen('lose') ? 'lose' : 'workshop_death'));
   };
-  el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help');
+  el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
   const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', logform: 'log', hist: 'log' };
   function goBack() {
     const id = curScreen;
     if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
     if (id === 'pause') { togglePause(); return; }
+    if ((id === 'help' || id === 'dial') && R && screen === 'paused') { UI.go('pause'); return; } // opened from pause
     if (id === 'tree') { el('btn-tree-close').onclick(); return; }
     if (id === 'note') { el('btn-note-cancel').onclick(); return; }
     if (id === 'end') { el('btn-end-menu').onclick(); return; }
@@ -2541,6 +2596,44 @@ if (HAS_DOM) {
   { let html = '', g = null;
     for (const id in TIPS) { const t = TIPS[id]; if (t.group !== g) { g = t.group; html += `<h3 class="hgroup">${g}</h3>`; } html += `<p><b>${t.title}.</b> ${t.body}</p>`; }
     el('help-list').innerHTML = html; }
+
+  // Drone positions: a clock around you, 12 is straight ahead; inner ring flies close, outer ring scouts (Lance 10-07)
+  let dialSel = 0;
+  const dialGeom = () => { const c = el('dial-sky'), W = c.clientWidth || 360, H = c.clientHeight || 360, R1 = Math.max(40, Math.min(W * 0.4, H / 2 - 36)); return { c, W, H, cx: W / 2, cy: H / 2, R1, R0: R1 * 0.45 }; };
+  const slotXY = (G, h, near) => { const a = -Math.PI / 2 + h * Math.PI / 6, r = near ? G.R0 : G.R1; return [G.cx + Math.cos(a) * r, G.cy + Math.sin(a) * r]; };
+  UI.dial = () => {
+    UI.go('dial'); const n = R ? R.motes.length : 1; if (dialSel >= n) dialSel = 0;
+    const box = el('dial-drones'); box.innerHTML = '';
+    for (let i = 0; i < n; i++) { const b = document.createElement('button'); b.className = i === dialSel ? 'on' : ''; b.textContent = `Drone ${i + 1}`; b.onclick = () => { dialSel = i; UI.dial(); }; box.appendChild(b); }
+    drawDial();
+  };
+  function drawDial() {
+    const G = dialGeom(), c = G.c, dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(G.W * dpr) || c.height !== Math.round(G.H * dpr)) { c.width = Math.round(G.W * dpr); c.height = Math.round(G.H * dpr); }
+    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#070a14'; g.fillRect(0, 0, G.W, G.H);
+    g.strokeStyle = 'rgba(120,140,170,0.3)'; g.lineWidth = 1; for (const r of [G.R0, G.R1]) { g.beginPath(); g.arc(G.cx, G.cy, r, 0, 6.283); g.stroke(); }
+    g.font = '12px Roboto, Arial, sans-serif'; g.textAlign = 'center';
+    for (let h = 0; h < 12; h++) for (const near of [true, false]) { const [x, y] = slotXY(G, h, near); g.fillStyle = 'rgba(120,140,170,0.45)'; g.beginPath(); g.arc(x, y, 4, 0, 6.283); g.fill(); }
+    for (const h of [0, 3, 6, 9]) { const a = -Math.PI / 2 + h * Math.PI / 6; g.fillStyle = 'rgba(139,147,163,0.8)'; g.fillText(String(h || 12), G.cx + Math.cos(a) * (G.R1 + 22), G.cy + Math.sin(a) * (G.R1 + 22) + 4); }
+    g.save(); g.translate(G.cx, G.cy); g.rotate(-Math.PI / 2); g.fillStyle = '#f6efe0'; g.beginPath(); g.moveTo(14, 0); g.lineTo(-10, 9); g.lineTo(-5, 0); g.lineTo(-10, -9); g.closePath(); g.fill(); g.restore();
+    const n = R ? R.motes.length : 1, slots = SAVE.droneSlots || {};
+    for (let i = 0; i < n; i++) {
+      const sl = slots[i], [x, y] = sl ? slotXY(G, sl.h, sl.near) : (() => { const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5; return [G.cx + Math.cos(a) * G.R1 * 0.8, G.cy + Math.sin(a) * G.R1 * 0.8]; })();
+      g.fillStyle = sl ? 'rgba(127,245,255,0.95)' : 'rgba(127,245,255,0.35)'; g.beginPath(); g.arc(x, y, 13, 0, 6.283); g.fill();
+      if (i === dialSel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 18, 0, 6.283); g.stroke(); }
+      g.fillStyle = '#070a14'; g.font = 'bold 12px Roboto, Arial, sans-serif'; g.fillText(String(i + 1), x, y + 4);
+    }
+  }
+  el('dial-sky').addEventListener('click', ev => {
+    const G = dialGeom(), r = G.c.getBoundingClientRect(), dx = ev.clientX - r.left - G.cx, dy = ev.clientY - r.top - G.cy, d = Math.hypot(dx, dy);
+    if (d < G.R0 * 0.5 || d > G.R1 + 30) return;
+    const h = ((Math.round(Math.atan2(dx, -dy) / (Math.PI / 6)) % 12) + 12) % 12;
+    SAVE.droneSlots = Object.assign({}, SAVE.droneSlots, { [dialSel]: { h, near: d < (G.R0 + G.R1) / 2 } }); persist(SAVE); beep(900, 0.03, 'sine', 0.02); drawDial();
+  });
+  window.dialXY = (h, near) => { const G = dialGeom(), r = G.c.getBoundingClientRect(), [x, y] = slotXY(G, h, near); return { x: r.left + x, y: r.top + y }; }; // for tests
+  el('btn-dial-reset').onclick = () => { SAVE.droneSlots = {}; persist(SAVE); drawDial(); };
+  el('btn-pause-dial').onclick = () => UI.dial();
+  window.addEventListener('resize', () => { if (el('dial').classList.contains('on')) drawDial(); });
 
   /* feedback notes: saved on the phone, and sent to the artifact's database when it is available */
   let dbP = null, noteBack = 'menu';
