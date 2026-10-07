@@ -417,11 +417,11 @@ const ENEMY = {
 };
 
 const WEAPONS = {
-  pulse: { name: 'Pulse',  partner: 'signal',    evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
-  orbit: { name: 'Orbit',  partner: 'aperture',  evo: 'Halo',      desc: 'Shards circle you.',                     evoDesc: 'Wide ring, more shards, knockback.' },
-  nova:  { name: 'Nova',   partner: 'gain',      evo: 'Supernova', desc: 'Periodic burst around you.',             evoDesc: 'Twice as fast, far larger.' },
-  lance: { name: 'Lance',  partner: 'clock',     evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'Instant full-length line, double damage.' },
-  field: { name: 'Field',  partner: 'capacitor', evo: 'Bastion',   desc: 'Damage aura. Stand your ground.',        evoDesc: 'Larger aura, slows enemies, regenerates you.' },
+  pulse: { name: 'Pulse',  evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
+  orbit: { name: 'Orbit',  evo: 'Halo',      desc: 'Shards circle you.',                     evoDesc: 'Wide ring, more shards, knockback.' },
+  nova:  { name: 'Nova',   evo: 'Supernova', desc: 'Periodic burst around you.',             evoDesc: 'Twice as fast, far larger.' },
+  lance: { name: 'Lance',  evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'Instant full-length line, double damage.' },
+  field: { name: 'Field',  evo: 'Bastion',   desc: 'Damage aura. Stand your ground.',        evoDesc: 'Larger aura, slows enemies, regenerates you.' },
 };
 const PASSIVES = {
   signal:    { name: 'Signal',    desc: '+10% damage' },
@@ -478,7 +478,8 @@ const DIAL = { nearR: 55, farR: 160 }; // follower Drone distances for the clock
 const LATTICE_SELL = 0.5; // selling a level refunds half of what that level cost
 // Workshop constellation (Lance 10-07: "why does the workshop not look like a skill tree?"). Gates apply to the
 // first level only, so levels already owned in old saves stay. Positions are 0..1 of the sky, clusters by branch.
-const LAT_LINKS = { autoshell: [['tier', 1]], gain: [['signal', 2]], clock: [['capacitor', 1]], magnet: [['capacitor', 1]], battery: [['tier', 1]], motes: [['battery', 2]], rerolls: [['salvage', 2]] };
+const LAT_LINKS = { autoshell: [['tier', 1]] }; // Lance 10-07: the GPS tier opens Drone intel
+const LAT_TIER = { gain: ['Combat', 2], magnet: ['Survival', 2], motes: ['Drones', 3], rerolls: ['Runs', 2] }; // tier 2: levels bought in that cluster first
 const LAT_SKY = {
   signal: [0.16, 0.4], gain: [0.3, 0.13],
   capacitor: [0.8, 0.4], clock: [0.62, 0.13], magnet: [0.94, 0.13],
@@ -487,9 +488,19 @@ const LAT_SKY = {
 };
 const LAT_GROUPS = [['Combat', 0.03, 0.03, 'left'], ['Survival', 0.97, 0.03, 'right'], ['Drones', 0.03, 0.62, 'left'], ['Runs', 0.97, 0.56, 'right']];
 const latName = id => LATTICE.find(u => u.id === id).name;
-function latWhy(id) { if (lat(id) > 0) return ''; const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); return miss.length ? 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ') : ''; }
-function latSellBlock(id) { const lvl = lat(id); for (const dep in LAT_LINKS) for (const [k, l] of LAT_LINKS[dep]) if (k === id && lat(dep) > 0 && lvl - 1 < l) return `${latName(dep)} needs it at ${l}`; return ''; }
-const latUnlocks = id => Object.keys(LAT_LINKS).filter(d => LAT_LINKS[d].some(([k]) => k === id)).map(d => `${latName(d)} (at ${LAT_LINKS[d].find(([k]) => k === id)[1]})`);
+const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id]).reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
+function latWhy(id) {
+  if (lat(id) > 0) return '';
+  const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); if (miss.length) return 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ');
+  const T = LAT_TIER[id]; if (T) { const have = latClusterLevels(T[0]); if (have < T[1]) return `Opens after ${T[1]} levels of tier 1 ${T[0]} upgrades. You have ${have}.`; }
+  return '';
+}
+function latSellBlock(id) {
+  const lvl = lat(id); for (const dep in LAT_LINKS) for (const [k, l] of LAT_LINKS[dep]) if (k === id && lat(dep) > 0 && lvl - 1 < l) return `${latName(dep)} needs it at ${l}`;
+  const b = LATTICE_INFO[id][0]; if (!LAT_TIER[id] && !LAT_LINKS[id]) for (const t in LAT_TIER) if (LAT_TIER[t][0] === b && lat(t) > 0 && latClusterLevels(b) >= LAT_TIER[t][1] && latClusterLevels(b, id) < LAT_TIER[t][1]) return `${latName(t)} needs ${LAT_TIER[t][1]} levels here`;
+  return '';
+}
+const latUnlocks = id => Object.keys(LAT_LINKS).filter(d => LAT_LINKS[d].some(([k]) => k === id)).map(d => latName(d));
 
 const WORKOUTS = [
   { id: 'cindy', name: 'Cindy (20 min AMRAP)', gold: 300 },
@@ -501,7 +512,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s6b';
+const BUILD_ID = 'playtest 2026-10-08 s7';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1252,8 +1263,8 @@ const TIPS = {
   assault:  { group: 'Base and Heat', title: 'Base assault', body: 'For the next 40 seconds waves march on your base. Get back and hold it. Survive the assault with the base intact and Heat drops a lot.' },
   breach:   { group: 'Base and Heat', title: 'Base breached', body: 'Stand inside the base to repair it. Above a quarter health it comes back online. If it is still breached when you win, you lose the zone bonus.' },
   // level ups (shown on the draft screen)
-  draft:    { group: 'Levelling', title: 'Skill tree', body: 'Each level gives you a skill point. Spend it on any weapon, passive, evolution or Drone skill you can reach, or save it: the pause menu opens the tree any time. Sell gives back half. You can hold 4 weapons and 4 passives, each up to level 5.' },
-  evo:      { group: 'Levelling', title: 'Evolution', body: 'The gold-bordered skill is an evolution: a level 5 weapon plus its partner passive at level 3 turns into a much stronger version. Pairs: Pulse and Signal, Orbit and Aperture, Nova and Gain, Lance and Clock, Field and Capacitor.' },
+  draft:    { group: 'Levelling', title: 'Skill tree', body: 'Each level gives you a skill point. Tap a star, then Buy; a star with a double ring costs 2. Each sky has tiers: spend points in tier 1 to open tier 2. When you are done, tap Back to the fight (unspent points wait for later; the pause menu opens the tree any time). Hold Sell to get half back. 4 weapons and 4 passives at most, each up to level 5.' },
+  evo:      { group: 'Levelling', title: 'Evolution', body: 'The gold star is an evolution: the stronger version of a weapon. It opens when that weapon reaches level 5 and costs 2 points (the double ring).' },
   // between runs
   win:      { group: 'Between runs', title: 'Zone cleared', body: 'You keep all the run gold, plus a zone bonus if the base was not breached, and the next zone is unlocked. Spend gold in the Workshop.' },
   lose:     { group: 'Between runs', title: 'Run over', body: 'You keep 40% of this run\'s gold. Spend it in the Workshop on permanent upgrades, then go again. The Salvage upgrade raises how much you keep.' },
@@ -1861,35 +1872,64 @@ const UNITS = {
   fix:  { name: 'Repair bot', cost: 15, max: 1, hp: 50, spd: 170, r: 8, reviveT: 1.5, healBuild: 40, healBase: 25, near: 26 },
 };
 const ORDER_NEXT = { follow: 'hold', hold: 'attack', attack: 'follow' };
-/* Tree shape: what unlocks what (first level needs these), and where each star sits in its sky (0..1 coords).
-   Evolutions need their weapon at 5 and partner passive at 3 (handled in treeNodes). */
-const TREE_LINKS = {
-  'w:orbit': [['w:pulse', 2]], 'w:lance': [['w:pulse', 2]], 'w:nova': [['w:orbit', 2]], 'w:field': [['w:lance', 2]],
-  'd:drone': [['d:dmag', 1]], 'd:dstrike': [['d:demp', 1]], 'd:dshield': [['d:dmag', 1]],
-  'p:gain': [['p:signal', 1]], 'p:aperture': [['p:signal', 1]], 'p:clock': [['p:capacitor', 1]], 'p:magnet': [['p:capacitor', 1]],
+/* Tree shape (Lance 10-08: "some of these skills shouldn't be dependent"). No skill needs another skill. Each sky has
+   tiers: tier 1 is open, a higher tier opens after you spend enough points in the tiers below it in that sky. The one
+   link left is a weapon's stronger version: an evolution needs that weapon at 5 and costs 2 points (double ring).
+   TREE_SKY rows follow the tiers (0..1 coords). */
+const TREE_TIERS = {
+  Weapons: [{ keys: ['w:pulse', 'w:orbit', 'w:lance'], need: 0 }, { keys: ['w:nova', 'w:field'], need: 3 }, { keys: ['e:orbit', 'e:nova', 'e:pulse', 'e:field', 'e:lance'], need: 0, evo: true }],
+  Drones: [{ keys: ['d:dmag', 'd:demp'], need: 0 }, { keys: ['d:drone', 'd:dshield', 'd:dstrike'], need: 2 }],
+  Passives: [{ keys: ['p:signal', 'p:capacitor', 'p:clock'], need: 0 }, { keys: ['p:gain', 'p:aperture', 'p:magnet'], need: 3 }],
 };
+const EVO_COST = 2;
 const TREE_SKY = {
-  Weapons: { 'w:pulse': [0.5, 0.86], 'e:pulse': [0.5, 0.6], 'w:orbit': [0.22, 0.66], 'e:orbit': [0.09, 0.44], 'w:lance': [0.78, 0.66], 'e:lance': [0.91, 0.44],
-    'w:nova': [0.3, 0.32], 'e:nova': [0.2, 0.1], 'w:field': [0.7, 0.32], 'e:field': [0.8, 0.1] },
-  Drones: { 'd:dmag': [0.28, 0.78], 'd:drone': [0.2, 0.32], 'd:dshield': [0.5, 0.45], 'd:demp': [0.72, 0.78], 'd:dstrike': [0.8, 0.32] },
-  Passives: { 'p:signal': [0.3, 0.84], 'p:gain': [0.12, 0.5], 'p:aperture': [0.42, 0.42], 'p:capacitor': [0.7, 0.84], 'p:clock': [0.58, 0.42], 'p:magnet': [0.88, 0.5] },
+  Weapons: { 'w:orbit': [0.15, 0.9], 'w:pulse': [0.5, 0.9], 'w:lance': [0.85, 0.9], 'w:nova': [0.3, 0.58], 'w:field': [0.7, 0.58],
+    'e:orbit': [0.1, 0.22], 'e:nova': [0.3, 0.22], 'e:pulse': [0.5, 0.22], 'e:field': [0.7, 0.22], 'e:lance': [0.9, 0.22] },
+  Drones: { 'd:dmag': [0.3, 0.85], 'd:demp': [0.7, 0.85], 'd:drone': [0.2, 0.45], 'd:dshield': [0.5, 0.45], 'd:dstrike': [0.8, 0.45] },
+  Passives: { 'p:signal': [0.2, 0.85], 'p:capacitor': [0.5, 0.85], 'p:clock': [0.8, 0.85], 'p:gain': [0.2, 0.45], 'p:aperture': [0.5, 0.45], 'p:magnet': [0.8, 0.45] },
+};
+// what each skill does, in full (the panel's main text); the short "next level" lines stay in treeNodes
+const SKILL_INFO = {
+  'w:pulse': 'Your starting gun: a bolt at the nearest enemy you can see. Level 2 adds a second bolt and level 4 a third, each aimed at a different enemy; every level adds damage.',
+  'w:orbit': 'Shards circle you and cut whatever they touch. Levels add shards and damage. Strong against Swarm that crowds you.',
+  'w:lance': 'A beam that pierces through the nearest enemy and everything lined up behind it. Levels add damage and length.',
+  'w:nova': 'Every few seconds a burst goes off around you and hits everything close. Levels add damage and size.',
+  'w:field': 'An aura that hurts everything inside it every second. Levels widen it and hit harder. Good for standing your ground.',
+  'e:pulse': 'Barrage, the stronger Pulse: three-way piercing bolts.', 'e:orbit': 'Halo, the stronger Orbit: a wide ring, more shards, and it knocks enemies back.',
+  'e:nova': 'Supernova, the stronger Nova: fires twice as often and much larger.', 'e:lance': 'Rail, the stronger Lance: an instant full-length line for double damage.',
+  'e:field': 'Bastion, the stronger Field: a larger aura that slows enemies and heals you.',
+  'p:signal': 'More damage from everything you deal: weapons, turrets, artillery and Drone strikes. +10% a level.',
+  'p:capacitor': 'More max HP: +20 a level.', 'p:clock': 'You move 8% faster a level, which makes Rusher dashes and Gunner fans easier to dodge.',
+  'p:gain': 'Every weapon fires 8% more often a level; Nova and Lance recharge faster.',
+  'p:aperture': 'Orbit, Nova, Field and Lance get 10% bigger a level, and you see 10% farther.',
+  'p:magnet': 'XP, health and parts fly to you from 12% farther a level.',
+  'd:dmag': 'Your following Drone pulls XP to you from farther away. Level 2 makes it collect parts too.',
+  'd:demp': 'Drones slow enemies near them. Level 2 widens the slow; level 3 also burns them for 6 damage a second.',
+  'd:drone': 'One more Drone for this run, so you can watch another perch or keep one beside you. Costs 2 points (the double ring).',
+  'd:dshield': 'A following Drone shoots down an enemy bullet near it. Each block costs it health: at level 1 one block knocks it down (walk over it to recover). Put it on the inner ring in Drone positions to keep it beside you.',
+  'd:dstrike': 'A charged Drone dives into a boss in reach for heavy damage, then is down until you pick it up. Level 2 hits harder and also dives at Jammers and Gunners, your Drone targets first.',
 };
 function nodeLvl(run, key) {
   const [t, id] = key.split(':'), p = run.p;
   return t === 'w' ? (p.weapons[id] || 0) : t === 'p' ? (p.passives[id] || 0) : t === 'd' ? (run.skill[id] || 0) : t === 'e' ? (p.evolved[id] ? 1 : 0) : 0;
 }
 const nodeName = key => { const [t, id] = key.split(':'); return t === 'w' ? WEAPONS[id].name : t === 'p' ? PASSIVES[id].name : t === 'd' ? DRONE_SKILLS[id].name : t === 'e' ? WEAPONS[id].evo : id; };
+function tierOf(key) { for (const tab in TREE_TIERS) { const i = TREE_TIERS[tab].findIndex(t => t.keys.includes(key)); if (i >= 0) return { tab, i, t: TREE_TIERS[tab][i] }; } return null; }
+const levelCost = key => (key[0] === 'e' ? EVO_COST : key[0] === 'd' ? DRONE_SKILLS[key.slice(2)].cost : 1);
+function nodePoints(run, key) { const l = nodeLvl(run, key); return (key === 'w:pulse' ? Math.max(0, l - 1) : l) * levelCost(key); } // Pulse's free first level does not count
+function pointsBelow(run, tab, i, minus) { let n = 0; TREE_TIERS[tab].slice(0, i).forEach(t => { if (!t.evo) for (const k of t.keys) n += nodePoints(run, k); }); return n - (minus || 0); }
 function gateWhy(run, key) { // reason a first level is locked, '' if open
   if (nodeLvl(run, key) > 0) return '';
-  const miss = (TREE_LINKS[key] || []).filter(([k, l]) => nodeLvl(run, k) < l);
-  return miss.length ? 'Needs ' + miss.map(([k, l]) => `${nodeName(k)} ${l}`).join(' and ') : '';
+  const T = tierOf(key); if (!T || T.t.evo || !T.t.need) return '';
+  const have = pointsBelow(run, T.tab, T.i);
+  return have >= T.t.need ? '' : `Tier ${T.i + 1} opens after ${T.t.need} points in the tier below. You have ${have}.`;
 }
-function sellBlock(run, key) { // a level that another bought skill depends on cannot be sold
-  const lvl = nodeLvl(run, key);
-  for (const dep in TREE_LINKS) for (const [k, l] of TREE_LINKS[dep]) if (k === key && nodeLvl(run, dep) > 0 && lvl - 1 < l) return `${nodeName(dep)} needs it at ${l}`;
+function sellBlock(run, key) { // a sale may not drop a tier you already use below its points
+  const T = tierOf(key); if (!T) return '';
+  const tiers = TREE_TIERS[T.tab], cost = levelCost(key);
+  for (let j = T.i + 1; j < tiers.length; j++) if (!tiers[j].evo && tiers[j].keys.some(k => nodeLvl(run, k) > 0) && pointsBelow(run, T.tab, j, cost) < tiers[j].need) return `Tier ${j + 1} needs ${tiers[j].need} points below it`;
   return '';
 }
-const unlocksOf = key => Object.keys(TREE_LINKS).filter(dep => TREE_LINKS[dep].some(([k]) => k === key)).map(dep => `${nodeName(dep)} (at ${TREE_LINKS[dep].find(([k]) => k === key)[1]})`);
 function weaponNextDesc(k, l) {
   if (!l) return WEAPONS[k].desc;
   if (k === 'pulse' && l + 1 === 2) return 'Level 2: 2 bolts, each at a different enemy';
@@ -1907,13 +1947,12 @@ function treeNodes(run) {
   }
   for (const k in PASSIVES) {
     const l = p.passives[k] || 0, why = l >= MAX_LVL ? 'Maxed' : gateWhy(run, 'p:' + k) || (!l && nP >= MAX_PASSIVES ? `${MAX_PASSIVES} passives max` : '');
-    const evoHolds = Object.keys(WEAPONS).some(w => WEAPONS[w].partner === k && p.evolved[w]) && l <= 3;
-    out.push({ key: 'p:' + k, branch: 'Passives', name: PASSIVES[k].name, lvl: l, max: MAX_LVL, cost: 1, desc: PASSIVES[k].desc + ' per level', why, sellWhy: !l ? 'none' : evoHolds ? 'An evolution needs it at 3' : sellBlock(run, 'p:' + k) });
+    out.push({ key: 'p:' + k, branch: 'Passives', name: PASSIVES[k].name, lvl: l, max: MAX_LVL, cost: 1, desc: PASSIVES[k].desc + ' per level', why, sellWhy: !l ? 'none' : sellBlock(run, 'p:' + k) });
   }
   for (const k in WEAPONS) {
-    const done = !!p.evolved[k], need = `${WEAPONS[k].name} 5 + ${PASSIVES[WEAPONS[k].partner].name} 3`;
-    const ready = (p.weapons[k] || 0) >= MAX_LVL && (p.passives[WEAPONS[k].partner] || 0) >= 3;
-    out.push({ key: 'e:' + k, branch: 'Evolutions', name: WEAPONS[k].evo, lvl: done ? 1 : 0, max: 1, cost: 1, desc: `${WEAPONS[k].evoDesc} Needs ${need}.`, why: done ? 'Evolved' : ready ? '' : `Needs ${need}`, sellWhy: done ? '' : 'none', evo: true });
+    const done = !!p.evolved[k], need = `Needs ${WEAPONS[k].name} at level 5.`;
+    const ready = (p.weapons[k] || 0) >= MAX_LVL; // its stronger version: only the weapon itself matters
+    out.push({ key: 'e:' + k, branch: 'Evolutions', name: WEAPONS[k].evo, lvl: done ? 1 : 0, max: 1, cost: EVO_COST, desc: WEAPONS[k].evoDesc, why: done ? 'Evolved' : ready ? '' : need, sellWhy: done ? '' : 'none', evo: true });
   }
   for (const k in DRONE_SKILLS) {
     const d = DRONE_SKILLS[k], l = sk[k] || 0, why = l >= d.max ? 'Maxed' : gateWhy(run, 'd:' + k);
@@ -2550,7 +2589,7 @@ if (HAS_DOM) {
     const [branch, detail] = LATTICE_INFO[u.id], ul = latUnlocks(u.id);
     box.innerHTML = `<div class="t"><b>${u.name}</b><small>${branch}</small></div>`
       + `<p>${lvl ? 'Now: ' + u.fmt(lvl * u.per) : 'Not bought yet'}${maxed ? '. Maxed.' : '. Next level: ' + u.fmt((lvl + 1) * u.per)}</p>`
-      + (why ? `<p class="why">${why}</p>` : '') + (ul.length ? `<p>Unlocks: ${ul.join(', ')}</p>` : '')
+      + (why ? `<p class="why">${why}</p>` : '') + (ul.length ? `<p>Opens: ${ul.join(', ')}</p>` : '')
       + `<details class="wdet"><summary>Details</summary><p>${detail}</p></details>`;
     const buy = document.createElement('button'); buy.className = 'buybig'; buy.disabled = !can;
     buy.textContent = maxed ? 'Maxed' : why ? 'Locked' : can ? `Buy level ${lvl + 1} (${cost} gold)` : `Need ${cost} gold`;
@@ -2720,7 +2759,7 @@ if (HAS_DOM) {
     return hs;
   }
   /* skill tree screen: constellations per branch, a detail panel with Buy, and press-and-hold Sell */
-  let treeFrom = 'levelup', treeTab = 'Weapons', treeSel = null, treeRun = null, treeAnim = 0, treeNodesCache = [];
+  let treeFrom = 'levelup', treeTab = 'Weapons', treeSel = null, treeRun = null, treeAnim = 0, treeNodesCache = [], treeCache = null;
   const fmtPts = v => (Math.round(v * 2) / 2).toString();
   const TABS = ['Weapons', 'Drones', 'Passives'];
   const tabOf = key => TABS.find(t => TREE_SKY[t][key]);
@@ -2729,7 +2768,7 @@ if (HAS_DOM) {
     treeRun = run; if (from) treeFrom = from;
     UI.go('tree');
     const nodes = treeNodes(run), canBuy = n => !n.why && n.cost <= run.points;
-    treeNodesCache = nodes;
+    treeNodesCache = nodes; treeCache = null;
     if (from && !nodes.some(q => TREE_SKY[treeTab][q.key] && canBuy(q))) { const t = TABS.find(t => nodes.some(q => TREE_SKY[t][q.key] && canBuy(q))); if (t) { treeTab = t; treeSel = null; } }
     inlineTip('it-draft', nodes.some(n => n.evo && !n.why) && !tipSeen('evo') ? 'evo' : 'draft');
     el('tree-title').textContent = treeFrom === 'levelup' ? `Level ${run.p.level}` : 'Skill tree';
@@ -2748,24 +2787,24 @@ if (HAS_DOM) {
     if (run.points >= 1 && !nodes.some(q => !q.key.startsWith('x:') && canBuy(q))) for (const n of nodes.filter(q => q.key.startsWith('x:'))) {
       const b = document.createElement('button'); b.innerHTML = `<b>${n.name}</b>: ${n.desc} (1 point)`; b.onclick = () => { if (buyNode(run, n.key)) afterChange(run); }; ex.appendChild(b);
     }
-    el('btn-tree-close').textContent = treeFrom === 'pause' ? 'Back' : run.points >= 1 ? `Save ${fmtPts(run.points)} point${run.points === 1 ? '' : 's'} for later` : 'Continue';
+    el('btn-tree-close').textContent = treeFrom === 'pause' ? 'Back' : 'Back to the fight';
     if (!treeAnim) treeAnim = requestAnimationFrame(skyLoop);
   };
   function treePanel(run, n) {
     const box = el('tree-panel'), can = !n.why && n.cost <= run.points;
     const pips = n.max > 1 ? '●'.repeat(n.lvl) + '○'.repeat(n.max - n.lvl) : n.lvl ? 'learned' : '';
-    const ul = unlocksOf(n.key);
+    const maxed = n.lvl >= n.max, locked = n.why && n.why !== 'Maxed' && n.why !== 'Evolved';
     box.innerHTML = `<div class="t"><b>${n.name}</b><small>${pips}</small></div>`
-      + `<p>${n.lvl >= n.max ? 'Maxed.' : n.desc}</p>`
-      + (n.why && n.why !== 'Maxed' && n.why !== 'Evolved' ? `<p class="why">${n.why}</p>` : '')
-      + (ul.length ? `<p>Unlocks: ${ul.join(', ')}</p>` : '');
+      + `<p>${SKILL_INFO[n.key] || n.desc}</p>` // what it does, in full
+      + (maxed ? '<p class="next">Maxed.</p>' : n.lvl && !n.evo ? `<p class="next">Next: ${n.desc}</p>` : '')
+      + (locked ? `<p class="why">${n.why}</p>` : ''); // the reason it is locked, said once
     const buy = document.createElement('button'); buy.className = 'buybig';
     buy.disabled = !can;
-    buy.textContent = n.lvl >= n.max ? 'Maxed' : n.why ? 'Locked' : can ? `Buy ${n.lvl ? 'level ' + (n.lvl + 1) : ''} (${n.cost} point${n.cost === 1 ? '' : 's'})` : `Need ${n.cost} point${n.cost === 1 ? '' : 's'}`;
+    buy.textContent = maxed ? 'Maxed' : n.why ? 'Locked' : !can ? 'Not enough points' : n.evo ? 'Evolve' : n.lvl ? `Buy level ${n.lvl + 1}` : 'Buy';
     buy.onclick = () => { if (buyNode(run, n.key)) { beep(660, 0.08, 'triangle', 0.05); buzz(15); afterChange(run); } };
     box.appendChild(buy);
     if (!n.sellWhy) { // selling needs a deliberate 1 second hold; a tap does nothing
-      const hs = holdSell(`Hold to sell 1 level (+${fmtPts(n.cost / 2)})`, () => { if (sellNode(run, n.key)) { beep(330, 0.1, 'triangle', 0.05); buzz(30); afterChange(run); } });
+      const hs = holdSell('Hold to sell a level', () => { if (sellNode(run, n.key)) { beep(330, 0.1, 'triangle', 0.05); buzz(30); afterChange(run); } });
       hs.id = 'tree-sell'; box.appendChild(hs);
     } else if (n.sellWhy !== 'none') { const p = document.createElement('p'); p.style.cssText = 'font-size:12px;text-align:right'; p.textContent = `Can't sell: ${n.sellWhy}`; box.appendChild(p); }
   }
@@ -2799,9 +2838,9 @@ if (HAS_DOM) {
         const gap = Math.min(0.08, 1.2 / n.max), a0 = -Math.PI / 2 + i / n.max * 6.283 + gap, a1 = -Math.PI / 2 + (i + 1) / n.max * 6.283 - gap;
         g.strokeStyle = i < n.lvl ? `rgba(${col},0.95)` : 'rgba(120,140,170,0.3)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R + 5, a0, a1); g.stroke();
       }
-      if (n.key === M.sel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + 10, 0, 6.283); g.stroke(); }
-      g.fillStyle = n.locked ? 'rgba(139,147,163,0.7)' : '#f6efe0'; g.font = '11px Roboto, Arial, sans-serif'; g.fillText(n.name, x, y + R + 18);
-      if (n.sub) { g.fillStyle = 'rgba(255,179,71,0.75)'; g.font = '9px Roboto, Arial, sans-serif'; g.fillText(n.sub, x, y + R + 29); }
+      if (n.cost >= 2) { g.strokeStyle = n.lvl ? `rgba(${col},0.8)` : 'rgba(170,185,210,0.55)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, R + 9, 0, 6.283); g.stroke(); g.beginPath(); g.arc(x, y, R + 12, 0, 6.283); g.stroke(); } // double ring: costs 2 points
+      if (n.key === M.sel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + (n.cost >= 2 ? 16 : 10), 0, 6.283); g.stroke(); }
+      g.fillStyle = n.locked ? 'rgba(139,147,163,0.7)' : '#f6efe0'; g.font = '11px Roboto, Arial, sans-serif'; g.fillText(n.name, x, y + R + (n.cost >= 2 ? 26 : 18)); // clear of the double ring
     }
   }
   function skyPick(c, ev, posMap) {
@@ -2812,13 +2851,15 @@ if (HAS_DOM) {
   }
   function treeModel() {
     const run = treeRun, pos = TREE_SKY[treeTab], nodes = treeNodesCache.filter(n => pos[n.key]), links = [];
-    for (const n of nodes) for (const [k, need] of (TREE_LINKS[n.key] || []).concat(n.evo ? [['w:' + n.key.slice(2), MAX_LVL]] : [])) if (pos[k]) links.push([k, n.key, need, nodeLvl(run, k) >= need, !n.evo]); // evolution lines always need 5: the panel says so
-    const stars = nodes.map(n => ({ key: n.key, name: n.name, lvl: n.lvl, max: n.max, evo: n.evo, can: !n.why && n.cost <= run.points, locked: !!n.why && !n.lvl && n.why !== 'Maxed', sub: n.evo && !n.lvl ? `+ ${PASSIVES[WEAPONS[n.key.slice(2)].partner].name} 3` : '' }));
-    return { pos, links, stars, sel: treeSel };
+    for (const n of nodes) if (n.evo) links.push(['w:' + n.key.slice(2), n.key, MAX_LVL, nodeLvl(run, 'w:' + n.key.slice(2)) >= MAX_LVL, false]); // only link: a weapon to its stronger version
+    const groups = TREE_TIERS[treeTab].map((t, i) => { const y = Math.min(...t.keys.map(k => pos[k][1])) - 0.13, have = pointsBelow(run, treeTab, i), lock = !t.evo && t.need && have < t.need;
+      return [t.evo ? 'Evolutions' : `Tier ${i + 1}${lock ? ` · ${have} of ${t.need}` : ''}`, 0, Math.max(0, y), 'left']; });
+    const stars = nodes.map(n => ({ key: n.key, name: n.name, lvl: n.lvl, max: n.max, evo: n.evo, cost: n.cost, can: !n.why && n.cost <= run.points, locked: !!n.why && !n.lvl && n.why !== 'Maxed' }));
+    return { pos, links, stars, sel: treeSel, groups };
   }
   function skyLoop(now) {
     treeAnim = 0;
-    if (el('tree').classList.contains('on') && treeRun) drawSky(el('tree-sky'), now, treeModel());
+    if (el('tree').classList.contains('on') && treeRun) drawSky(el('tree-sky'), now, treeCache || (treeCache = treeModel()));
     else if (el('lattice').classList.contains('on')) drawSky(el('lat-sky'), now, latCache || (latCache = latModel())); // rebuilt only on buy, sell or select
     else return;
     treeAnim = requestAnimationFrame(skyLoop);
@@ -2826,12 +2867,9 @@ if (HAS_DOM) {
   el('tree-sky').addEventListener('click', ev => {
     if (!treeRun) return;
     const best = skyPick(el('tree-sky'), ev, TREE_SKY[treeTab]);
-    if (best) { treeSel = best; treePanel(treeRun, treeNodes(treeRun).find(n => n.key === best)); beep(900, 0.03, 'sine', 0.02); }
+    if (best) { treeSel = best; treeCache = null; treePanel(treeRun, treeNodes(treeRun).find(n => n.key === best)); beep(900, 0.03, 'sine', 0.02); }
   });
-  function afterChange(run) {
-    if (treeFrom === 'levelup' && run.points < 1) { el('btn-tree-close').onclick(); return; } // spent: back to the fight
-    UI.showTree(run);
-  }
+  function afterChange(run) { UI.showTree(run); } // stay in the tree after a buy (Lance 10-08); Back to the fight returns
   el('btn-tree-close').onclick = () => {
     if (!R) return;
     if (treeFrom === 'pause') { UI.go('pause'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} points)`; return; }
@@ -2878,6 +2916,12 @@ if (HAS_DOM) {
   let guard = false;
   function armBack() { if (!guard && curScreen !== 'menu') { try { history.pushState({ survivorsBack: 1 }, ''); guard = true; } catch (e) { /* sandboxed */ } } }
   window.addEventListener('popstate', () => { guard = false; goBack(); armBack(); });
+  { const C = window.Capacitor; let App = null; // APK only (Lance 10-08: back still closed the game). The launcher writes the
+    try { App = (C && C.Plugins && C.Plugins.App) || (C && C.registerPlugin ? C.registerPlugin('App') : null); } catch (e) { App = null; } // game in, so ask both ways
+    if (App && App.addListener) try {
+      const h = App.addListener('backButton', () => { if (curScreen === 'menu') { Promise.resolve(App.minimizeApp ? App.minimizeApp() : App.exitApp()).catch(() => {}); } else goBack(); });
+      if (h && h.catch) h.catch(() => {}); // an APK without the App plugin: nothing changes
+    } catch (e) { /* older APK */ } }
   for (const b of document.querySelectorAll('.back')) b.onclick = goBack;
   el('btn-resume').onclick = togglePause; el('btn-quit').onclick = () => { if (R && !R.over) endRun(R, false); UI.menu(); R = null; };
   el('btn-pause').onclick = () => { if (R) togglePause(); };
@@ -3145,7 +3189,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
