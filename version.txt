@@ -1,2 +1,2 @@
-playtest 2026-10-08 s1
-ares@a826f03
+playtest 2026-10-08 s2
+ares@9e8df4c

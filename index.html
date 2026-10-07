@@ -91,10 +91,11 @@
   .tree-head { display:flex; align-items:baseline; justify-content:space-between; }
   .tree-head h2 { margin:0; }
   #tree-pts { color:var(--amber); font-size:15px; }
+  #btn-pause { position:relative; }
+  #btn-pause.pts::after { content:''; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:var(--amber); }
   .tabs { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .tabs button { text-align:center; padding:9px 4px; font-size:14px; border-radius:18px; }
   .tabs button.on { border-color:var(--cyan); color:var(--cyan); }
-  .tabs button small { color:var(--amber); }
   #tree-sky { position:static; display:block; width:100%; height:min(46vh, 400px); border-radius:10px; border:1px solid var(--line); touch-action:pan-y; }
   .tpanel { border:1px solid var(--line); border-radius:10px; padding:12px 14px; min-height:150px; display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); }
   .tpanel .t { display:flex; justify-content:space-between; align-items:baseline; }
@@ -324,7 +325,7 @@ const ENEMY_CAP = 300;
 const PLAYER_VISION = 250, MOTE_VISION = 300;
 
 const ZONES = [
-  { name: 'Zone 1',  dur: 180, diff: 1.00, gold: 60,  desc: 'Swarm and Rushers. Learn to move and to use cover.' },
+  { name: 'Zone 1',  dur: 180, diff: 1.00, gold: 60,  desc: 'Swarm, Rushers and 3 hives. Destroy the hives or survive to the boss.' },
   { name: 'Zone 2',  dur: 210, diff: 1.15, gold: 100, desc: 'Jammers appear. They blind perched Drones.' },
   { name: 'Zone 3',  dur: 240, diff: 1.35, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
   { name: 'Zone 4',  dur: 270, diff: 1.6,  gold: 220, desc: 'Everything, faster. Heat climbs and the base gets hit.' },
@@ -344,6 +345,9 @@ const ENEMY = {
   null:      { hp: 110, spd: 38,  dmg: 12, r: 16, xp: 7,  gold: 1.5,  heat: 0.25, parts: 0.6 },
   harmonic:  { hp: 34,  spd: 50,  dmg: 9,  r: 10, xp: 4,  gold: 0.8,  heat: 0.12, parts: 0.4 },
   resonator: { hp: 1300, spd: 36, dmg: 16, r: 34, xp: 80, gold: 40,   heat: 0, parts: 1 },
+  hive:      { hp: 1,    spd: 0,  dmg: 0,  r: 26, xp: 30, gold: 12,   heat: 0.4, parts: 1 },   // hp from HIVE
+  scout:     { hp: 10,   spd: 100, dmg: 5, r: 6,  xp: 2,  gold: 0.3,  heat: 0.03, parts: 0.05 },
+  gatherer:  { hp: 24,   spd: 72, dmg: 6,  r: 9,  xp: 3,  gold: 0.6,  heat: 0.05, parts: 0.3 },
 };
 
 const WEAPONS = {
@@ -409,7 +413,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s1';
+const BUILD_ID = 'playtest 2026-10-08 s2';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -569,7 +573,7 @@ function newRun(zoneIdx, mode) {
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
     cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {},
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800, maxhp: 800, alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
-    ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], raidT: 50, dryT: 0,
+    ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
   };
   // walls: rectangular blocks that stop movement, bullets and sight
@@ -603,6 +607,7 @@ function newRun(zoneIdx, mode) {
     run.caches.push({ x, y, taken: false });
   }
   run.tier = lat('tier'); run.moteVision = MOTE_VISION * (run.tier >= 2 ? DRONE_TIERS[2].vision : 1);
+  placeHives(run);
   const bat = 100 * (1 + latVal('battery')) * (run.tier >= 1 ? DRONE_TIERS[1].bat : 1);
   for (let i = 0; i < nMotes; i++) run.motes.push({ x: run.p.x, y: run.p.y, state: 'follow', bat, maxBat: bat, hp: 100, anchor: null, jammed: false, ph: i * 2.1, id: i });
   computeStats(run);
@@ -771,6 +776,236 @@ function spawnDirector(run, dt) {
   }
 }
 
+/* ---------- pathfinding: BFS distance fields over the 40x40 cell grid, cached per target cell ---------- */
+const PATH = { directR: 160, recheck: 0.3, cacheMax: 120, blockFrac: 0.35 };
+function buildBlocked(run) { // a cell is blocked when walls cover >= blockFrac of it
+  const cover = new Float32Array(COLS * COLS);
+  for (const o of run.walls) {
+    const c0 = clamp(Math.floor(o.x / CELL), 0, COLS - 1), c1 = clamp(Math.floor((o.x + o.w) / CELL), 0, COLS - 1);
+    const r0 = clamp(Math.floor(o.y / CELL), 0, COLS - 1), r1 = clamp(Math.floor((o.y + o.h) / CELL), 0, COLS - 1);
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+      const ow = Math.min(o.x + o.w, (c + 1) * CELL) - Math.max(o.x, c * CELL), oh = Math.min(o.y + o.h, (r + 1) * CELL) - Math.max(o.y, r * CELL);
+      if (ow > 0 && oh > 0) cover[r * COLS + c] += ow * oh / (CELL * CELL);
+    }
+  }
+  const b = new Uint8Array(COLS * COLS); for (let i = 0; i < b.length; i++) b[i] = cover[i] >= PATH.blockFrac ? 1 : 0;
+  return b;
+}
+const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+function fieldTo(run, ti) { // steps from every cell to cell ti (-1 = unreachable); walls never move, so cache it
+  let f = run.fields.get(ti);
+  if (f) { run.fields.delete(ti); run.fields.set(ti, f); return f; }
+  f = new Int16Array(COLS * COLS).fill(-1); const q = new Int16Array(COLS * COLS); let h = 0, t = 0; f[ti] = 0; q[t++] = ti;
+  const bl = run.blocked;
+  while (h < t) {
+    const i = q[h++], r = (i / COLS) | 0, c = i % COLS, d = f[i] + 1;
+    for (const [dc, dr] of DIRS8) {
+      const nr = r + dr, nc = c + dc; if (nr < 0 || nc < 0 || nr >= COLS || nc >= COLS) continue;
+      const j = nr * COLS + nc; if (f[j] >= 0 || bl[j]) continue;
+      if (dr && dc && (bl[r * COLS + nc] || bl[nr * COLS + c])) continue; // no corner cutting
+      f[j] = d; q[t++] = j;
+    }
+  }
+  run.fields.set(ti, f); if (run.fields.size > PATH.cacheMax) run.fields.delete(run.fields.keys().next().value);
+  return f;
+}
+// waypoint for e toward (tx,ty), or null to go straight (close by, or a clear line of sight)
+function steer(run, e, tx, ty, d, dt) {
+  if (d < PATH.directR || !run.blocked) return null;
+  e.pathT = (e.pathT || 0) - dt;
+  const gc = cellIdx(tx, ty); if (gc !== e.wpGoal) { e.wpGoal = gc; e.pathT = 0; } // new goal: replan now
+  if (e.pathT <= 0) {
+    e.pathT = PATH.recheck + Math.random() * 0.1; e.wp = null;
+    if (!losClear(run, e.x, e.y, tx, ty)) {
+      const f = fieldTo(run, cellIdx(tx, ty)), ci = cellIdx(e.x, e.y), r = (ci / COLS) | 0, c = ci % COLS;
+      let best = -1, bd = 1e9;
+      for (const [dc, dr] of DIRS8) {
+        const nr = r + dr, nc = c + dc; if (nr < 0 || nc < 0 || nr >= COLS || nc >= COLS) continue;
+        const j = nr * COLS + nc; if (f[j] < 0) continue;
+        if (dr && dc && (run.blocked[r * COLS + nc] || run.blocked[nr * COLS + c])) continue;
+        if (f[j] < bd) { bd = f[j]; best = j; }
+      }
+      if (best >= 0) e.wp = { x: (best % COLS) * CELL + CELL / 2, y: ((best / COLS) | 0) * CELL + CELL / 2 };
+    }
+  }
+  return e.wp;
+}
+
+/* ---------- hives: self-interested enemy bases (Lance 10-07). They start blind, scout, gather, grow, and only raid
+   what their own units have found, picking by value and risk. Pure functions over run state (headless-safe). ---------- */
+const HIVE = {
+  count: [3, 3, 4, 4, 5], minBaseDist: 1100, minGap: 900,
+  hp: 500, hpPerTier: 250, tierEvery: 15,               // stock (parts-equivalent) per growth tier
+  decideEvery: 2, prodEvery: 7, prodPerTier: 0.85,      // seconds between units, x0.85 per tier
+  scoutsMax: 2, gatherersMax: 1, guardsBase: 6, guardsPerTier: 2, sight: 260, lookEvery: 0.5, guardR: 140, engageR: 220,
+  squadBase: 3, squadPerTier: 1,
+  value: { cache: 3, drone: 4, build: 3, base: 7 }, risk: { cache: 1, drone: 1, build: 1.5, base: 3 }, raidScoreMin: 0.8,
+  cacheStock: 12, gatherRange: 1400, outpostAt: 40, outpostCost: 25, maxOutposts: 2,
+  turretRange: 300, turretEvery: 1.6, lootParts: 8, lootPerStock: 0.5, lootGold: 10,
+};
+function placeHives(run) {
+  run.blocked = buildBlocked(run); run.fields = new Map(); run.hives = [];
+  const n = HIVE.count[run.zone] || 3;
+  for (let tries = 0; run.hives.length < n && tries < 3000; tries++) {
+    const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
+    if (dist2(x, y, run.base.x, run.base.y) < HIVE.minBaseDist * HIVE.minBaseDist) continue;
+    if (run.hives.some(h => dist2(h.x, h.y, x, y) < HIVE.minGap * HIVE.minGap)) continue;
+    if (run.blocked[cellIdx(x, y)] || inWall(run, x, y)) continue;
+    if (fieldTo(run, cellIdx(run.base.x, run.base.y))[cellIdx(x, y)] < 0) continue; // must be reachable
+    addHive(run, x, y, null);
+  }
+}
+function addHive(run, x, y, parent) {
+  const h = { id: run.hives.length, x, y, stock: parent ? 0 : 6, tier: 0, outposts: 0, parent, explored: new Uint8Array(COLS * COLS), known: new Map(),
+    prodT: rnd(3, 7), decideT: rnd(0, 2), nextRole: 'scout', turretT: 0, found: false, dead: false };
+  markExplored(h, x, y, 3);
+  const core = makeEnemy(run, 'hive', x, y); core.spd = 0; core.isCore = true; core.hive = h;
+  core.hp = core.maxhp = HIVE.hp * (parent ? 0.6 : 1) * run.z.diff; h.core = core;
+  run.hives.push(h); return h;
+}
+function markExplored(h, x, y, rc) {
+  const c0 = Math.floor(x / CELL), r0 = Math.floor(y / CELL);
+  for (let r = r0 - rc; r <= r0 + rc; r++) for (let c = c0 - rc; c <= c0 + rc; c++) if (r >= 0 && c >= 0 && r < COLS && c < COLS) h.explored[r * COLS + c] = 1;
+}
+const hivesAlive = run => (run.hives || []).filter(h => !h.dead);
+function targetGone(run, t) {
+  if (t.kind === 'cache') return t.ref.taken;
+  if (t.kind === 'drone') return t.ref.state !== 'perched' || dist2(t.ref.x, t.ref.y, t.x, t.y) > 40 * 40;
+  if (t.kind === 'build') return !run.builds.includes(t.ref);
+  if (t.kind === 'base') return run.base.breached;
+  return false;
+}
+// what a hive unit sees: map cells for its hive, and targets it will carry home
+function hiveLook(run, e) {
+  const h = e.hive, S = HIVE.sight * HIVE.sight;
+  markExplored(h, e.x, e.y, 2);
+  const see = (key, kind, x, y, ref) => {
+    if (h.known.has(key) || (e.found && e.found.has(key))) return;
+    if (dist2(x, y, e.x, e.y) > S || !losClear(run, e.x, e.y, x, y)) return;
+    (e.found || (e.found = new Map())).set(key, { key, kind, x, y, ref, t: run.t });
+    if (e.role === 'scout') e.home = true; // new intel: run home to report it
+  };
+  see('base', 'base', run.base.x, run.base.y, run.base);
+  for (const m of run.motes) if (m.state === 'perched') see('drone' + m.id + ':' + Math.round(m.x) + ',' + Math.round(m.y), 'drone', m.x, m.y, m);
+  for (const b of run.builds) see('build' + Math.round(b.x) + ',' + Math.round(b.y), 'build', b.x, b.y, b);
+  for (const c of run.caches) if (!c.taken) see('cache' + Math.round(c.x) + ',' + Math.round(c.y), 'cache', c.x, c.y, c);
+}
+function hiveReport(h, e) { if (e.found) { for (const [k, v] of e.found) h.known.set(k, v); e.found.clear(); } }
+function frontier(run, h, e) { // a reachable unexplored cell near the hive's known edge, nearest to e
+  const f = fieldTo(run, cellIdx(h.x, h.y)), hr = Math.floor(h.y / CELL), hc = Math.floor(h.x / CELL);
+  let best = null, bd = 1e12;
+  for (let k = 0; k < 40; k++) {
+    const rad = 4 + Math.floor(Math.random() * 14), a = Math.random() * 6.283;
+    const r = clamp(hr + Math.round(Math.sin(a) * rad), 0, COLS - 1), c = clamp(hc + Math.round(Math.cos(a) * rad), 0, COLS - 1), i = r * COLS + c;
+    if (h.explored[i] || f[i] < 0) continue;
+    const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2, d = dist2(x, y, e.x, e.y);
+    if (d < bd) { bd = d; best = { x, y }; }
+  }
+  return best;
+}
+// where a hive unit wants to go this frame (and its role changes)
+function hiveGoal(run, e, dt) {
+  const h = e.hive, p = run.p;
+  if (h.dead) { e.hive = null; return p; } // orphans just fight
+  if (e.role !== 'scout' && dist2(e.x, e.y, p.x, p.y) < HIVE.engageR * HIVE.engageR) return p; // enemies, not pacifists
+  e.lookT = (e.lookT || 0) - dt;
+  if (e.lookT <= 0) { e.lookT = HIVE.lookEvery; hiveLook(run, e); }
+  const atHome = dist2(e.x, e.y, h.x, h.y) < 70 * 70;
+  if (atHome) hiveReport(h, e);
+  if (e.role === 'scout') {
+    if (e.home) { if (atHome) { e.home = false; e.goal = null; } else return h; }
+    if (!e.goal || dist2(e.x, e.y, e.goal.x, e.goal.y) < 60 * 60) e.goal = frontier(run, h, e);
+    if (!e.goal) { e.home = true; return h; }
+    return e.goal;
+  }
+  if (e.role === 'gather') {
+    if (e.carry) { if (atHome) { h.stock += e.carry; e.carry = 0; } else return h; }
+    let c = e.tgt && !e.tgt.ref.taken ? e.tgt : null;
+    if (!c) {
+      let bd = 1e12; const GR = HIVE.gatherRange * HIVE.gatherRange; for (const t of h.known.values()) if (t.kind === 'cache' && !t.ref.taken && !t.claim && dist2(t.x, t.y, h.x, h.y) < GR) { const d = dist2(t.x, t.y, e.x, e.y); if (d < bd) { bd = d; c = t; } }
+      if (c) { c.claim = true; e.tgt = c; } else { e.role = 'guard'; return h; }
+    }
+    if (dist2(e.x, e.y, c.x, c.y) < 30 * 30) { if (!c.ref.taken) { c.ref.taken = true; c.ref.byHive = true; e.carry = HIVE.cacheStock; } h.known.delete(c.key); e.tgt = null; return h; }
+    return c;
+  }
+  if (e.role === 'raid') {
+    const t = e.tgt;
+    if (!t || targetGone(run, t)) { e.role = 'guard'; e.tgt = null; e.target = null; return h; }
+    return t.kind === 'drone' ? t.ref : t;
+  }
+  // guard: loiter near home
+  if (!e.goal || dist2(e.x, e.y, e.goal.x, e.goal.y) < 30 * 30) { const a = rnd(0, 6.283), r = rnd(40, HIVE.guardR); e.goal = { x: h.x + Math.cos(a) * r, y: h.y + Math.sin(a) * r }; }
+  return e.goal;
+}
+function hiveUnitsOf(run, h) { const out = { scout: [], gather: [], raid: [], guard: [] }; for (const e of run.enemies) if (e.hive === h && !e.isCore) (out[e.role] || out.guard).push(e); return out; }
+function hiveDecide(run, h) {
+  const u = hiveUnitsOf(run, h);
+  // raids: score every known target still standing; launch when the guard squad is big enough
+  const squad = Math.max(2, Math.round((HIVE.squadBase + HIVE.squadPerTier * h.tier) * (0.5 + run.M.raid))); // Normal 1x, Hard 1.5x
+  let best = null, bs = 0;
+  for (const [k, t] of h.known) {
+    if (targetGone(run, t)) { h.known.delete(k); for (const e of u.raid) if (e.tgt === t) { e.role = 'guard'; e.tgt = null; e.target = null; } continue; }
+    if (t.kind === 'cache') continue; // caches are for gatherers, not raids
+    if (t.kind === 'base' && h.tier < 1 && u.guard.length < squad + 2) continue; // the base is risky: only strong hives try it
+    const sc = HIVE.value[t.kind] / HIVE.risk[t.kind] / (1 + Math.sqrt(dist2(t.x, t.y, h.x, h.y)) / 1500);
+    if (sc > bs) { bs = sc; best = t; }
+  }
+  if (best && bs >= HIVE.raidScoreMin && u.guard.length >= squad) {
+    for (const e of u.guard.slice(0, squad)) { e.role = 'raid'; e.tgt = best; e.target = best.kind === 'base' ? 'base' : null; }
+    if (best.kind === 'base') tip(run, 'raid', { at: run.base });
+  }
+  const knownCaches = [...h.known.values()].some(t => t.kind === 'cache' && !t.ref.taken && !t.claim && dist2(t.x, t.y, h.x, h.y) < HIVE.gatherRange * HIVE.gatherRange);
+  h.nextRole = u.scout.length < HIVE.scoutsMax + Math.min(2, h.tier) ? 'scout' : knownCaches && u.gather.length < HIVE.gatherersMax ? 'gather'
+    : u.guard.length < HIVE.guardsBase + HIVE.guardsPerTier * h.tier ? 'guard' : null; // at the guard cap the hive saves up instead
+}
+function hiveUnitType(run) { const z = run.zone, r = Math.random(); return z >= 2 && r < 0.2 ? 'harmonic' : z >= 1 && r < 0.3 ? 'null' : r < 0.5 ? 'spike' : 'static'; }
+function hiveProduce(run, h) {
+  if (!h.nextRole) return;
+  const role = h.nextRole, type = role === 'scout' ? 'scout' : role === 'gather' ? 'gatherer' : hiveUnitType(run);
+  const a = rnd(0, 6.283), e = makeEnemy(run, type, h.x + Math.cos(a) * 34, h.y + Math.sin(a) * 34);
+  e.hive = h; e.role = role;
+}
+function hiveDestroyed(run, h) {
+  h.dead = true;
+  const parts = Math.round(HIVE.lootParts + h.stock * HIVE.lootPerStock);
+  if (hivesAlive(run).length) run.gems.push({ x: h.x, y: h.y, v: 0, part: parts, t: 0 }); else run.parts += parts; // the last hive ends the zone: bank its loot now
+  run.gold += HIVE.lootGold + h.stock;
+  for (const e of run.enemies) if (e.hive === h && !e.isCore) { if (e.tgt && e.tgt.claim) e.tgt.claim = false; e.hive = null; e.role = null; e.tgt = null; e.target = null; }
+  toast(run, `Hive destroyed: +${parts} parts, +${HIVE.lootGold + h.stock} gold`); tip(run, 'hive_down', { at: run.p }); SFX.win();
+  if (!hivesAlive(run).length && !run.over) { toast(run, 'Every hive destroyed. Zone cleared.'); endRun(run, true); }
+}
+function updateHives(run, dt) {
+  if (!run.hives) return;
+  for (const h of run.hives) if (!h.dead && !h.found && isSeen(run, h.x, h.y)) { h.found = true; toast(run, 'Hive found'); }
+  if (run.tut) return;
+  for (const h of run.hives) {
+    if (h.dead) continue;
+    const tier = Math.floor(h.stock / HIVE.tierEvery);
+    if (tier > h.tier) { const add = (tier - h.tier) * HIVE.hpPerTier * run.z.diff; h.core.maxhp += add; h.core.hp += add; h.tier = tier; }
+    if (h.tier >= 1) { // a grown hive defends itself
+      h.turretT -= dt; const p = run.p;
+      if (h.turretT <= 0 && dist2(p.x, p.y, h.x, h.y) < HIVE.turretRange * HIVE.turretRange && losClear(run, h.x, h.y, p.x, p.y)) {
+        h.turretT = HIVE.turretEvery; const a = Math.atan2(p.y - h.y, p.x - h.x);
+        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 5, dmg: 8 * Math.sqrt(run.z.diff) * run.M.dmg, t: 3 });
+      }
+    }
+    h.decideT -= dt; if (h.decideT <= 0) { h.decideT = HIVE.decideEvery; hiveDecide(run, h); }
+    h.prodT -= dt;
+    if (h.prodT <= 0) { // a watched hive cannot produce (same rule as all spawning)
+      h.prodT = HIVE.prodEvery * Math.pow(HIVE.prodPerTier, h.tier) / Math.sqrt(run.M.spawn * 2);
+      if (!isSeen(run, h.x, h.y) && run.enemies.length < ENEMY_CAP - 5) hiveProduce(run, h);
+    }
+    if (!h.parent && h.stock >= HIVE.outpostAt && h.outposts < HIVE.maxOutposts) { // grow outward
+      for (let k = 0; k < 30; k++) {
+        const a = rnd(0, 6.283), d = rnd(450, 750), x = clamp(h.x + Math.cos(a) * d, 200, WORLD - 200), y = clamp(h.y + Math.sin(a) * d, 200, WORLD - 200);
+        if (run.blocked[cellIdx(x, y)] || inWall(run, x, y) || dist2(x, y, run.base.x, run.base.y) < 700 * 700 || isSeen(run, x, y) || run.hives.some(o => dist2(x, y, o.x, o.y) < 400 * 400) || fieldTo(run, cellIdx(h.x, h.y))[cellIdx(x, y)] < 0) continue;
+        const o = addHive(run, x, y, h); o.known = h.known; o.explored = h.explored; markExplored(o, x, y, 3); h.stock -= HIVE.outpostCost; h.outposts++;
+        break;
+      }
+    }
+  }
+}
+
 /* ---------- toasts ---------- */
 function toast(run, txt) { run.toasts.push({ txt, t: 2.6 }); if (run.toasts.length > 3) run.toasts.shift(); }
 
@@ -790,6 +1025,10 @@ const TIPS = {
   e_spike:    { group: 'Enemies', title: 'Rusher (red triangles)', body: 'When a Rusher gets close it dashes at you in a quick burst. Sidestep the dash instead of running in a straight line.' },
   e_null:     { group: 'Enemies', title: 'Jammer (purple hexagons)', body: 'Tough and slow. Any perched Drone inside its faint purple ring is blinded and stops seeing. Kill Jammers near your perches first.' },
   e_harmonic: { group: 'Enemies', title: 'Gunner (blue diamonds)', body: 'Keeps its distance and fires a fan of 5 bullets when it can see you. Walls block the bullets, so duck behind cover or close in fast.' },
+  e_hive:     { group: 'Hives', title: 'Hive', body: 'An enemy base. It grows by gathering caches and parts, sends scouts to learn the map, and raids only what its scouts have found: a lone drone, a turret, a cache, or your base. Destroy every hive to clear the zone early, and loot what it stockpiled. A hive cannot make units while you or a drone watch it.' },
+  e_scout:    { group: 'Hives', title: 'Scout (green)', body: 'Fast and fragile. It explores for its hive, and when it spots something new it runs home to report. Kill it before it gets home and its hive stays blind to you.' },
+  e_gatherer: { group: 'Hives', title: 'Gatherer (yellow ring)', body: 'Takes caches its hive knows about and carries them home so the hive can grow. One carrying loot shows a yellow dot; kill it to drop half of it.' },
+  hive_down:  { group: 'Hives', title: 'Hive destroyed', body: 'Its units scatter and fight on their own, and its stockpile is yours. Grown hives build outposts nearby, so check the minimap for others.' },
   boss:       { group: 'Enemies', title: 'The boss is here', body: 'Follow the orange arrow at the screen edge. It fires rings of bullets, calls in Swarm, and pushes Heat up while alive. Kill it to clear the zone.' },
   summon:     { group: 'Enemies', title: 'The boss summons', body: 'Every 6 seconds the boss calls 4 Swarm right beside itself (the orange flash). They are the only enemies that can appear where you are looking.' },
   ring:       { group: 'Enemies', title: 'Rusher ring', body: 'A ring of Rushers just formed around you. Pick one side and break out through it rather than waiting for them to close in.' },
@@ -810,7 +1049,7 @@ const TIPS = {
   tier2:     { group: 'Drones', title: 'Drone tier 2: Video feed', body: 'A perched Drone now sees 40% farther, and a Jammer only halves its view instead of blinding it.' },
   tier3:     { group: 'Drones', title: 'Drone tier 3: Onboard compute', body: 'When a Jammer blinds it for 2 seconds, your Drone moves itself to the nearest safe perch. When it gets hit hard it limps home to you instead of going down.' },
   // base and heat
-  raid:     { group: 'Base and Heat', title: 'Raid on your base', body: 'Enemies are marching on your base. Its turret fights back, but at zero health the base is breached: no healing, reload, turret or artillery until you repair it. A Drone perched near base gives early warning.' },
+  raid:     { group: 'Base and Heat', title: 'Raid on your base', body: 'A hive found your base and sent a squad. Its turret fights back, but at zero health the base is breached: no healing, reload, turret or artillery until you repair it. A Drone perched near base gives early warning.' },
   heat:     { group: 'Base and Heat', title: 'Heat', body: 'The diamonds top right are Heat. Kills raise it, time lowers it. At 3 diamonds a big assault hits your base, and high Heat sends hunting packs after you.' },
   assault:  { group: 'Base and Heat', title: 'Base assault', body: 'For the next 40 seconds waves march on your base. Get back and hold it. Survive the assault with the base intact and Heat drops a lot.' },
   breach:   { group: 'Base and Heat', title: 'Base breached', body: 'Stand inside the base to repair it. Above a quarter health it comes back online. If it is still breached when you win, you lose the zone bonus.' },
@@ -959,12 +1198,14 @@ function update(run, dt) {
   // phase
   if (run.phase === 'run' && run.t >= run.z.dur) {
     run.phase = 'boss';
-    const pos = spawnPos(run);
+    const strong = hivesAlive(run).sort((a, b) => b.stock - a.stock)[0];
+    const pos = strong ? { x: strong.x + 60, y: strong.y } : spawnPos(run);
     run.boss = makeEnemy(run, 'resonator', pos.x, pos.y);
     run.bossWarn = 3; toast(run, 'Boss. Kill it to clear the zone.'); SFX.boss(); tip(run, 'boss', { at: run.boss });
   }
   if (run.bossWarn > 0) run.bossWarn -= dt;
   if (!run.tut) spawnDirector(run, dt);
+  updateHives(run, dt);
   tutUpdate(run, dt);
 
   // enemies
@@ -990,14 +1231,7 @@ function updateBase(run, dt) {
     if (!b.breached) { p.hp = Math.min(p.maxhp, p.hp + 3 * dt); if (run.ammo < run.maxAmmo * 0.5) run.reloadNote = true; if (run.ammo < run.maxAmmo) { run.ammo = Math.min(run.maxAmmo, run.ammo + 70 * dt); if (run.ammo >= run.maxAmmo && run.reloadNote) { run.reloadNote = false; toast(run, 'Reloaded'); } } }
   }
   // steady raids on the base, independent of heat: this is what perched drones give you notice of
-  if (!run.tut) run.raidT -= dt;
-  if (run.raidT <= 0 && run.enemies.length < ENEMY_CAP - 10) {
-    run.raidT = Math.max(16, 30 - run.t / 60 * 2);
-    const min = run.t / 60, n = Math.min(14, Math.round((3 + min * 1.2) * Math.sqrt(run.z.diff) * run.M.raid));
-    const a = rnd(0, 6.28), d = rnd(900, 1300);
-    for (let i = 0; i < n; i++) { const e = makeEnemy(run, i % 4 === 0 ? 'spike' : (run.zone >= 1 && i % 5 === 1) ? 'null' : 'static', clamp(b.x + Math.cos(a) * d + rnd(-60, 60), 20, WORLD - 20), clamp(b.y + Math.sin(a) * d + rnd(-60, 60), 20, WORLD - 20)); e.target = 'base'; }
-    tip(run, 'raid', { at: b });
-  }
+  // base raids now come from hives that have found the base (see hiveDecide); no timed raids
   // caches
   for (const c of run.caches) if (!c.taken && dist2(c.x, c.y, p.x, p.y) < 26 * 26) { c.taken = true; run.ammo = Math.min(run.maxAmmo, run.ammo + 120); run.parts += 8; run.shells = Math.min(run.maxShells, run.shells + 2); toast(run, 'Cache: +120 ammo, +8 parts, +2 shells'); SFX.levelup(); }
   // constructions
@@ -1032,7 +1266,7 @@ function updateBase(run, dt) {
       const a = rnd(0, 6.28), d = 700, n = Math.max(2, Math.round((4 + Math.floor(run.t / 120)) * run.M.raid));
       for (let i = 0; i < n; i++) { const e = makeEnemy(run, i % 3 === 0 ? 'spike' : 'static', clamp(b.x + Math.cos(a) * d + rnd(-50, 50), 20, WORLD - 20), clamp(b.y + Math.sin(a) * d + rnd(-50, 50), 20, WORLD - 20)); e.target = 'base'; }
     }
-    if (run.assaultLeft <= 0) { run.assault = false; run.assaultCd = 45; run.heat = Math.max(0, run.heat - 4); toast(run, run.base.breached ? 'The assault moves on.' : 'Assault repelled. Heat drops.'); for (const e of run.enemies) e.target = null; }
+    if (run.assaultLeft <= 0) { run.assault = false; run.assaultCd = 45; run.heat = Math.max(0, run.heat - 4); toast(run, run.base.breached ? 'The assault moves on.' : 'Assault repelled. Heat drops.'); for (const e of run.enemies) if (!e.hive) e.target = null; }
   }
   if (b.hp <= 0 && !b.breached) { b.breached = true; toast(run, 'Base breached. No healing, reload or turret until you repair it.'); SFX.dead(); tip(run, 'breach', { at: b }); }
 }
@@ -1158,11 +1392,13 @@ function updateEnemies(run, dt) {
   for (const e of es) {
     if (e.flash > 0) e.flash -= dt;
     if (e.hitT > 0) e.hitT -= dt;
-    const tgt = e.target === 'base' && !run.base.breached ? run.base : p;
+    if (e.isCore) continue; // hives don't move
+    const tgt = e.hive ? hiveGoal(run, e, dt) : e.target === 'base' && !run.base.breached ? run.base : p;
     const ddx = tgt.x - e.x, ddy = tgt.y - e.y, d = Math.hypot(ddx, ddy) || 1;
     let sp = e.spd * (e.slow > 0 ? 0.6 : 1);
     if (e.slow > 0) e.slow -= dt;
     let mx = ddx / d, my = ddy / d;
+    { const wp = steer(run, e, tgt.x, tgt.y, d, dt); if (wp) { const wx = wp.x - e.x, wy = wp.y - e.y, wl = Math.hypot(wx, wy) || 1; mx = wx / wl; my = wy / wl; } } // around walls, not along them
     if (e.blind > 0) { e.blind -= dt; e.wt = (e.wt || 0) - dt; if (e.wt <= 0) { e.wt = rnd(0.6, 1.4); const wa = rnd(0, 6.28); e.wx = Math.cos(wa); e.wy = Math.sin(wa); } mx = e.wx || 0; my = e.wy || 0; sp *= 0.6; }
     if (e.type === 'spike') {
       e.cd -= dt;
@@ -1230,11 +1466,14 @@ function killEnemy(run, e, idx) {
   for (let i = 0; i < (e.type === 'resonator' ? 40 : 4); i++) spark(run, e.x, e.y, ENEMY_COLOR[e.type]);
   SFX.kill();
   if (e.type === 'resonator') { run.boss = null; SFX.win(); endRun(run, true); }
+  if (e.tgt && e.tgt.claim) e.tgt.claim = false; // free the cache this gatherer was after
+  if (e.carry) run.gems.push({ x: e.x, y: e.y, v: 0, part: Math.round(e.carry / 2), t: 0 }); // a gatherer drops what it carried
   run.enemies[idx] = run.enemies[run.enemies.length - 1]; run.enemies.pop();
+  if (e.isCore) hiveDestroyed(run, e.hive);
 }
 function damageEnemy(run, e, dmg, kx, ky) {
   e.hp -= dmg; e.flash = 0.08;
-  if (kx) { e.x = clamp(e.x + kx, e.r, WORLD - e.r); e.y = clamp(e.y + ky, e.r, WORLD - e.r); }
+  if (kx && !e.isCore) { e.x = clamp(e.x + kx, e.r, WORLD - e.r); e.y = clamp(e.y + ky, e.r, WORLD - e.r); }
 }
 function reapDead(run) {
   for (let i = run.enemies.length - 1; i >= 0; i--) if (run.enemies[i].hp <= 0) killEnemy(run, run.enemies[i], i);
@@ -1581,12 +1820,13 @@ function updateParticles(run, dt) { for (const q of run.particles) { q.x += q.vx
 
 /* ---------- end of run ---------- */
 function endRun(run, won) {
+  if (run.over) return; // a boss and the last hive can die in the same frame
   run.over = true; run.result = won ? 'win' : 'lose';
   const salvage = 0.4 + latVal('salvage');
   const runGold = Math.round(run.gold);
   const bonus = run.base.breached ? 0 : Math.round(run.z.gold * run.M.gold);
   const kept = won ? runGold + bonus : Math.round(runGold * salvage);
-  run.summary = { won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached };
+  run.summary = { won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached, byHives: won && !!run.hives && run.hives.length > 0 && !hivesAlive(run).length };
   run.summary.carry = Math.min(PARTS_CARRY_CAP, won ? run.parts : Math.floor(run.parts / 2)); SAVE.carryParts = run.summary.carry;
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
@@ -1598,7 +1838,7 @@ function endRun(run, won) {
 }
 
 /* ---------- rendering ---------- */
-const ENEMY_COLOR = { static: '#8b93a3', spike: '#ff5a4a', null: '#a86bff', harmonic: '#4fd8ff', resonator: '#ffb347' };
+const ENEMY_COLOR = { static: '#8b93a3', spike: '#ff5a4a', null: '#a86bff', harmonic: '#4fd8ff', resonator: '#ffb347', hive: '#ff8a3d', scout: '#9dff7a', gatherer: '#ffd166' };
 let noiseTile = null, fogCv = null, fogCtx = null, fogDpr = 1;
 const MM = 112;
 let MM_Y = 44; // set by the browser from the HUD's bottom edge so the minimap never sits under the status rows
@@ -1620,6 +1860,7 @@ function drawMinimap(ctx, run, vw, vh) {
   const b = run.base; ctx.strokeStyle = b.breached ? '#5a3a3a' : b.alarm > 0 ? '#ff5a4a' : '#7ff5ff'; ctx.lineWidth = 1; ctx.strokeRect(b.x * k - 3, b.y * k - 3, 6, 6);
   for (const m of run.motes) { ctx.fillStyle = m.state === 'dimmed' ? '#8b93a3' : m.jammed ? '#a86bff' : '#7ff5ff'; ctx.fillRect(m.x * k - 1.5, m.y * k - 1.5, 3, 3); }
   if (run.boss && run.boss.hp > 0) { ctx.fillStyle = '#ffb347'; ctx.fillRect(run.boss.x * k - 3, run.boss.y * k - 3, 6, 6); }
+  for (const h of run.hives || []) if (h.found) { ctx.strokeStyle = h.dead ? '#5a6272' : '#ff8a3d'; ctx.lineWidth = 1.5; poly(ctx, h.x * k, h.y * k, 4, 6, 0); ctx.stroke(); if (h.dead) { ctx.beginPath(); ctx.moveTo(h.x * k - 3, h.y * k - 3); ctx.lineTo(h.x * k + 3, h.y * k + 3); ctx.stroke(); } } // found hives stay on the map
   ctx.fillStyle = '#f6efe0'; ctx.fillRect(run.p.x * k - 2, run.p.y * k - 2, 4, 4);
   ctx.strokeStyle = '#ffb347'; for (const st of run.strikes) if (!st.hit) ctx.strokeRect(st.x * k - 2, st.y * k - 2, 4, 4);
   ctx.strokeStyle = 'rgba(120,170,210,0.4)'; ctx.strokeRect(0.5, 0.5, MM - 1, MM - 1);
@@ -1704,6 +1945,16 @@ function render(ctx, run, vw, vh, now) {
   for (const e of run.enemies) {
     const col = e.flash > 0 ? '#ffffff' : ENEMY_COLOR[e.type];
     ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 2;
+    if (e.type === 'hive') { // core: ring of hexes, pulsing heart, HP bar, growth pips; hidden until found
+      if (!e.hive.found) continue;
+      ctx.strokeStyle = col; ctx.lineWidth = 3; poly(ctx, e.x, e.y, e.r + 6, 6, now * 0.3); ctx.stroke();
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(now * 3 + e.hive.id); poly(ctx, e.x, e.y, e.r * 0.55, 6, -now * 0.5); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 34, e.y - e.r - 20, 68, 5); ctx.fillStyle = col; ctx.fillRect(e.x - 34, e.y - e.r - 20, 68 * Math.max(0, e.hp / e.maxhp), 5);
+      for (let i = 0; i < Math.min(5, e.hive.tier); i++) { ctx.beginPath(); ctx.arc(e.x - 12 + i * 6, e.y + e.r + 12, 2, 0, 6.283); ctx.fill(); }
+      continue;
+    }
+    if (e.type === 'scout') { poly(ctx, e.x, e.y, e.r + 2, 4, Math.atan2(e.y - (e.py || e.y), e.x - (e.px || e.x))); ctx.fill(); e.px = e.x; e.py = e.y; continue; }
+    if (e.type === 'gatherer') { ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 6.283); ctx.stroke(); if (e.carry) { ctx.fillStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, 6.283); ctx.fill(); } continue; }
     if (e.type === 'static') { ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang); ctx.fillRect(-e.r, -e.r, e.r * 2, e.r * 2); ctx.restore(); }
     else if (e.type === 'spike') { poly(ctx, e.x, e.y, e.r + 2, 3, Math.atan2(p.y - e.y, p.x - e.x)); ctx.fill(); }
     else if (e.type === 'null') { poly(ctx, e.x, e.y, e.r, 6, e.ang); ctx.stroke(); poly(ctx, e.x, e.y, e.r * 0.5, 6, -e.ang); ctx.fill(); ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, 230, 0, 6.283); ctx.stroke(); }
@@ -2068,11 +2319,10 @@ if (HAS_DOM) {
     el('tree-title').textContent = treeFrom === 'levelup' ? `Level ${run.p.level}` : 'Skill tree';
     el('tree-pts').textContent = `${fmtPts(run.points)} point${run.points === 1 ? '' : 's'}`;
     el('tree-stat-list').innerHTML = statLines(run).map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');
-    // tabs show how many stars you can buy in each sky
     const tb = el('tree-tabs'); tb.innerHTML = '';
     for (const t of TABS) {
-      const n = nodes.filter(q => TREE_SKY[t][q.key] && canBuy(q)).length, b = document.createElement('button');
-      b.className = t === treeTab ? 'on' : ''; b.innerHTML = t + (n ? ` <small>${n}</small>` : '');
+      const b = document.createElement('button');
+      b.className = t === treeTab ? 'on' : ''; b.textContent = t;
       b.onclick = () => { treeTab = t; treeSel = null; UI.showTree(run); }; tb.appendChild(b);
     }
     if (!treeSel || !TREE_SKY[treeTab][treeSel]) { const inTab = nodes.filter(q => TREE_SKY[treeTab][q.key]); treeSel = (inTab.find(canBuy) || inTab.find(q => q.lvl) || inTab[0]).key; }
@@ -2165,7 +2415,7 @@ if (HAS_DOM) {
     const s = run.summary;
     el('end-title').textContent = s.won ? `${run.z.name} cleared (${run.M.name})` : 'You died';
     el('end-body').innerHTML = [
-      s.won ? (s.breached ? 'Boss down, but the base was breached: no zone bonus.' : `Boss down. Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
+      s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
       `${s.kills} kills in ${fmtT(s.time)}, level ${s.level}.`,
       `${Math.round(s.coverage * 100)}% of the map explored.`,
       `<b>+${s.kept} gold</b> (${Math.round(SAVE.gold)} banked).`,
@@ -2174,14 +2424,14 @@ if (HAS_DOM) {
     // the Workshop nudge: name the cheapest affordable upgrade
     const aff = LATTICE.map(u => ({ u, lvl: lat(u.id) })).filter(o => o.lvl < o.u.max).map(o => ({ ...o, cost: latticeCost(o.u, o.lvl) })).filter(o => o.cost <= SAVE.gold).sort((a, b) => (['signal', 'capacitor'].includes(b.u.id) - ['signal', 'capacitor'].includes(a.u.id)) || a.cost - b.cost)[0]; // damage/health first: they are what beat the next zone
     const wb = el('btn-end-shop'); wb.style.display = aff ? '' : 'none';
-    if (aff) { wb.innerHTML = `Spend ${Math.round(SAVE.gold)} gold in the Workshop<br><small>${aff.u.name}: ${aff.u.fmt((aff.lvl + 1) * aff.u.per)} for ${aff.cost} gold</small>`; wb.onclick = UI.lattice; }
+    if (aff) { wb.innerHTML = `Spend ${Math.round(SAVE.gold)} gold in the Workshop<br><small>${aff.u.name}: ${aff.u.fmt((aff.lvl + 1) * aff.u.per)} for ${aff.cost} gold</small>`; wb.onclick = () => UI.lattice(); }
     const nb = el('btn-next');
     if (s.won && run.zone + 1 < ZONES.length) { nb.style.display = ''; nb.textContent = `Next: ${ZONES[run.zone + 1].name}`; nb.onclick = () => startRun(run.zone + 1, run.mode === 'hard' && hardOpen(run.zone + 1) ? 'hard' : 'normal'); }
     else if (s.won) { nb.style.display = ''; nb.textContent = 'Run it again'; nb.onclick = () => startRun(run.zone, run.mode); }
     else { nb.style.display = ''; nb.textContent = 'Retry'; nb.onclick = () => startRun(run.zone, run.mode); }
     UI.go('end'); inlineTip('it-end', s.won ? 'win' : (!tipSeen('lose') ? 'lose' : 'workshop_death'));
   };
-  el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = UI.lattice; el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help');
+  el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
   const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', logform: 'log', hist: 'log' };
   function goBack() {
@@ -2382,13 +2632,13 @@ if (HAS_DOM) {
     const p = run.p;
     hud.hp.style.width = Math.max(0, p.hp / p.maxhp * 100) + '%'; hud.xp.style.width = Math.min(100, p.xp / p.next * 100) + '%';
     hud.lvl.textContent = 'Lv ' + p.level; hud.kills.textContent = run.kills + ' kills';
-    hud.time.textContent = run.phase === 'boss' ? 'Boss' : fmtT(Math.max(0, run.z.dur - run.t));
+    { const hl = hivesAlive(run).length, ht = run.hives && run.hives.length ? ` \u00b7 ${hl} hive${hl === 1 ? '' : 's'}` : ''; hud.time.textContent = (run.phase === 'boss' ? 'Boss' : fmtT(Math.max(0, run.z.dur - run.t))) + ht; }
     hud.gold.textContent = Math.round(run.gold) + 'g';
     hud.ammo.textContent = Math.floor(run.ammo) + ' ammo'; hud.ammo.style.color = run.ammo < 30 ? '#ff5a4a' : '';
     hud.parts.textContent = run.parts + ' parts';
     hud.shells.textContent = run.shells + ' shells';
     el('btn-shell').textContent = run.aim ? 'Cancel' : `Shell ${run.shells}`;
-    { const t = run.points >= 1 ? `Pause (${Math.floor(run.points)})` : 'Pause'; if (el('btn-pause').textContent !== t) el('btn-pause').textContent = t; } // saved skill points
+    el('btn-pause').classList.toggle('pts', run.points >= 1); // amber dot: saved skill points waiting in the tree
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
     const hl = Math.floor(run.heat / 2); hud.heat.textContent = '\u25c6'.repeat(hl) + '\u25c7'.repeat(5 - hl); hud.heat.style.color = hl >= 3 ? '#ff8a7a' : '#ffb347';
@@ -2412,7 +2662,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
