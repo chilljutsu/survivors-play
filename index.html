@@ -86,6 +86,22 @@
   .itip { border:1px solid var(--cyan); border-radius:8px; padding:10px 12px; background:rgba(127,245,255,0.06); }
   .itip b { display:block; color:var(--cyan); font-weight:500; margin-bottom:3px; }
   .itip p { color:var(--ink); }
+  #tree { background:rgba(15,20,32,0.98); }
+  .node { border:1px solid var(--line); border-radius:6px; display:flex; align-items:stretch; }
+  .node.can { border-color:rgba(127,245,255,0.55); }
+  .node.evo.can { border-color:var(--amber); }
+  .node .buy { border:none; flex:1; display:grid; grid-template-columns:1fr auto; column-gap:10px; row-gap:3px; padding:10px 12px; }
+  .node .buy b { font-weight:500; } .node .buy b small { color:var(--dim); font-weight:400; margin-left:6px; letter-spacing:2px; }
+  .node .buy span { grid-column:1 / span 2; color:var(--dim); font-size:13px; }
+  .node .buy em { font-style:normal; font-size:13px; color:var(--cyan); white-space:nowrap; }
+  .node:not(.can) .buy em { color:var(--dim); }
+  .node .sell { width:auto; border:none; border-left:1px solid var(--line); border-radius:0; color:var(--dim); font-size:12px; padding:6px 10px; }
+  details summary { cursor:pointer; color:var(--dim); font-size:14px; padding:4px 0; }
+  .statgrid { display:grid; grid-template-columns:1fr auto; gap:3px 12px; font-size:13px; color:var(--dim); padding:6px 2px; }
+  .statgrid b { color:var(--ink); font-weight:500; text-align:right; }
+  .wnode { display:flex; flex-direction:column; gap:2px; }
+  .wdet summary { font-size:12px; padding:2px 12px; }
+  .wdet p { font-size:13px; padding:0 12px 6px; }
   .hgroup { font-size:13px; font-weight:500; color:var(--cyan); letter-spacing:0.1em; text-transform:uppercase; margin:14px 0 0; }
   textarea { font:inherit; font-size:16px; color:var(--ink); background:rgba(255,255,255,0.04); border:1px solid var(--line); border-radius:6px; padding:10px; width:100%; resize:vertical; -webkit-user-select:text; user-select:text; touch-action:auto; }
   #m-ver { font-size:12px; }
@@ -128,12 +144,7 @@
   <button id="btn-log">Log a workout</button>
   <button id="btn-help">How it works</button>
   <button id="btn-notes">Feedback notes</button>
-  <button id="btn-backup">Backup or restore save</button>
-  <button id="btn-playtest" class="back">Playtest mode</button>
-  <button id="btn-tips" class="back">Tutorial tips</button>
-  <button id="btn-tips-reset" class="back">Replay the tutorial</button>
-  <button id="btn-spawn" class="back">Spawns</button>
-  <button id="btn-mute" class="back">Sound on</button>
+  <button id="btn-settings">Settings</button>
   <div class="stat" id="m-ver"></div>
 </div></div>
 
@@ -149,7 +160,9 @@
 <div id="lattice" class="screen"><div class="col">
   <h2>Workshop</h2>
   <div class="itip" id="it-lattice" hidden></div>
-  <p><b id="l-gold">0</b> gold. Costs rise 35% per level and stop at a cap, so nothing here ever runs away from you.</p>
+  <p><b id="l-gold">0</b> gold. Upgrades are permanent and apply to every run. Costs rise 35% per level; Sell refunds half.</p>
+  <p id="l-msg"></p>
+  <details open><summary>Your permanent bonuses</summary><div id="l-stats" class="statgrid"></div></details>
   <div id="lattice-list" class="col"></div>
   <button class="back">Back</button>
 </div></div>
@@ -174,17 +187,20 @@
   <button class="back">Back</button>
 </div></div>
 
-<div id="levelup" class="screen"><div class="col">
-  <h2 id="lu-title">Level up</h2>
+<div id="tree" class="screen"><div class="col">
+  <h2 id="tree-title">Skill tree</h2>
+  <p id="tree-sub"></p>
   <div class="itip" id="it-draft" hidden></div>
-  <div id="draft" class="col"></div>
-  <button id="btn-reroll">Reroll</button>
+  <details id="tree-stats"><summary>Your stats</summary><div id="tree-stat-list" class="statgrid"></div></details>
+  <div id="tree-list" class="col"></div>
+  <button class="primary" id="btn-tree-close">Continue</button>
 </div></div>
 
 <div id="pause" class="screen"><div class="col">
   <h2>Paused</h2>
   <p>Nothing moves while you are away.</p>
   <button class="primary" id="btn-resume">Resume</button>
+  <button id="btn-pause-tree">Skill tree</button>
   <button id="btn-pause-note">Write a feedback note</button>
   <p id="pause-msg"></p>
   <button id="btn-quit">Abandon run (salvage applies)</button>
@@ -217,6 +233,18 @@
   <p id="hist-extra"></p>
   <div id="hist-list" class="col"></div>
   <button class="back" id="hist-back">Back</button>
+</div></div>
+
+<div id="settings" class="screen"><div class="col">
+  <h2>Settings</h2>
+  <p id="set-msg"></p>
+  <button class="row" id="btn-mute"></button>
+  <button class="row" id="btn-tips"></button>
+  <button class="row" id="btn-tips-reset"><b>Replay the tutorial</b><span>Shows the practice run and every tip card again from your next run.</span></button>
+  <button class="row" id="btn-playtest"></button>
+  <button class="row" id="btn-spawn"></button>
+  <button class="row" id="btn-backup"><b>Backup or restore save</b><span>Your save as text, for moving to a new install.</span></button>
+  <button class="back">Back</button>
 </div></div>
 
 <div id="backup" class="screen"><div class="col">
@@ -324,7 +352,7 @@ const LATTICE = [
   { id: 'motes',     name: 'Drone bay', base: 600, max: 2,  per: 1,    fmt: v => `${1 + v} Drones` },
   { id: 'battery',   name: 'Battery',   base: 200, max: 6,  per: 0.2,  fmt: v => `+${Math.round(v * 100)}% Drone battery` },
   { id: 'salvage',   name: 'Salvage',   base: 150, max: 6,  per: 0.08, fmt: v => `${Math.round((0.4 + v) * 100)}% gold kept on defeat` },
-  { id: 'rerolls',   name: 'Reroll',    base: 250, max: 3,  per: 1,    fmt: v => `${v} rerolls per run` },
+  { id: 'rerolls',   name: 'Head start', base: 250, max: 3, per: 1,    fmt: v => `${v} skill point${v === 1 ? '' : 's'} at the start of each run` }, // id kept so old saves carry their levels
 ];
 /* Drone autonomy ladder, after the ARES project: each tier adds to the starting buddy drone (tiers stack). */
 const DRONE_TIERS = [
@@ -335,6 +363,20 @@ const DRONE_TIERS = [
 ];
 LATTICE.push({ id: 'tier', name: 'Drone autonomy', base: 300, max: 3, per: 1, fmt: v => `Tier ${v}: ${DRONE_TIERS[v].name}` });
 const latticeCost = (u, lvl) => Math.round(u.base * Math.pow(1.35, lvl));
+// Workshop layout and plain-language details (shown under each upgrade's Details)
+const LATTICE_INFO = {
+  signal:    ['Combat', 'Multiplies all damage you deal: weapons, turrets, artillery and Drone strikes. Stacks with the Signal passive you can pick in a run.'],
+  gain:      ['Combat', 'Every weapon fires more often. Also shortens Nova and Lance recharge.'],
+  capacitor: ['Survival', 'More max HP at the start of every run.'],
+  clock:     ['Survival', 'Faster movement, so it is easier to dodge Rusher dashes and Gunner fans.'],
+  magnet:    ['Survival', 'XP gems, health and parts fly to you from farther away.'],
+  motes:     ['Drones', 'Start every run with more Drones, so you can watch more perches at once. (In a run, the Extra drone skill adds more.)'],
+  battery:   ['Drones', 'Drones stay perched longer before the battery runs out. The base perch always charges them.'],
+  tier:      ['Drones', DRONE_TIERS.slice(1).map((t, i) => `Tier ${i + 1}, ${t.name}: ${t.desc}`).join(' ')],
+  salvage:   ['Runs', 'When you die you keep more of that run\'s gold (you always keep all of it when you clear a zone).'],
+  rerolls:   ['Runs', 'Skill points ready to spend in the skill tree the moment a run starts.'],
+};
+const LATTICE_SELL = 0.5; // selling a level refunds half of what that level cost
 
 const WORKOUTS = [
   { id: 'cindy', name: 'Cindy (20 min AMRAP)', gold: 300 },
@@ -346,7 +388,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-07 r4.1';
+const BUILD_ID = 'playtest 2026-10-07 r5';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -503,7 +545,7 @@ function newRun(zoneIdx, mode) {
     beams: [], novas: [],
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
-    rerolls: lat('rerolls'), draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
+    points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
     cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {},
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800, maxhp: 800, alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], raidT: 50, dryT: 0,
@@ -728,6 +770,7 @@ const TIPS = {
   e_null:     { group: 'Enemies', title: 'Jammer (purple hexagons)', body: 'Tough and slow. Any perched Drone inside its faint purple ring is blinded and stops seeing. Kill Jammers near your perches first.' },
   e_harmonic: { group: 'Enemies', title: 'Gunner (blue diamonds)', body: 'Keeps its distance and fires a fan of 5 bullets when it can see you. Walls block the bullets, so duck behind cover or close in fast.' },
   boss:       { group: 'Enemies', title: 'The boss is here', body: 'Follow the orange arrow at the screen edge. It fires rings of bullets, calls in Swarm, and pushes Heat up while alive. Kill it to clear the zone.' },
+  summon:     { group: 'Enemies', title: 'The boss summons', body: 'Every 6 seconds the boss calls 4 Swarm right beside itself (the orange flash). They are the only enemies that can appear where you are looking.' },
   ring:       { group: 'Enemies', title: 'Rusher ring', body: 'A ring of Rushers just formed around you. Pick one side and break out through it rather than waiting for them to close in.' },
   pack:       { group: 'Enemies', title: 'Hunting pack', body: 'Heat is high, so a pack is hunting you directly. Fight near walls or your base, or let Heat cool by not killing for a while.' },
   // pickups
@@ -738,7 +781,7 @@ const TIPS = {
   ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache. Orbit, Nova and Field never use ammo, so drafting one keeps you fighting.' },
   build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything it can see. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down.' },
   // drones
-  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and pulls in XP it can see. Its battery drains while perched. Tap the perch again, or press Recall, to bring it back with the XP it collected.' },
+  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains while perched (not on the base perch, which charges it). Tap the perch again, or press Recall, to bring it home.' },
   artillery: { group: 'Drones', title: 'Artillery', body: 'With a Drone perched you can call artillery. Tap Shell: time slows to 30% and the camera shows the Drone feed (Next feed flips between perched Drones). Tap a spot it can see; the shell lands 1.6 seconds later and hurts you too if you stand in it. The base makes a shell every 20 seconds. There is a perch on the base itself, handy for raids.' },
   jammed:    { group: 'Drones', title: 'Drone jammed', body: 'A Jammer is close to your perched Drone, so it went blind (purple). Kill the Jammer or recall the Drone.' },
   downed:    { group: 'Drones', title: 'Drone down', body: 'A Drone ran out of battery or got knocked down. It is not lost: walk over it to pick it up at half charge.' },
@@ -751,8 +794,8 @@ const TIPS = {
   assault:  { group: 'Base and Heat', title: 'Base assault', body: 'For the next 40 seconds waves march on your base. Get back and hold it. Survive the assault with the base intact and Heat drops a lot.' },
   breach:   { group: 'Base and Heat', title: 'Base breached', body: 'Stand inside the base to repair it. Above a quarter health it comes back online. If it is still breached when you win, you lose the zone bonus.' },
   // level ups (shown on the draft screen)
-  draft:    { group: 'Levelling', title: 'Level up', body: 'Pick one card. New weapons fire alongside the ones you have. Passives boost everything. You can hold 4 weapons and 4 passives, each up to level 5.' },
-  evo:      { group: 'Levelling', title: 'Evolution', body: 'The gold card is an evolution: a level 5 weapon plus its partner passive at level 3 turns into a much stronger version. Pairs: Pulse and Signal, Orbit and Aperture, Nova and Gain, Lance and Clock, Field and Capacitor.' },
+  draft:    { group: 'Levelling', title: 'Skill tree', body: 'Each level gives you a skill point. Spend it on any weapon, passive, evolution or Drone skill you can reach, or save it: the pause menu opens the tree any time. Sell gives back half. You can hold 4 weapons and 4 passives, each up to level 5.' },
+  evo:      { group: 'Levelling', title: 'Evolution', body: 'The gold-bordered skill is an evolution: a level 5 weapon plus its partner passive at level 3 turns into a much stronger version. Pairs: Pulse and Signal, Orbit and Aperture, Nova and Gain, Lance and Clock, Field and Capacitor.' },
   // between runs
   win:      { group: 'Between runs', title: 'Zone cleared', body: 'You keep all the run gold, plus a zone bonus if the base was not breached, and the next zone is unlocked. Spend gold in the Workshop.' },
   lose:     { group: 'Between runs', title: 'Run over', body: 'You keep 40% of this run\'s gold. Spend it in the Workshop on permanent upgrades, then go again. The Salvage upgrade raises how much you keep.' },
@@ -885,6 +928,7 @@ function update(run, dt) {
   updateFog(run);
   computeVision(run);
   updateMotes(run, dt);
+  droneSkills(run, dt);
   updateBase(run, dt);
   updateStrikes(run, dt);
 
@@ -971,10 +1015,20 @@ function updateBase(run, dt) {
   }
   if (b.hp <= 0 && !b.breached) { b.breached = true; toast(run, 'Base breached. No healing, reload or turret until you repair it.'); SFX.dead(); tip(run, 'breach', { at: b }); }
 }
+const HANDOVER_R = 200; // a drone carrying XP/parts hands them over when it comes this close to you
+function droneHandover(run, m) {
+  if (!(m.cargo || m.cargoParts)) return;
+  if (m.cargo) gainXp(run, m.cargo);
+  if (m.cargoParts) run.parts += m.cargoParts;
+  toast(run, `Drone handed over ${m.cargo ? m.cargo + ' XP' : ''}${m.cargo && m.cargoParts ? ' and ' : ''}${m.cargoParts ? m.cargoParts + ' parts' : ''}`);
+  m.cargo = 0; m.cargoParts = 0; SFX.gem();
+}
 function updateMotes(run, dt) {
   const p = run.p;
+  const pick = run.skill ? (run.skill.dmag || 0) : 0; // Drone magnet node: follower pickup radius, parts at level 2
   for (const m of run.motes) {
     m.ph += dt;
+    if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < HANDOVER_R * HANDOVER_R) droneHandover(run, m);
     if (m.state === 'follow') {
       // scout ahead of your heading so you see what you are walking into
       const lead = 150 + m.id * 40, a = p.ang + (m.id - (run.motes.length - 1) / 2) * 0.5;
@@ -982,18 +1036,24 @@ function updateMotes(run, dt) {
       if (!losClear(run, p.x, p.y, tx, ty)) { tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 40; }
       m.x += (tx - m.x) * Math.min(1, dt * 4); m.y += (ty - m.y) * Math.min(1, dt * 4);
       m.bat = Math.min(m.maxBat, m.bat + 7 * dt); m.hp = Math.min(100, m.hp + 10 * dt); m.jammed = false;
+      // a following drone sweeps up XP near it (and parts with Drone magnet 2); it is beside you, so they fly to you
+      const pr = 70 * (1 + 0.5 * pick);
+      for (const g of run.gems) if (!g.pull && !g.heal && (!g.part || pick >= 2) && dist2(g.x, g.y, m.x, m.y) < pr * pr) { g.pull = true; g.pt = 0; }
     } else if (m.state === 'flying' || m.state === 'returning') {
       const tx = m.state === 'flying' ? m.anchor.x : p.x, ty = m.state === 'flying' ? m.anchor.y : p.y;
       const d = Math.hypot(tx - m.x, ty - m.y), sp = 240 * (run.tier >= 1 ? DRONE_TIERS[1].speed : 1);
       if (d < 14 || d < sp * dt) {
         if (m.state === 'flying') { m.state = 'perched'; m.x = m.anchor.x; m.y = m.anchor.y; m.anchor.mote = m; toast(run, 'Drone perched. Watching this area.'); SFX.mote(); }
-        else { m.state = 'follow'; if (m.cargo) { gainXp(run, m.cargo); toast(run, `Drone delivered ${m.cargo} XP`); m.cargo = 0; } }
+        else { m.state = 'follow'; droneHandover(run, m); }
       } else { m.x += (tx - m.x) / d * sp * dt; m.y += (ty - m.y) / d * sp * dt; }
       m.bat = Math.max(0, m.bat - 1.5 * dt);
       if (m.bat <= 0) { dimMote(run, m, 'battery'); }
     } else if (m.state === 'perched') {
-      if (!run.tut) m.bat -= 4 * dt; // tutorial: no battery pressure while learning
-      if (!m.jammed) for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.part || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < run.moteVision * run.moteVision) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } }
+      const onBase = m.anchor && m.anchor.base;
+      if (onBase) { m.bat = Math.min(m.maxBat, m.bat + 7 * dt); m.hp = Math.min(100, m.hp + 10 * dt); } // the base charges it
+      else if (!run.tut) m.bat -= 4 * dt; // tutorial: no battery pressure while learning
+      // gathers XP and parts it can see; you collect them when it comes within HANDOVER_R of you (or you of it)
+      if (!m.jammed) for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < run.moteVision * run.moteVision) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { if (g.part) m.cargoParts = (m.cargoParts || 0) + g.part; else m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } }
       // jamming: any Null within 230 blinds the Mote
       let jam = false;
       for (const e of run.enemies) if (e.type === 'null' && dist2(e.x, e.y, m.x, m.y) < 230 * 230) { jam = true; break; }
@@ -1006,16 +1066,47 @@ function updateMotes(run, dt) {
       else if (run.tier >= 1 && m.bat < m.maxBat * 0.15 && m.bat > 0) { recallMote(run, m); toast(run, 'Drone battery low: flying home (GPS)'); }
       else if (m.bat <= 0) dimMote(run, m, 'battery');
       else if (m.hp <= 0) { if (run.tier >= 3) { recallMote(run, m); m.hp = 30; toast(run, 'Drone hit: limping home (onboard compute)'); } else dimMote(run, m, 'shot'); }
+    } else if (m.state === 'diving') { // Kamikaze strike: fly into the target, hit hard, go down
+      const t = m.target;
+      if (!t || !run.enemies.includes(t)) { m.state = 'returning'; m.target = null; }
+      else {
+        const d = Math.hypot(t.x - m.x, t.y - m.y), sp = 520;
+        if (d < t.r + 10 || d < sp * dt) {
+          const dmg = (run.skill.dstrike >= 2 ? 500 : 250) * p.dmgMult;
+          damageEnemy(run, t, dmg); for (let k = 0; k < 24; k++) spark(run, t.x, t.y, '#7ff5ff'); run.shake = Math.max(run.shake, 0.8); SFX.nova(); buzz(60);
+          m.target = null; reapDead(run); dimMote(run, m, 'strike');
+        } else { m.x += (t.x - m.x) / d * sp * dt; m.y += (t.y - m.y) / d * sp * dt; }
+      }
     } else if (m.state === 'dimmed') {
-      if (dist2(p.x, p.y, m.x, m.y) < 30 * 30) { m.state = 'follow'; m.bat = m.maxBat * 0.5; m.hp = 60; toast(run, 'Drone recovered at half charge'); SFX.mote(); if (m.cargo) { gainXp(run, m.cargo); m.cargo = 0; } }
+      if (dist2(p.x, p.y, m.x, m.y) < 30 * 30) { m.state = 'follow'; m.bat = m.maxBat * 0.5; m.hp = 60; toast(run, 'Drone recovered at half charge'); SFX.mote(); droneHandover(run, m); }
     }
   }
+}
+function droneSkills(run, dt) {
+  const sk = run.skill, emp = sk.demp || 0;
+  for (const m of run.motes) {
+    if (m.state === 'dimmed' || m.state === 'diving') continue;
+    if (emp && !m.jammed) { // EMP: slow (and at 3, burn) enemies near the drone
+      const r = EMP_R[emp];
+      for (const e of run.enemies) if (dist2(e.x, e.y, m.x, m.y) < r * r) { e.slow = Math.max(e.slow || 0, 0.2); if (emp >= 3) damageEnemy(run, e, 6 * run.p.dmgMult * dt); }
+    }
+    if (sk.dstrike && (m.state === 'follow' || m.state === 'perched') && m.bat > m.maxBat * 0.6) {
+      let t = null, bd = 450 * 450;
+      for (const e of run.enemies) {
+        if (!(e.type === 'resonator' || (sk.dstrike >= 2 && (e.type === 'null' || e.type === 'harmonic')))) continue;
+        const d = dist2(e.x, e.y, m.x, m.y); if (d < bd && losClear(run, m.x, m.y, e.x, e.y)) { bd = d; t = e; }
+      }
+      if (t) { if (m.anchor) { m.anchor.mote = null; m.anchor = null; } m.state = 'diving'; m.target = t; toast(run, t.type === 'resonator' ? 'Drone diving at the boss' : 'Drone diving'); }
+    }
+  }
+  if (emp >= 3) reapDead(run);
 }
 function dimMote(run, m, why) {
   if (m.anchor) { m.anchor.mote = null; m.anchor = null; }
   if (m.cargo) { for (let i = 0; i < Math.min(12, m.cargo); i++) run.gems.push({ x: m.x + rnd(-30, 30), y: m.y + rnd(-30, 30), v: Math.ceil(m.cargo / Math.min(12, m.cargo)), t: 0 }); m.cargo = 0; }
+  if (m.cargoParts) { run.gems.push({ x: m.x, y: m.y, v: 0, part: m.cargoParts, t: 0 }); m.cargoParts = 0; } // a downed drone drops what it carried
   m.state = 'dimmed'; m.jammed = false; m.bat = 0;
-  toast(run, why === 'battery' ? 'Drone down: battery empty. Walk over it to recover.' : 'Drone knocked down. Walk over it to recover.');
+  toast(run, why === 'battery' ? 'Drone down: battery empty. Walk over it to recover.' : why === 'strike' ? 'Drone struck. Walk over it to recover.' : 'Drone knocked down. Walk over it to recover.');
 }
 function relocateMote(run, m) { // tier 3: pick the nearest free perch with no Jammer near it
   let best = null, bd = 1e12;
@@ -1072,7 +1163,7 @@ function updateEnemies(run, dt) {
         e.cd = 3.6; const n = 12, off = e.ang;
         for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: 6, dmg: e.dmg, t: 3.5 }); }
       }
-      if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < 4 && es.length < ENEMY_CAP; i++) makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); }
+      if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < 4 && es.length < ENEMY_CAP; i++) { const s = makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); for (let k = 0; k < 5; k++) spark(run, s.x, s.y, '#ffb347'); } tip(run, 'summon', { at: e }); }
     } else if (e.type === 'null') {
       e.ang += dt * 0.5;
     } else {
@@ -1269,34 +1360,106 @@ function gainXp(run, v) {
 }
 
 /* ---------- draft ---------- */
-function draftOptions(run) {
-  const p = run.p, opts = [];
-  const nW = Object.keys(p.weapons).length, nP = Object.keys(p.passives).length;
-  // evolution: weapon at max, partner passive at 3+
-  for (const k in p.weapons) if (p.weapons[k] >= MAX_LVL && !p.evolved[k] && (p.passives[WEAPONS[k].partner] || 0) >= 3) opts.push({ kind: 'evo', id: k, name: WEAPONS[k].evo, desc: WEAPONS[k].evoDesc, tag: 'Evolution' });
-  const pool = [];
-  for (const k in WEAPONS) { const l = p.weapons[k] || 0; if (l >= MAX_LVL) continue; if (!l && nW >= MAX_WEAPONS) continue; pool.push({ kind: 'weapon', id: k, name: WEAPONS[k].name, desc: l ? (k === 'pulse' && l + 1 === 2 ? 'Level 2: 2 bolts, each at a different enemy' : k === 'pulse' && l + 1 === 4 ? 'Level 4: 3 bolts, each at a different enemy' : `Level ${l + 1}`) : WEAPONS[k].desc, tag: l ? `Lv ${l} > ${l + 1}` : 'New weapon', w: l ? 2 : 1.2 }); }
-  for (const k in PASSIVES) { const l = p.passives[k] || 0; if (l >= MAX_LVL) continue; if (!l && nP >= MAX_PASSIVES) continue; pool.push({ kind: 'passive', id: k, name: PASSIVES[k].name, desc: PASSIVES[k].desc + (l ? ` (Lv ${l + 1})` : ''), tag: l ? `Lv ${l} > ${l + 1}` : 'New passive', w: 1 }); }
-  while (opts.length < 3 && pool.length) {
-    let tot = 0; for (const o of pool) tot += o.w;
-    let r = Math.random() * tot, idx = 0;
-    for (; idx < pool.length; idx++) { r -= pool[idx].w; if (r <= 0) break; }
-    opts.push(pool.splice(Math.min(idx, pool.length - 1), 1)[0]);
-  }
-  if (!opts.length) { opts.push({ kind: 'heal', name: 'Recover', desc: 'Restore 40% HP', tag: 'Maxed out' }); opts.push({ kind: 'gold', name: 'Salvage', desc: '+60 gold', tag: 'Maxed out' }); }
-  return opts;
+/* ---------- in-run skill tree: 1 point per level, spend anywhere, sell back for half ---------- */
+const DRONE_SKILLS = {
+  drone:   { name: 'Extra drone',     max: 2, cost: 2, desc: l => `+1 Drone this run (${1 + lat('motes') + l} total)` },
+  dmag:    { name: 'Drone magnet',    max: 2, cost: 1, desc: l => l === 0 ? 'Your following Drone pulls in XP from 50% farther' : 'It also collects parts' },
+  demp:    { name: 'EMP',             max: 3, cost: 1, desc: l => ['Drones slow enemies within 120px', 'Slow radius 150px', 'Radius 180px, and it burns them for 6 damage a second'][l] },
+  dstrike: { name: 'Kamikaze strike', max: 2, cost: 1, req: 'demp', desc: l => l === 0 ? 'A Drone over 60% charge dives into a boss within 450px: 250 damage, then it is down until you pick it up' : 'Strike damage 500, and it also dives at Jammers and Gunners' },
+};
+const EMP_R = [0, 120, 150, 180];
+function weaponNextDesc(k, l) {
+  if (!l) return WEAPONS[k].desc;
+  if (k === 'pulse' && l + 1 === 2) return 'Level 2: 2 bolts, each at a different enemy';
+  if (k === 'pulse' && l + 1 === 4) return 'Level 4: 3 bolts, each at a different enemy';
+  return `Level ${l + 1}: more damage${k === 'orbit' ? ' and shards' : k === 'nova' ? ' and a bigger burst' : k === 'lance' ? ' and a longer beam' : k === 'field' ? ' and a wider aura' : ''}`;
 }
-function openDraft(run) { run.draft = draftOptions(run); screen = 'levelup'; SFX.levelup(); if (HAS_DOM) UI.showDraft(run); }
-function applyDraft(run, o) {
-  const p = run.p;
-  if (o.kind === 'weapon') p.weapons[o.id] = (p.weapons[o.id] || 0) + 1;
-  else if (o.kind === 'passive') p.passives[o.id] = (p.passives[o.id] || 0) + 1;
-  else if (o.kind === 'evo') { p.evolved[o.id] = true; SFX.evo(); toast(run, `${o.name}: evolved`); }
-  else if (o.kind === 'heal') p.hp = Math.min(p.maxhp, p.hp + p.maxhp * 0.4);
-  else if (o.kind === 'gold') run.gold += 60;
+// every node the tree shows, with whether it can be bought or sold right now (and why not)
+function treeNodes(run) {
+  const p = run.p, sk = run.skill, out = [];
+  const nW = Object.keys(p.weapons).length, nP = Object.keys(p.passives).length;
+  for (const k in WEAPONS) {
+    const l = p.weapons[k] || 0, why = l >= MAX_LVL ? 'Maxed' : !l && nW >= MAX_WEAPONS ? `${MAX_WEAPONS} weapons max` : '';
+    out.push({ key: 'w:' + k, branch: 'Weapons', name: WEAPONS[k].name, lvl: l, max: MAX_LVL, cost: 1, desc: l >= MAX_LVL ? 'Maxed' : weaponNextDesc(k, l), why,
+      sellWhy: !l ? 'none' : p.evolved[k] && l <= MAX_LVL ? 'Evolved: keep it at 5' : k === 'pulse' && l === 1 ? 'Your starting gun' : '' });
+  }
+  for (const k in PASSIVES) {
+    const l = p.passives[k] || 0, why = l >= MAX_LVL ? 'Maxed' : !l && nP >= MAX_PASSIVES ? `${MAX_PASSIVES} passives max` : '';
+    const evoHolds = Object.keys(WEAPONS).some(w => WEAPONS[w].partner === k && p.evolved[w]) && l <= 3;
+    out.push({ key: 'p:' + k, branch: 'Passives', name: PASSIVES[k].name, lvl: l, max: MAX_LVL, cost: 1, desc: PASSIVES[k].desc + ' per level', why, sellWhy: !l ? 'none' : evoHolds ? 'An evolution needs it at 3' : '' });
+  }
+  for (const k in WEAPONS) {
+    const done = !!p.evolved[k], need = `${WEAPONS[k].name} 5 + ${PASSIVES[WEAPONS[k].partner].name} 3`;
+    const ready = (p.weapons[k] || 0) >= MAX_LVL && (p.passives[WEAPONS[k].partner] || 0) >= 3;
+    out.push({ key: 'e:' + k, branch: 'Evolutions', name: WEAPONS[k].evo, lvl: done ? 1 : 0, max: 1, cost: 1, desc: `${WEAPONS[k].evoDesc} Needs ${need}.`, why: done ? 'Evolved' : ready ? '' : `Needs ${need}`, sellWhy: done ? '' : 'none', evo: true });
+  }
+  for (const k in DRONE_SKILLS) {
+    const d = DRONE_SKILLS[k], l = sk[k] || 0, why = l >= d.max ? 'Maxed' : d.req && !sk[d.req] ? `Needs ${DRONE_SKILLS[d.req].name}` : '';
+    out.push({ key: 'd:' + k, branch: 'Drones', name: d.name, lvl: l, max: d.max, cost: d.cost, desc: l >= d.max ? 'Maxed' : d.desc(l), why,
+      sellWhy: !l ? 'none' : k === 'demp' && l === 1 && sk.dstrike ? 'Kamikaze strike needs it' : '' });
+  }
+  out.push({ key: 'x:heal', branch: 'Any time', name: 'Field repair', lvl: 0, max: 99, cost: 1, desc: 'Restore 40% HP now', why: '', sellWhy: 'none' });
+  out.push({ key: 'x:gold', branch: 'Any time', name: 'Salvage', lvl: 0, max: 99, cost: 1, desc: '+60 run gold now', why: '', sellWhy: 'none' });
+  return out;
+}
+function addMote(run) {
+  const bat = run.motes[0] ? run.motes[0].maxBat : 100;
+  run.motes.push({ x: run.p.x, y: run.p.y, state: 'follow', bat, maxBat: bat, hp: 100, anchor: null, jammed: false, ph: run.motes.length * 2.1, id: run.motes.length });
+}
+function buyNode(run, key) {
+  const n = treeNodes(run).find(q => q.key === key);
+  if (!n || n.why || run.points < n.cost) return false;
+  run.points -= n.cost;
+  const [t, id] = key.split(':'), p = run.p;
+  if (t === 'w') p.weapons[id] = (p.weapons[id] || 0) + 1;
+  else if (t === 'p') p.passives[id] = (p.passives[id] || 0) + 1;
+  else if (t === 'e') { p.evolved[id] = true; SFX.evo(); toast(run, `${WEAPONS[id].evo}: evolved`); }
+  else if (t === 'd') { run.skill[id] = (run.skill[id] || 0) + 1; if (id === 'drone') addMote(run); }
+  else if (id === 'heal') p.hp = Math.min(p.maxhp, p.hp + p.maxhp * 0.4);
+  else if (id === 'gold') run.gold += 60;
   computeStats(run);
-  run.draft = null; screen = 'run';
-  if (HAS_DOM) UI.hideDraft();
+  return true;
+}
+function sellNode(run, key) {
+  const n = treeNodes(run).find(q => q.key === key);
+  if (!n || n.sellWhy) return false;
+  run.points += n.cost / 2;
+  const [t, id] = key.split(':'), p = run.p;
+  if (t === 'w') { if (--p.weapons[id] <= 0) delete p.weapons[id]; }
+  else if (t === 'p') { if (--p.passives[id] <= 0) delete p.passives[id]; }
+  else if (t === 'e') delete p.evolved[id];
+  else if (t === 'd') {
+    run.skill[id]--;
+    if (id === 'drone') { const m = run.motes.pop(); if (m.anchor) m.anchor.mote = null; droneHandover(run, m); }
+  }
+  computeStats(run);
+  return true;
+}
+// headless bots and tests still use the old draft API: options are the buyable nodes
+function draftOptions(run) {
+  return treeNodes(run).filter(n => !n.why && n.cost <= Math.max(1, run.points) && !n.key.startsWith('x:'))
+    .map(n => ({ key: n.key, kind: n.evo ? 'evo' : n.key[0] === 'w' ? 'weapon' : n.key[0] === 'p' ? 'passive' : 'drone', id: n.key.split(':')[1], name: n.name, desc: n.desc }))
+    .concat([{ key: 'x:heal', kind: 'heal', name: 'Field repair' }]);
+}
+function openDraft(run) {
+  run.points += 1; SFX.levelup();
+  if (screen === 'levelup') { if (HAS_DOM) UI.showTree(run, 'levelup'); return; } // several levels at once: one visit
+  run.draft = draftOptions(run); screen = 'levelup';
+  if (HAS_DOM) UI.showTree(run, 'levelup');
+}
+function applyDraft(run, o) {
+  buyNode(run, o.key);
+  if (run.points < 1) { run.draft = null; screen = 'run'; if (HAS_DOM) UI.hideDraft(); }
+  else run.draft = draftOptions(run);
+}
+function statLines(run) { // what your build adds up to, shown in the tree
+  const p = run.p, sk = run.skill;
+  return [
+    ['Damage', `x${p.dmgMult.toFixed(2)}`], ['Cooldowns', `x${p.cdMult.toFixed(2)}`], ['Area and sight', `x${p.area.toFixed(2)}`],
+    ['Move speed', `${Math.round(p.speed)}`], ['Max HP', `${Math.round(p.maxhp)}`], ['Pickup range', `${Math.round(p.magnet)}px`],
+    ['Drones', `${run.motes.length}`], ['Drone battery', `${Math.round(run.motes[0] ? run.motes[0].maxBat : 0)}`],
+    ['Drone EMP', sk.demp ? `${EMP_R[sk.demp]}px slow` : 'none'], ['Kamikaze', sk.dstrike ? `${sk.dstrike === 2 ? 500 : 250} damage` : 'none'],
+  ];
 }
 
 /* ---------- artillery ---------- */
@@ -1397,7 +1560,7 @@ function drawMinimap(ctx, run, vw, vh) {
   ctx.fillStyle = '#1a2231';
   for (let r = 0; r < COLS; r++) for (let c = 0; c < COLS; c++) if (mapped[r * COLS + c]) ctx.fillRect(c * cs, r * cs, cs + 0.5, cs + 0.5);
   ctx.fillStyle = '#3a4a66'; for (const o of run.walls) if (mapped[cellIdx(o.x + o.w / 2, o.y + o.h / 2)]) ctx.fillRect(o.x * k, o.y * k, Math.max(1, o.w * k), Math.max(1, o.h * k));
-  ctx.fillStyle = 'rgba(127,245,255,0.5)'; for (const a of run.anchors) ctx.fillRect(a.x * k - 1, a.y * k - 1, 2, 2);
+  ctx.fillStyle = 'rgba(127,245,255,0.5)'; for (const a of run.anchors) if (a.base || mapped[cellIdx(a.x, a.y)]) ctx.fillRect(a.x * k - 1, a.y * k - 1, 2, 2); // perches show once discovered
   // vision areas and what they see
   for (const v of run.vis || []) { ctx.fillStyle = v.perched ? 'rgba(127,245,255,0.18)' : 'rgba(210,230,255,0.14)'; ctx.beginPath(); ctx.arc(v.x * k, v.y * k, v.r * k, 0, 6.283); ctx.fill(); }
   ctx.fillStyle = '#ff5a4a';
@@ -1513,6 +1676,7 @@ function render(ctx, run, vw, vh, now) {
   for (const m of run.motes) {
     if (m.state === 'dimmed') { ctx.strokeStyle = 'rgba(200,200,220,0.5)'; ctx.lineWidth = 1.5; poly(ctx, m.x, m.y, 7, 5, now); ctx.stroke(); ctx.fillStyle = 'rgba(200,200,220,0.5)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('down', m.x, m.y + 20); continue; }
     ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; poly(ctx, m.x, m.y, 6, 5, now * 2 + m.id); ctx.fill();
+    if (run.skill.demp && !m.jammed && m.state !== 'diving') { ctx.strokeStyle = 'rgba(127,245,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.arc(m.x, m.y, EMP_R[run.skill.demp], 0, 6.283); ctx.stroke(); ctx.setLineDash([]); } // EMP reach
     ctx.fillStyle = '#1b1f2b'; ctx.fillRect(m.x - 12, m.y + 10, 24, 3); ctx.fillStyle = m.bat / m.maxBat < 0.25 ? '#ff5a4a' : '#7ff5ff'; ctx.fillRect(m.x - 12, m.y + 10, 24 * m.bat / m.maxBat, 3);
   }
   // player: the Vector
@@ -1574,8 +1738,9 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'levelup', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup'];
-  UI.go = id => { for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'levelup' || id === 'pause'); if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings'];
+  let curScreen = 'menu';
+  UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
   /* input */
   let joyId = null, taps = new Map();
@@ -1627,7 +1792,7 @@ if (HAS_DOM) {
   window.addEventListener('keyup', ev => { input.keys[ev.key] = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden && screen === 'run') togglePause(); });
 
-  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
+  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
 
   /* menus */
   UI.menu = () => {
@@ -1635,10 +1800,6 @@ if (HAS_DOM) {
     el('m-gold').textContent = Math.round(SAVE.gold);
     el('m-streak').textContent = `${SAVE.streak} day streak, ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'}, ${streakMult(SAVE.streak).toFixed(2)}x`;
     el('m-cleared').textContent = SAVE.cleared ? `${SAVE.cleared} of ${ZONES.length} zones cleared` : 'No zones cleared yet';
-    el('btn-mute').textContent = SAVE.muted ? 'Sound off' : 'Sound on';
-    el('btn-spawn').textContent = SAVE.spawnAnywhere ? 'Spawns: anywhere off screen' : 'Spawns: only where nothing is watching';
-    el('btn-playtest').textContent = SAVE.playtest ? 'Playtest mode: on (all zones unlocked)' : 'Playtest mode: off (tap to unlock all zones)';
-    el('btn-tips').textContent = SAVE.tipsOff ? 'Tutorial tips: off' : 'Tutorial tips: on';
     el('btn-notes').textContent = `Feedback notes (${SAVE.notes.length})`;
     el('m-ver').textContent = BUILD_ID;
   };
@@ -1659,18 +1820,38 @@ if (HAS_DOM) {
       }
     });
   };
-  UI.lattice = () => {
+  UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
     el('l-gold').textContent = Math.round(SAVE.gold);
-    const box = el('lattice-list'); box.innerHTML = '';
-    for (const u of LATTICE) {
+    el('l-msg').textContent = msg || '';
+    const owned = LATTICE.filter(u => lat(u.id) > 0);
+    el('l-stats').innerHTML = owned.length ? owned.map(u => `<span>${u.name}</span><b>${u.fmt(lat(u.id) * u.per)}</b>`).join('') : '<span>No upgrades yet.</span><b></b>';
+    const box = el('lattice-list'); box.innerHTML = ''; let g = null;
+    for (const u of LATTICE.slice().sort((a, b) => ['Combat', 'Survival', 'Drones', 'Runs'].indexOf(LATTICE_INFO[a.id][0]) - ['Combat', 'Survival', 'Drones', 'Runs'].indexOf(LATTICE_INFO[b.id][0]))) {
+      const [branch, detail] = LATTICE_INFO[u.id];
+      if (branch !== g) { g = branch; const h = document.createElement('h3'); h.className = 'hgroup'; h.textContent = g; box.appendChild(h); }
       const lvl = lat(u.id), maxed = lvl >= u.max, cost = latticeCost(u, lvl), can = !maxed && SAVE.gold >= cost;
-      const d = document.createElement('button'); d.className = 'row' + (can ? '' : ' locked');
-      d.innerHTML = `<b>${u.name} <small>${lvl}/${u.max}</small></b><span>${u.fmt(lvl * u.per)}${maxed ? '' : ' > ' + u.fmt((lvl + 1) * u.per)}</span><em>${maxed ? 'Maxed' : cost + ' gold'}</em>`;
-      if (can) d.onclick = () => { SAVE.gold -= cost; SAVE.lattice[u.id] = lvl + 1; persist(SAVE); beep(660, 0.1, 'triangle', 0.05); UI.lattice(); };
-      box.appendChild(d);
+      const wrap = document.createElement('div'); wrap.className = 'wnode';
+      const row = document.createElement('div'); row.className = 'node' + (can ? ' can' : '');
+      const b = document.createElement('button'); b.className = 'buy';
+      b.innerHTML = `<b>${u.name}<small>${lvl}/${u.max}</small></b><em>${maxed ? 'Maxed' : cost + ' gold'}</em><span>${lvl ? 'Now: ' + u.fmt(lvl * u.per) : 'Not bought'}${maxed ? '' : '. Next: ' + u.fmt((lvl + 1) * u.per)}</span>`;
+      b.onclick = () => { if (!can) return; SAVE.gold -= cost; SAVE.lattice[u.id] = lvl + 1; persist(SAVE); beep(660, 0.1, 'triangle', 0.05); keepScroll(() => UI.lattice()); };
+      row.appendChild(b);
+      if (lvl > 0) {
+        const refund = Math.floor(latticeCost(u, lvl - 1) * LATTICE_SELL), sl = document.createElement('button'); sl.className = 'sell';
+        sl.textContent = `Sell\n+${refund}`;
+        sl.onclick = () => {
+          if (!sl.dataset.arm) { sl.dataset.arm = '1'; sl.textContent = 'Tap to\nconfirm'; return; }
+          SAVE.lattice[u.id] = lvl - 1; SAVE.gold += refund; persist(SAVE); beep(330, 0.08, 'triangle', 0.05);
+          keepScroll(() => UI.lattice(`Sold a level of ${u.name}: +${refund} gold.`));
+        };
+        row.appendChild(sl);
+      }
+      const det = document.createElement('details'); det.className = 'wdet'; det.innerHTML = `<summary>Details</summary><p>${detail}</p>`;
+      wrap.appendChild(row); wrap.appendChild(det); box.appendChild(wrap);
     }
   };
+  const keepScroll = f => { const sc = el('lattice'), y = sc.scrollTop; f(); sc.scrollTop = y; };
   /* workout ledger: pick an activity, fill in details, undo mistakes, see history */
   const FORMS = {
     cindy: [{ k: 'rounds', label: 'Rounds' }, { k: 'extra', label: 'Extra reps' }],
@@ -1807,20 +1988,48 @@ if (HAS_DOM) {
       g2.fillStyle = '#f6efe0'; g2.textAlign = 'left'; g2.fillText(txt, tx + 7, 14);
     };
   }
-  UI.showDraft = run => {
-    UI.go('levelup');
-    inlineTip('it-draft', run.draft.some(o => o.kind === 'evo') && !tipSeen('evo') ? 'evo' : 'draft');
-    el('lu-title').textContent = `Level ${run.p.level}`;
-    const box = el('draft'); box.innerHTML = '';
-    run.draft.forEach((o, i) => {
-      const d = document.createElement('button'); d.className = 'row' + (o.kind === 'evo' ? ' evo' : '');
-      d.innerHTML = `<b>${o.name}</b><span>${o.desc}</span><em>${o.tag}</em>`;
-      d.onclick = () => applyDraft(run, o);
-      box.appendChild(d);
-    });
-    const rb = el('btn-reroll'); rb.textContent = `Reroll (${run.rerolls})`; rb.disabled = run.rerolls <= 0;
-    rb.onclick = () => { if (run.rerolls > 0) { run.rerolls--; run.draft = draftOptions(run); UI.showDraft(run); } };
+  /* skill tree screen: from a level-up (game paused) or from the pause menu */
+  let treeFrom = 'levelup';
+  const fmtPts = v => (Math.round(v * 2) / 2).toString();
+  UI.showTree = (run, from) => {
+    treeFrom = from || treeFrom;
+    UI.go('tree');
+    const ORDER = ['Weapons', 'Drones', 'Passives', 'Evolutions', 'Any time'];
+    const nodes = treeNodes(run).sort((a, b) => ORDER.indexOf(a.branch) - ORDER.indexOf(b.branch)), canAny = nodes.some(n => !n.why && n.cost <= run.points && !n.key.startsWith('x:'));
+    inlineTip('it-draft', nodes.some(n => n.evo && !n.why) && !tipSeen('evo') ? 'evo' : 'draft');
+    el('tree-title').textContent = treeFrom === 'levelup' ? `Level ${run.p.level}` : 'Skill tree';
+    el('tree-sub').innerHTML = `<b>${fmtPts(run.points)}</b> point${run.points === 1 ? '' : 's'} to spend. Tap a skill to buy a level; Sell refunds half.`;
+    el('tree-stat-list').innerHTML = statLines(run).map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');
+    const box = el('tree-list'); box.innerHTML = ''; let g = null;
+    for (const n of nodes) {
+      if (n.key.startsWith('x:') && (run.points < 1 || canAny)) continue; // fallbacks only when nothing else can be bought
+      if (n.branch !== g) { g = n.branch; const h = document.createElement('h3'); h.className = 'hgroup'; h.textContent = g; box.appendChild(h); }
+      const can = !n.why && n.cost <= run.points;
+      const row = document.createElement('div'); row.className = 'node' + (can ? ' can' : '') + (n.evo ? ' evo' : '');
+      const pips = n.max > 1 && n.max < 99 ? `<small>${'●'.repeat(n.lvl)}${'○'.repeat(n.max - n.lvl)}</small>` : '';
+      const b = document.createElement('button'); b.className = 'buy';
+      b.innerHTML = `<b>${n.name}${pips}</b><em>${n.why || (n.cost > run.points ? `${n.cost} points` : n.cost === 1 ? '1 point' : `${n.cost} points`)}</em><span>${n.desc}</span>`;
+      b.onclick = () => { if (buyNode(run, n.key)) { beep(660, 0.08, 'triangle', 0.05); afterChange(run); } };
+      row.appendChild(b);
+      if (!n.sellWhy) {
+        const sl = document.createElement('button'); sl.className = 'sell'; sl.textContent = `Sell\n+${fmtPts(n.cost / 2)}`;
+        sl.onclick = () => { if (!sl.dataset.arm) { sl.dataset.arm = '1'; sl.textContent = 'Tap to\nconfirm'; return; } if (sellNode(run, n.key)) { beep(330, 0.08, 'triangle', 0.05); afterChange(run); } };
+        row.appendChild(sl);
+      }
+      box.appendChild(row);
+    }
+    el('btn-tree-close').textContent = treeFrom === 'pause' ? 'Back' : run.points >= 1 ? `Save ${fmtPts(run.points)} point${run.points === 1 ? '' : 's'} for later` : 'Continue';
   };
+  function afterChange(run) {
+    if (treeFrom === 'levelup' && run.points < 1) { el('btn-tree-close').onclick(); return; } // spent: back to the fight
+    const y = el('tree').scrollTop; UI.showTree(run); el('tree').scrollTop = y;
+  }
+  el('btn-tree-close').onclick = () => {
+    if (!R) return;
+    if (treeFrom === 'pause') { UI.go('pause'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} points)`; return; }
+    R.draft = null; screen = 'run'; UI.go(null); last = performance.now();
+  };
+  el('btn-pause-tree').onclick = () => { if (R) UI.showTree(R, 'pause'); };
   UI.hideDraft = () => UI.go(null);
   UI.showEnd = run => {
     const s = run.summary;
@@ -1843,9 +2052,23 @@ if (HAS_DOM) {
     UI.go('end'); inlineTip('it-end', s.won ? 'win' : (!tipSeen('lose') ? 'lose' : 'workshop_death'));
   };
   el('btn-zones').onclick = UI.zones; el('btn-lattice').onclick = UI.lattice; el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help');
-  el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.menu(); };
-  el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.menu(); };
-  for (const b of document.querySelectorAll('.back')) b.onclick = UI.menu;
+  /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
+  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', logform: 'log', hist: 'log' };
+  function goBack() {
+    const id = curScreen;
+    if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
+    if (id === 'pause') { togglePause(); return; }
+    if (id === 'tree') { el('btn-tree-close').onclick(); return; }
+    if (id === 'note') { el('btn-note-cancel').onclick(); return; }
+    if (id === 'end') { el('btn-end-menu').onclick(); return; }
+    if (id === 'menu') return;
+    const t = BACK[id] || 'menu';
+    if (t === 'settings') UI.settings(); else if (t === 'log') UI.log(); else UI.menu();
+  }
+  let guard = false;
+  function armBack() { if (!guard && curScreen !== 'menu') { try { history.pushState({ survivorsBack: 1 }, ''); guard = true; } catch (e) { /* sandboxed */ } } }
+  window.addEventListener('popstate', () => { guard = false; goBack(); armBack(); });
+  for (const b of document.querySelectorAll('.back')) b.onclick = goBack;
   el('btn-resume').onclick = togglePause; el('btn-quit').onclick = () => { if (R && !R.over) endRun(R, false); UI.menu(); R = null; };
   el('btn-pause').onclick = () => { if (R) togglePause(); };
   el('btn-recall').onclick = () => { if (R && screen === 'run') recallAll(R); };
@@ -2006,10 +2229,22 @@ if (HAS_DOM) {
   el('btn-playtest').onclick = () => {
     SAVE.playtest = !SAVE.playtest;
     if (SAVE.playtest && !SAVE.playtestGold) { SAVE.playtestGold = true; SAVE.gold += 500; }
-    persist(SAVE); UI.menu();
+    persist(SAVE); UI.settings(SAVE.playtest && SAVE.gold >= 500 ? 'All zones unlocked.' : '');
   };
-  el('btn-tips').onclick = () => { SAVE.tipsOff = !SAVE.tipsOff; persist(SAVE); UI.menu(); };
-  el('btn-tips-reset').onclick = () => { SAVE.seenTips = {}; SAVE.tipsOff = false; persist(SAVE); UI.menu(); el('m-ver').textContent = 'Tutorial reset. It replays on your next run.'; };
+  /* settings: every toggle says what it does and shows its state */
+  const setRow = (id, title, on, desc) => { el(id).innerHTML = `<b>${title}</b><em>${on}</em><span>${desc}</span>`; };
+  UI.settings = msg => {
+    UI.go('settings'); el('set-msg').textContent = msg || '';
+    setRow('btn-mute', 'Sound and vibration', SAVE.muted ? 'Off' : 'On', 'Beeps and haptic buzzes.');
+    setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
+    setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
+    setRow('btn-spawn', 'Enemy spawns', SAVE.spawnAnywhere ? 'Anywhere off screen' : 'Only unwatched', 'Normally enemies only appear where neither you nor a Drone can see, so scouting matters. The other option spawns them anywhere outside your view.');
+  };
+  el('btn-settings').onclick = () => UI.settings();
+  el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.settings(); };
+  el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.settings(); };
+  el('btn-tips').onclick = () => { SAVE.tipsOff = !SAVE.tipsOff; persist(SAVE); UI.settings(); };
+  el('btn-tips-reset').onclick = () => { SAVE.seenTips = {}; SAVE.tipsOff = false; persist(SAVE); UI.settings('Tutorial reset. It replays on your next run.'); };
 
   /* HUD */
   const hud = { shells: el('h-shells'), ammo: el('h-ammo'), parts: el('h-parts'), hp: el('hp'), xp: el('xp'), lvl: el('h-lvl'), time: el('h-time'), gold: el('h-gold'), heat: el('h-heat'), motes: el('h-motes'), toast: el('toasts'), kills: el('h-kills') };
@@ -2023,10 +2258,11 @@ if (HAS_DOM) {
     hud.parts.textContent = run.parts + ' parts';
     hud.shells.textContent = run.shells + ' shells';
     el('btn-shell').textContent = run.aim ? 'Cancel' : `Shell ${run.shells}`;
+    { const t = run.points >= 1 ? `Pause (${Math.floor(run.points)})` : 'Pause'; if (el('btn-pause').textContent !== t) el('btn-pause').textContent = t; } // saved skill points
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
     const hl = Math.floor(run.heat / 2); hud.heat.textContent = '\u25c6'.repeat(hl) + '\u25c7'.repeat(5 - hl); hud.heat.style.color = hl >= 3 ? '#ff8a7a' : '#ffb347';
-    hud.motes.textContent = run.motes.map(m => { const pc = Math.round(m.bat / m.maxBat * 100) + '%'; return m.state === 'dimmed' ? 'down' : m.state === 'perched' ? ((m.jammed ? 'jammed ' : 'perched ') + pc + (m.cargo ? ' +' + m.cargo + 'xp' : '')) : m.state === 'follow' ? 'ready ' + pc : 'moving ' + pc; }).join(' | ');
+    hud.motes.textContent = run.motes.map(m => { const pc = Math.round(m.bat / m.maxBat * 100) + '%'; return m.state === 'dimmed' ? 'down' : m.state === 'perched' ? ((m.jammed ? 'jammed ' : m.anchor && m.anchor.base ? 'on base ' : 'perched ') + pc + (m.cargo ? ' +' + m.cargo + 'xp' : '') + (m.cargoParts ? ' +' + m.cargoParts + 'p' : '')) : m.state === 'follow' ? 'ready ' + pc : m.state === 'diving' ? 'diving' : 'moving ' + pc; }).join(' | ');
     hud.toast.innerHTML = run.toasts.map(t => `<div style="opacity:${Math.min(1, t.t)}">${t.txt}</div>`).join('');
   }
 
@@ -2046,7 +2282,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
