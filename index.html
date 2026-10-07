@@ -501,7 +501,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s5c';
+const BUILD_ID = 'playtest 2026-10-08 s6';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -676,6 +676,7 @@ function goalBest(g) { // best value logged for this goal's exercise inside its 
   }
   return best;
 }
+const fmtGoal = (ex, v) => ex === 'run_pace' ? `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, '0')}/mi` : ex === 'run_mi' || ex === 'cindy' ? (Math.round(v * 10) / 10).toString() : Math.round(v).toString(); // how a goal number reads
 const goalMet = g => { const b = goalBest(g); return b != null && (GOALS.ex[g.ex].less ? b <= g.target : b >= g.target); };
 function claimGoal(i) { const g = (SAVE.goals || [])[i]; if (!g || g.claimed || !goalMet(g)) return 0; g.claimed = true; SAVE.gold += g.reward; persist(SAVE); return g.reward; }
 const anyClaimable = () => { const Q = SAVE.quests || {}; return ['day', 'week'].some(k => Q[k] && Q[k].list.some(q => !q.claimed && questProg(q) >= q.need)) || (SAVE.goals || []).some(g => !g.claimed && goalMet(g)); };
@@ -2519,9 +2520,9 @@ if (HAS_DOM) {
     const gb = el('q-goals'); gb.innerHTML = ''; const now = Date.now();
     (SAVE.goals || []).forEach((g, i) => {
       const ex = GOALS.ex[g.ex], best = goalBest(g), met = goalMet(g), over = now >= g.until && !met;
-      const shown = best == null ? 'nothing logged yet' : `best ${Math.round(best * 100) / 100}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
+      const shown = best == null ? 'nothing logged yet' : `best ${fmtGoal(g.ex, best)}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
       const prog = best == null ? 0 : ex.less ? (met ? 1 : Math.min(0.99, g.target / best)) : Math.min(1, best / g.target);
-      const d = row(`${ex.name}: ${g.target}`, prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } }, over ? `Missed (${shown}). Hold Remove to clear it.` : `${shown}, ${left} day${left === 1 ? '' : 's'} left`);
+      const d = row(`${ex.name}: ${fmtGoal(g.ex, g.target)}`, prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } }, over ? `Missed (${shown}). Hold Remove to clear it.` : `${shown}, ${left} day${left === 1 ? '' : 's'} left`);
       if (over || g.claimed) { const hs = holdSell('Hold to remove', () => { SAVE.goals.splice(i, 1); persist(SAVE); UI.quests(); }); d.appendChild(hs); }
       gb.appendChild(d);
     });
@@ -3141,7 +3142,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, TREE_LINKS, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
