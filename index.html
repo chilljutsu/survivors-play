@@ -259,7 +259,7 @@
   <canvas id="dial-sky" class="sky"></canvas>
   <button id="btn-dial-reset">Reset: all Drones spread ahead</button>
   <h3 class="hgroup">Drone targets</h3>
-  <p>What your Drones go after first: Auto artillery (Workshop) and gun drones.</p>
+  <p>What your Drones go after first: Auto artillery (Workshop), Kamikaze strike level 2 and gun drones.</p>
   <div id="dial-targets" class="tabs four"></div>
   <button class="back">Back</button>
 </div></div>
@@ -456,7 +456,7 @@ LATTICE.push({ id: 'autoshell', name: 'Auto artillery', base: 350, max: 3, per: 
 LATTICE.push({ id: 'tier', name: 'Drone autonomy', base: 300, max: 3, per: 1, fmt: v => `Tier ${v}: ${DRONE_TIERS[v].name}` });
 // Drone intel (Lance 10-07: "after gps the branch opens up... adjust what my drones target... call an artillery strike
 // on certain targets autonomously"). Targets are chosen in Pause > Drone positions and used by Auto artillery,
-// gun drones.
+// Kamikaze strike level 2 and gun drones.
 const AUTO_SHELL = { every: [0, 14, 10, 7], groupN: 5, groupR: 130, safeR: 200 };
 const DRONE_TARGETS = { jammer: { name: 'Jammers', type: 'null' }, gunner: { name: 'Gunners', type: 'harmonic' }, group: { name: 'Groups' }, boss: { name: 'Boss', type: 'resonator' } };
 const latticeCost = (u, lvl) => Math.round(u.base * Math.pow(1.35, lvl));
@@ -501,7 +501,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s6';
+const BUILD_ID = 'playtest 2026-10-08 s6b';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1564,11 +1564,14 @@ function droneSkills(run, dt) {
       for (const e of run.enemies) if (dist2(e.x, e.y, m.x, m.y) < r * r) { e.slow = Math.max(e.slow || 0, 0.2); if (emp >= 3) damageEnemy(run, e, 6 * run.p.dmgMult * dt); }
     }
     if (sk.dstrike && (m.state === 'follow' || m.state === 'perched') && m.bat > m.maxBat * 0.6) {
-      let t = null, bd = 450 * 450;
+      let t = null, bd = 450 * 450, pref = null, pd = 450 * 450; const want = sk.dstrike >= 2 ? droneTargetPick() : null; // level 2: your Drone targets first
       for (const e of run.enemies) {
-        if (!(e.type === 'resonator' || (sk.dstrike >= 2 && (e.type === 'null' || e.type === 'harmonic')))) continue;
-        const d = dist2(e.x, e.y, m.x, m.y); if (d < bd && losClear(run, m.x, m.y, e.x, e.y)) { bd = d; t = e; }
+        if (e.isCore || !(e.type === 'resonator' || (sk.dstrike >= 2 && (e.type === 'null' || e.type === 'harmonic')))) continue;
+        const d = dist2(e.x, e.y, m.x, m.y); if (d >= bd && d >= pd) continue; if (!losClear(run, m.x, m.y, e.x, e.y)) continue;
+        if (want && want.type === e.type && d < pd) { pd = d; pref = e; }
+        if (d < bd) { bd = d; t = e; }
       }
+      t = pref || t;
       if (t) { if (m.anchor) { m.anchor.mote = null; m.anchor = null; } m.state = 'diving'; m.target = t; toast(run, t.type === 'resonator' ? 'Drone diving at the boss' : 'Drone diving'); }
     }
   }
@@ -1847,7 +1850,7 @@ const DRONE_SKILLS = {
   dmag:    { name: 'Drone magnet',    max: 2, cost: 1, desc: l => l === 0 ? 'Your following Drone pulls in XP from 50% farther' : 'It also collects parts' },
   demp:    { name: 'EMP',             max: 3, cost: 1, desc: l => ['Drones slow enemies within 120px', 'Slow radius 150px', 'Radius 180px, and it burns them for 6 damage a second'][l] },
   dshield: { name: 'Intercept',       max: 3, cost: 1, desc: l => ['A following Drone shoots down an enemy bullet near it every 1.2 s. Each block knocks it down: walk over it to recover', 'Blocks every 0.8 s and survives one block (the second knocks it down)', 'Blocks every 0.5 s and takes three blocks to knock down'][l] },
-  dstrike: { name: 'Kamikaze strike', max: 2, cost: 1, desc: l => l === 0 ? 'A Drone over 60% charge dives into a boss within 450px: 250 damage, then it is down until you pick it up' : 'Strike damage 500, and it also dives at Jammers and Gunners' },
+  dstrike: { name: 'Kamikaze strike', max: 2, cost: 1, desc: l => l === 0 ? 'A Drone over 60% charge dives into a boss within 450px: 250 damage, then it is down until you pick it up' : 'Strike damage 500, and it also dives at Jammers and Gunners, your Drone targets choice first (Pause > Drone positions)' },
 };
 const EMP_R = [0, 120, 150, 180];
 const INTERCEPT = { r: 80, every: [0, 1.2, 0.8, 0.5], hpCost: [0, 100, 50, 34] }; // Lance 10-07: drones as a shield
@@ -2985,7 +2988,7 @@ if (HAS_DOM) {
     UI.go('dial'); const n = R ? R.motes.length : 1; if (dialSel >= n) dialSel = 0;
     const box = el('dial-drones'); box.innerHTML = '';
     for (let i = 0; i < n; i++) { const b = document.createElement('button'); b.className = i === dialSel ? 'on' : ''; b.textContent = `Drone ${i + 1}`; b.onclick = () => { dialSel = i; UI.dial(); }; box.appendChild(b); }
-    const tb = el('dial-targets'); tb.innerHTML = ''; // what Drones go after (Auto artillery, gun drones)
+    const tb = el('dial-targets'); tb.innerHTML = ''; // what Drones go after (Auto artillery, Kamikaze strike 2, gun drones)
     for (const [k, v] of Object.entries(DRONE_TARGETS)) { const b = document.createElement('button'); b.className = (SAVE.droneTarget || 'jammer') === k ? 'on' : ''; b.textContent = v.name; b.onclick = () => { SAVE.droneTarget = k; persist(SAVE); UI.dial(); }; tb.appendChild(b); }
     drawDial();
   };
