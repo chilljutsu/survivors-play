@@ -297,7 +297,7 @@
   <div class="tree-head"><h2 id="tree-title">Skill tree</h2><span id="tree-pts"></span></div>
   <div class="itip" id="it-draft" hidden></div>
   <details id="tree-stats" class="sheet"><summary>Your stats</summary><div id="tree-stat-list" class="statgrid"></div></details>
-  <div id="tree-tabs" class="tabs"></div>
+  <div id="tree-tabs" class="tabs four"></div>
   <canvas id="tree-sky" class="sky"></canvas>
   <div id="tree-panel" class="tpanel"></div>
   <div id="tree-extra" class="col"></div>
@@ -565,6 +565,7 @@ const DRONE_TIERS = [
 ];
 LATTICE.push({ id: 'autoshell', name: 'Auto artillery', base: 350, max: 3, per: 1, fmt: v => `A perched Drone calls a shell by itself every ${AUTO_SHELL.every[v]} s` });
 LATTICE.push({ id: 'fortify', name: 'Fortify', base: 250, max: 3, per: 1, fmt: v => `Base turret +${v * FORTIFY.gun * 100}% damage and range, base +${Math.round(v * FORTIFY.hp * 100)}% HP` });
+for (const [id, base] of [['gun', 300], ['scav', 200], ['fix', 250], ['turret', 250], ['jammer', 200], ['eng', 400]]) LATTICE.push({ id, name: { gun: 'Gun drone', scav: 'Scavenger', fix: 'Repair bot', turret: 'Turret', jammer: 'Jammer', eng: 'Engineer' }[id], base, max: 1, per: 1, fmt: v => (v ? 'Unlocked: learn it in a run' : 'Locked'), unlock: true });
 LATTICE.push({ id: 'tier', name: 'Drone autonomy', base: 300, max: 3, per: 1, fmt: v => `Tier ${v}: ${DRONE_TIERS[v].name}` });
 // Drone intel (Lance 10-07: "after gps the branch opens up... adjust what my drones target... call an artillery strike
 // on certain targets autonomously"). Targets are chosen in Pause > Drone positions and used by Auto artillery,
@@ -585,7 +586,13 @@ const LATTICE_INFO = {
   battery:   ['Drones', 'Drones stay perched longer before the battery runs out. The base perch always charges them.'],
   tier:      ['Drones', DRONE_TIERS.slice(1).map((t, i) => `Tier ${i + 1}, ${t.name}: ${t.desc}`).join(' ')],
   salvage:   ['Runs', 'When you die you keep more of that run\'s gold (you always keep all of it when you clear a zone).'],
-  fortify:   ['Survival', 'The base fights harder: its turret hits harder and reaches farther, and the base takes more before it is breached. Pairs with the Engineer, who walls the base in.'],
+  gun:       ['Drones', 'Unlocks the Gun drone in the skill tree (Drones). In a run, spend points to learn and level it, then build them with parts.'],
+  scav:      ['Drones', 'Unlocks the Scavenger in the skill tree (Drones): it fetches caches and parts home.'],
+  fix:       ['Drones', 'Unlocks the Repair bot in the skill tree (Drones): it revives downed Drones and patches builds and the base.'],
+  turret:    ['Base', 'Unlocks the Turret in the skill tree (Base). Levels add damage, reach and HP.'],
+  jammer:    ['Base', 'Unlocks the Jammer in the skill tree (Base). Levels widen its ring.'],
+  eng:       ['Base', 'Unlocks the Engineer in the skill tree (Base): a ground bot that walls the base in with barricades.'],
+  fortify:   ['Base', 'The base fights harder: its turret hits harder and reaches farther, and the base takes more before it is breached. Pairs with the Engineer, who walls the base in.'],
   autoshell: ['Drones', 'Needs Drone autonomy 1 (GPS). A perched Drone that sees what you picked in Pause > Drone positions (Jammers, Gunners, groups of 5 or more, or the boss) calls a shell on it by itself. It spends your shells, and only when the base is not breached.'],
   rerolls:   ['Runs', 'Skill points ready to spend in the skill tree the moment a run starts.'],
 };
@@ -596,14 +603,16 @@ const LATTICE_SELL = 0.5; // selling a level refunds half of what that level cos
 const LAT_LINKS = { autoshell: [['tier', 1]] }; // Lance 10-07: the GPS tier opens Drone intel
 const LAT_TIER = { gain: ['Combat', 2], magnet: ['Survival', 2], motes: ['Drones', 3], rerolls: ['Runs', 2] }; // tier 2: levels bought in that cluster first
 const LAT_SKY = {
-  signal: [0.16, 0.4], gain: [0.3, 0.13],
-  capacitor: [0.8, 0.4], clock: [0.62, 0.13], magnet: [0.94, 0.13], fortify: [0.6, 0.4],
-  tier: [0.1, 0.93], battery: [0.27, 0.74], motes: [0.44, 0.56], autoshell: [0.46, 0.86],
-  salvage: [0.84, 0.93], rerolls: [0.76, 0.68],
+  signal: [0.32, 0.12], gain: [0.12, 0.12],
+  capacitor: [0.56, 0.12], clock: [0.75, 0.12], magnet: [0.93, 0.12],
+  turret: [0.12, 0.39], jammer: [0.32, 0.39], eng: [0.52, 0.39], fortify: [0.72, 0.39],
+  gun: [0.12, 0.9], scav: [0.32, 0.9], fix: [0.52, 0.9],
+  motes: [0.12, 0.65], battery: [0.32, 0.65], tier: [0.55, 0.65], autoshell: [0.7, 0.9],
+  rerolls: [0.92, 0.65], salvage: [0.92, 0.9],
 };
-const LAT_GROUPS = [['Combat', 0.03, 0.03, 'left'], ['Survival', 0.97, 0.03, 'right'], ['Drones', 0.03, 0.62, 'left'], ['Runs', 0.97, 0.56, 'right']];
+const LAT_GROUPS = [['Combat', 0.03, 0.0, 'left'], ['Survival', 0.97, 0.0, 'right'], ['Base', 0.03, 0.27, 'left'], ['Drones', 0.03, 0.53, 'left'], ['Runs', 0.97, 0.53, 'right']];
 const latName = id => LATTICE.find(u => u.id === id).name;
-const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id]).reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
+const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id] && !u.unlock).reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
 function latWhy(id) {
   if (lat(id) > 0) return '';
   const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); if (miss.length) return 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ');
@@ -627,7 +636,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s18';
+const BUILD_ID = 'playtest 2026-10-08 s19';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -636,7 +645,11 @@ function loadSave() {
   let s = null;
   try { const raw = localStorage.getItem(SAVE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* sandboxed */ }
   if (!s && memStore) s = memStore;
-  return Object.assign(defaultSave(), s || {});
+  return grandfatherBots(Object.assign(defaultSave(), s || {}));
+}
+function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once)
+  if (!out.botsGrand) { out.botsGrand = 1; if (out.runs > 0) for (const id of ['gun', 'scav', 'fix', 'turret', 'jammer', 'eng']) out.lattice[id] = Math.max(1, out.lattice[id] || 0); }
+  return out;
 }
 function persist(s) {
   memStore = s;
@@ -742,7 +755,7 @@ const QUESTS = {
     { stat: 'hives', need: 2, gold: 120, text: 'Destroy 2 hives' },
     { stat: 'perches', need: 5, gold: 80, text: 'Perch a Drone 5 times' },
     { stat: 'zones', need: 1, gold: 150, text: 'Clear a zone' },
-    { stat: 'units', need: 2, gold: 100, text: 'Build 2 gun drones or scavengers' },
+    { stat: 'units', need: 2, gold: 100, text: 'Build 2 gun drones or scavengers', needs: () => lat('gun') || lat('scav') },
     { stat: 'strikes', need: 3, gold: 90, text: 'Land 3 artillery shells' },
     { stat: 'caches', need: 3, gold: 90, text: 'Collect 3 caches' },
     { stat: 'meals', need: 3, gold: 120, text: 'Log 3 meals', food: true },
@@ -782,6 +795,7 @@ function weekKey(d) { const m = new Date(d.getFullYear(), d.getMonth(), d.getDat
 function statAdd(k, n, now) { ensureQuests(now); SAVE.stat[k] = (SAVE.stat[k] || 0) + (n || 1); } // deal first: the first event of a new day counts
 function pickQuests(pool, n, seed, food) { // deterministic from the date; a fitness quest always makes the list, and a food one once you log food
   const mix = qs => qs.map(q => [hashStr(seed + q.text), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  pool = pool.filter(q => !q.needs || q.needs()); /* a quest you cannot do yet stays out */
   const fit = pool.filter(q => q.fit), meal = food ? mix(pool.filter(q => q.food)).slice(0, 1) : [], rest = mix(pool.filter(q => !q.fit && !q.food));
   return [...fit, ...meal, ...rest].slice(0, n);
 }
@@ -1166,7 +1180,7 @@ function newRun(zoneIdx, mode) {
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
-    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
+    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], bots: {}, order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800 * (1 + FORTIFY.hp * lat('fortify')), maxhp: 800 * (1 + FORTIFY.hp * lat('fortify')), alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
@@ -1733,7 +1747,8 @@ const TIPS = {
   cache:    { group: 'Pickups', title: 'Supply cache', body: 'The yellow box is a supply cache: +120 ammo, +8 parts and +2 artillery shells. Walk over it to grab it. Each one can be taken once.' },
   ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache (gold squares). Orbit, Nova and Field never use ammo, so they keep hitting while you go.' },
   jammer_on: { group: 'Pickups', title: 'Your Jammer', body: 'Enemies inside the dashed purple ring are blinded while they stay in it (a purple arc spins on them): they wander instead of chasing you, Rushers cannot dash and Gunners cannot shoot. It does not hurt them, and the boss ignores it. Enemies that touch it wear it down. Fight inside the ring, or drop it to cover the base or a perch.' },
-  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything within 320px it has a clear line to, no Drone needed. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down. The row above has units: Gun drone (20 parts) and Scavenger (15).' },
+  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. What you have learned in the skill tree has a button at the bottom: Turret (30) shoots anything within reach with a clear line, Jammer (25) blinds enemies in its ring. Builds go down where you stand, six max, and enemies wear them down.' },
+  learned_bot: { group: 'Units', title: 'Learned: build it with parts', body: 'Its button is now at the bottom of the screen and it costs parts, which tougher enemies drop. Levelling it in the skill tree makes it stronger. Bots and builds are unlocked for good in the Workshop, then learned each run.' },
   // aim upgrades
   lead:      { group: 'Weapons', title: 'Lead shot', body: 'That Gunner is sidestepping. Your Pulse, gun drones and turrets now aim where it will be when the bolt arrives, so the shot lands instead of passing behind it.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
@@ -1771,8 +1786,8 @@ const TIPS = {
   world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look: more enemies, more evolved forms, more hives and an evolved boss. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
-  u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Up to 6. Enemies that touch them or shoot them wear them down.' },
-  u_scav:    { group: 'Units', title: 'Scavenger', body: 'It flies to caches and parts piles you have already seen and carries them home to your base: a cache gives ammo, parts and shells. It runs home from any enemy near it and has little health. Up to 2.' },
+  u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Two at level 1; levels in the skill tree allow up to 6 and add damage. Enemies that touch them or shoot them wear them down.' },
+  u_scav:    { group: 'Units', title: 'Scavenger', body: 'It flies to caches and parts piles you have already seen and carries them home to your base: a cache gives ammo, parts and shells. It runs home from any enemy near it and has little health. Level 2 in the skill tree allows a second.' },
   u_eng:     { group: 'Units', title: 'Engineer', body: 'A slow, armored ground bot. It walls your base in with six barricades for 6 parts each, leaving gaps you can walk through, rebuilds any that fall and repairs barricades, turrets and jammers. Bullets do half damage to it. One at a time.' },
   barricade: { group: 'Units', title: 'Barricades', body: 'Low walls with HP. They stop enemies and enemy shots, but you see and shoot over them, so raiders funnel through the gaps where your turrets can hit them. Enemies leaning on them and enemy bullets wear them down; the Engineer rebuilds them.' },
   eng_down:  { group: 'Units', title: 'Engineer stopped', body: 'At 0 HP the Engineer does not break, it stops. Walk over it and it gets back up at half HP.' },
@@ -1803,7 +1818,7 @@ function updateTips(run, dt) {
     else if (!tipSeen('gem') && near(g.x, g.y, 300)) tip(run, 'gem', { at: g, hud: 'xpbar' });
   }
   for (const c of run.caches) if (!c.taken && !tipSeen('cache') && near(c.x, c.y, 380) && visibleTo(run, c.x, c.y)) tip(run, 'cache', { at: c });
-  if (run.parts >= 25) tip(run, 'build', { hud: 'btn-jammer', hud2: 'btn-turret', at: p });
+  { const tOk = botLvl(run, 'turret') && run.parts >= BUILDS.turret.cost, jOk = botLvl(run, 'jammer') && run.parts >= BUILDS.jammer.cost; if (tOk || jOk) tip(run, 'build', { hud: jOk ? 'btn-jammer' : 'btn-turret', hud2: tOk && jOk ? 'btn-turret' : null, at: p }); }
   if (run.ammo < 60) tip(run, 'ammo_low', { hud: 'h-ammo', at: run.base });
   if (run.heat >= 2) tip(run, 'heat', { hud: 'h-heat' });
   for (const m of run.motes) {
@@ -1957,10 +1972,11 @@ function updateBase(run, dt) {
     const c = run.builds[i];
     if (c.kind === 'turret') {
       c.cd -= dt;
-      if (c.cd <= 0) { let t = null, bd = 320 * 320; for (const e of run.enemies) { const dd = dist2(e.x, e.y, c.x, c.y); if (dd < bd && losClear(run, c.x, c.y, e.x, e.y)) { bd = dd; t = e; } }
-        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
+      if (c.cd <= 0) { const reach = bot(run, 'turret', 'range'); let t = null, bd = reach * reach; for (const e of run.enemies) { const dd = dist2(e.x, e.y, c.x, c.y); if (dd < bd && losClear(run, c.x, c.y, e.x, e.y)) { bd = dd; t = e; } }
+        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * bot(run, 'turret', 'dmg') * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
     } else if (c.kind === 'jammer') {
-      for (const e of run.enemies) if (e.type !== 'resonator' && dist2(e.x, e.y, c.x, c.y) < 240 * 240) e.blind = 0.25;
+      c.ring = bot(run, 'jammer', 'ring'); /* drawing reads c.ring */
+      for (const e of run.enemies) if (e.type !== 'resonator' && dist2(e.x, e.y, c.x, c.y) < c.ring * c.ring) e.blind = 0.25;
     }
     for (const e of run.enemies) if (dist2(e.x, e.y, c.x, c.y) < (e.r + 14) * (e.r + 14)) c.hp -= 25 * dt;
     if (c.hp <= 0) { run.builds.splice(i, 1); toast(run, (c.kind === 'turret' ? 'Turret' : 'Jammer') + ' destroyed'); for (let k = 0; k < 8; k++) spark(run, c.x, c.y, '#ffb347'); }
@@ -2429,10 +2445,10 @@ const HOMING = { lock: 120, turn: [0, 3, 6] }; // rad/s
 const TREE_LINKS = { 'a:homing': [['a:lead', 1]], 'd:dwall': [['d:dshield', 2]] };
 /* Units you build with parts (stage 4): gun drones take orders, scavengers fetch remembered caches and parts home. */
 const UNITS = {
-  gun:  { name: 'Gun drone', cost: 20, max: 6, hp: 60, spd: 190, r: 8, range: 260, every: 0.5, dmg: 7, ring: 70, holdR: 45 },
-  scav: { name: 'Scavenger', cost: 15, max: 2, hp: 40, spd: 150, r: 8, flee: 170 },
-  fix:  { name: 'Repair bot', cost: 15, max: 1, hp: 50, spd: 170, r: 8, reviveT: 1.5, healBuild: 40, healBase: 25, near: 26 },
-  eng:  { name: 'Engineer', cost: 30, max: 1, hp: 140, spd: 110, r: 10, ground: true },
+  gun:  { name: 'Gun drone', cost: 20, hp: 60, spd: 190, r: 8, range: 260, every: 0.5, dmg: 7, ring: 70, holdR: 45 },
+  scav: { name: 'Scavenger', cost: 15, hp: 40, spd: 150, r: 8, flee: 170 },
+  fix:  { name: 'Repair bot', cost: 15, hp: 50, spd: 170, r: 8, reviveT: 1.5, healBuild: 40, healBase: 25, near: 26 },
+  eng:  { name: 'Engineer', cost: 30, hp: 140, spd: 110, r: 10, ground: true },
 };
 /* The Engineer (s17, the first ground bot; Lance 10-08: "Is there no way to build defenses? maybe that's what the first
    ground bot could be in charge of doing"). It walls the base in with six barricades (gaps at the corners and the middle
@@ -2440,6 +2456,26 @@ const UNITS = {
    Armored: bullets and contact do half. At 0 HP it stops where it is until you walk over it. Barricades are low walls with
    HP: they stop movement and enemy shots; sight, line of fire and your bullets go over them (inWall(.., hard), castRay).
    Enemies touching them and enemy bullets wear them down. */
+/* Bots and builds (Lance 10-08: "turrets and other bots should be upgradable just like the skill menu... gun drone
+   should be an upgrade on the drone tree... do all the bot skills and upgrades like that"). Unlocked for good in the
+   Workshop (gold), then learned and levelled in a run with skill points (tree keys b:<id>); level 1 lets you build
+   it with parts, higher levels improve it. Arrays are per level (index 0 = not learned). */
+const BOTS = {
+  gun:    { sky: 'Drones', name: 'Gun drone',  max: 4, count: [0, 2, 3, 4, 6], dmg: [0, 1, 1.2, 1.4, 1.6],
+            desc: l => ['Lets you build gun drones (20 parts), up to 2.', 'Up to 3 gun drones, +20% damage.', 'Up to 4 gun drones, +40% damage.', 'Up to 6 gun drones, +60% damage.'][l] },
+  scav:   { sky: 'Drones', name: 'Scavenger',  max: 3, count: [0, 1, 2, 2], spd: [0, 1, 1, 1.35],
+            desc: l => ['Lets you build a scavenger (15 parts).', 'Up to 2 scavengers.', 'Scavengers fly 35% faster.'][l] },
+  fix:    { sky: 'Drones', name: 'Repair bot', max: 3, heal: [0, 1, 1.4, 1.8], revive: [0, 1.5, 1.1, 0.8],
+            desc: l => ['Lets you build a repair bot (15 parts).', 'Repairs 40% faster, revives Drones faster.', 'Repairs 80% faster, revives Drones in under a second.'][l] },
+  turret: { sky: 'Base',   name: 'Turret',     max: 4, dmg: [0, 1, 1.3, 1.6, 2], range: [0, 320, 350, 380, 410], hp: [0, 1, 1.2, 1.4, 1.6],
+            desc: l => ['Lets you build turrets (30 parts).', 'Turrets: +30% damage, longer reach, +20% HP.', 'Turrets: +60% damage, longer reach, +40% HP.', 'Turrets: double damage, 410 px reach, +60% HP.'][l] },
+  jammer: { sky: 'Base',   name: 'Jammer',     max: 3, ring: [0, 240, 290, 340], hp: [0, 1, 1.25, 1.5],
+            desc: l => ['Lets you build jammers (25 parts).', 'Jammer ring 290 px, +25% HP.', 'Jammer ring 340 px, +50% HP.'][l] },
+  eng:    { sky: 'Base',   name: 'Engineer',   max: 3, barHp: [0, 300, 400, 520], buildT: [0, 2, 1.5, 1.1], heal: [0, 30, 40, 55],
+            desc: l => ['Lets you build an Engineer (30 parts): it walls the base in.', 'Barricades 400 HP; it builds and repairs faster.', 'Barricades 520 HP; it builds and repairs fastest.'][l] },
+};
+const botLvl = (run, id) => (run.bots && run.bots[id]) || 0;
+const bot = (run, id, k) => BOTS[id][k][botLvl(run, id)] || BOTS[id][k][1]; // a level's number (level 1's when not learned, for things already built)
 const ENG = { ringR: 130, segL: 70, segT: 14, gapX: 60, cost: 6, hp: 300, buildT: 2, heal: 30, armor: 0.5, wear: 20, standIn: 26, wakeR: 26, wakeHp: 0.5, every: 0.25 };
 function wallsChanged(run) { run.wg = null; } // rebuild the wall grid; a barricade is far too thin to block a path cell, so paths and flow fields stand
 const rectsOverlap = (a, b, m) => a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
@@ -2464,7 +2500,7 @@ function slotClear(run, s, transient) { // builds never move; you, units and ene
   return true;
 }
 function placeBarricade(run, s) {
-  const o = { x: s.x, y: s.y, w: s.w, h: s.h, hp: ENG.hp, maxhp: ENG.hp, barricade: true };
+  const mh = bot(run, 'eng', 'barHp'), o = { x: s.x, y: s.y, w: s.w, h: s.h, hp: mh, maxhp: mh, barricade: true };
   run.walls.push(o); s.wall = o; run.parts -= ENG.cost; wallsChanged(run); run.barricadesBuilt = (run.barricadesBuilt || 0) + 1;
 }
 function updateBarricades(run, dt) { // contact wear, every ENG.every s; a barricade at 0 HP comes down
@@ -2484,7 +2520,8 @@ const ORDER_NEXT = { follow: 'hold', hold: 'attack', attack: 'follow' };
    evolution on its weapon at 5 (2 points, double ring). TREE_SKY rows follow the tiers (0..1 coords). */
 const TREE_TIERS = {
   Weapons: [{ keys: ['w:pulse', 'w:orbit', 'w:lance', 'a:lead'], need: 0 }, { keys: ['w:nova', 'w:field', 'a:homing'], need: 3 }, { keys: ['e:orbit', 'e:nova', 'e:pulse', 'e:field', 'e:lance'], need: 0, evo: true }],
-  Drones: [{ keys: ['d:dmag', 'd:demp'], need: 0 }, { keys: ['d:drone', 'd:dshield', 'd:dstrike', 'd:dwall'], need: 2 }],
+  Drones: [{ keys: ['d:dmag', 'd:demp', 'b:gun', 'b:scav', 'b:fix'], need: 0 }, { keys: ['d:drone', 'd:dshield', 'd:dstrike', 'd:dwall'], need: 2 }],
+  Base: [{ keys: ['b:turret', 'b:jammer', 'b:eng'], need: 0 }],
   Passives: [{ keys: ['p:signal', 'p:capacitor', 'p:clock'], need: 0 }, { keys: ['p:gain', 'p:aperture', 'p:magnet'], need: 3 }],
 };
 const EVO_COST = 2;
@@ -2492,7 +2529,8 @@ const TREE_SKY = {
   // laid out so no link line crosses a star: Lead shot sits under Homing, evolution lines pass between tier 2 stars
   Weapons: { 'w:orbit': [0.08, 0.9], 'w:pulse': [0.32, 0.9], 'a:lead': [0.56, 0.9], 'w:lance': [0.82, 0.9], 'w:nova': [0.2, 0.58], 'a:homing': [0.56, 0.58], 'w:field': [0.75, 0.58],
     'e:orbit': [0.1, 0.22], 'e:nova': [0.3, 0.22], 'e:pulse': [0.5, 0.22], 'e:field': [0.7, 0.22], 'e:lance': [0.9, 0.22] },
-  Drones: { 'd:dmag': [0.3, 0.85], 'd:demp': [0.7, 0.85], 'd:drone': [0.12, 0.5], 'd:dstrike': [0.38, 0.5], 'd:dshield': [0.62, 0.5], 'd:dwall': [0.88, 0.5] },
+  Drones: { 'd:dmag': [0.1, 0.85], 'd:demp': [0.3, 0.85], 'b:gun': [0.5, 0.85], 'b:scav': [0.7, 0.85], 'b:fix': [0.9, 0.85], 'd:drone': [0.12, 0.5], 'd:dstrike': [0.38, 0.5], 'd:dshield': [0.62, 0.5], 'd:dwall': [0.88, 0.5] },
+  Base: { 'b:turret': [0.2, 0.6], 'b:jammer': [0.5, 0.6], 'b:eng': [0.8, 0.6] },
   Passives: { 'p:signal': [0.2, 0.85], 'p:capacitor': [0.5, 0.85], 'p:clock': [0.8, 0.85], 'p:gain': [0.2, 0.45], 'p:aperture': [0.5, 0.45], 'p:magnet': [0.8, 0.45] },
 };
 // what each skill does, in full (the panel's main text); the short "next level" lines stay in treeNodes
@@ -2516,20 +2554,27 @@ const SKILL_INFO = {
   'd:dshield': 'A following Drone shoots down an enemy bullet near it. Each block costs it health: at level 1 one block knocks it down (walk over it to recover). Put it on the inner ring in Drone positions to keep it beside you.',
   'a:lead': 'Your shots aim at where the target will be when the bolt arrives, not where it is now. Plain Pulse misses a Gunner that sidesteps; with Lead shot it lands. Works for Pulse, gun drones and turrets.',
   'a:homing': 'Pulse bolts bend toward the enemy they were fired at once they are within 120px, so a late dodge still gets hit. Level 2 bends twice as hard.',
+  'b:gun': 'Gun drones: small armed drones that shoot the nearest enemy they can see. Orders (Follow, Hold, Attack) steer them. Build with 20 parts; levels raise how many you can have and their damage.',
+  'b:scav': 'Scavengers fly out to caches and parts you have mapped and carry them home, fleeing enemies. Build with 15 parts; levels add a second and make them faster.',
+  'b:fix': 'The repair bot revives downed Drones, patches worn builds and brings a breached base back. Build with 15 parts; levels make it repair and revive faster.',
+  'b:turret': 'Turrets shoot anything within reach that they have a clear line to, no Drone needed. Build with 30 parts where you stand; levels add damage, reach and HP, standing turrets included.',
+  'b:jammer': 'Jammers blind every enemy in their ring: they wander and cannot dash or shoot. Build with 25 parts; levels widen the ring and add HP.',
+  'b:eng': 'The Engineer is a slow armored ground bot that walls the base in with six low barricades (6 parts each) and repairs them and your builds. Build with 30 parts; levels make barricades tougher and the work faster.',
   'd:dwall': 'Your shielding Drone blocks bullets from 120px instead of 80px, and it only takes bullets heading your way, and each block costs half the health. Enough hits still knock it down (walk over it to recover).',
   'd:dstrike': 'A charged Drone dives into a boss in reach for heavy damage, then is down until you pick it up. Level 2 hits harder and also dives at Jammers and Gunners, your Drone targets first.',
 };
 function nodeLvl(run, key) {
   const [t, id] = key.split(':'), p = run.p;
-  return t === 'w' ? (p.weapons[id] || 0) : t === 'p' ? (p.passives[id] || 0) : t === 'd' || t === 'a' ? (run.skill[id] || 0) : t === 'e' ? (p.evolved[id] ? 1 : 0) : 0;
+  return t === 'w' ? (p.weapons[id] || 0) : t === 'p' ? (p.passives[id] || 0) : t === 'd' || t === 'a' ? (run.skill[id] || 0) : t === 'e' ? (p.evolved[id] ? 1 : 0) : t === 'b' ? botLvl(run, id) : 0;
 }
-const nodeName = key => { const [t, id] = key.split(':'); return t === 'w' ? WEAPONS[id].name : t === 'p' ? PASSIVES[id].name : t === 'd' ? DRONE_SKILLS[id].name : t === 'a' ? AIM_SKILLS[id].name : t === 'e' ? WEAPONS[id].evo : id; };
+const nodeName = key => { const [t, id] = key.split(':'); return t === 'w' ? WEAPONS[id].name : t === 'p' ? PASSIVES[id].name : t === 'd' ? DRONE_SKILLS[id].name : t === 'a' ? AIM_SKILLS[id].name : t === 'e' ? WEAPONS[id].evo : t === 'b' ? BOTS[id].name : id; };
 function tierOf(key) { for (const tab in TREE_TIERS) { const i = TREE_TIERS[tab].findIndex(t => t.keys.includes(key)); if (i >= 0) return { tab, i, t: TREE_TIERS[tab][i] }; } return null; }
-const levelCost = key => (key[0] === 'e' ? EVO_COST : key[0] === 'd' ? DRONE_SKILLS[key.slice(2)].cost : 1);
+const levelCost = key => (key[0] === 'e' ? EVO_COST : key[0] === 'd' ? DRONE_SKILLS[key.slice(2)].cost : 1); // bots (b:) cost 1 a level
 function nodePoints(run, key) { const l = nodeLvl(run, key); return (key === 'w:pulse' ? Math.max(0, l - 1) : l) * levelCost(key); } // Pulse's free first level does not count
 function pointsBelow(run, tab, i, minus) { let n = 0; TREE_TIERS[tab].slice(0, i).forEach(t => { if (!t.evo) for (const k of t.keys) n += nodePoints(run, k); }); return n - (minus || 0); }
 function gateWhy(run, key) { // reason a first level is locked, '' if open
   if (nodeLvl(run, key) > 0) return '';
+  if (key[0] === 'b' && !lat(key.slice(2))) return 'Unlock it in the Workshop first (between runs).';
   const T = tierOf(key), have = T && !T.t.evo && T.t.need ? pointsBelow(run, T.tab, T.i) : 0;
   if (T && !T.t.evo && T.t.need && have < T.t.need) return `Tier ${T.i + 1} opens after ${T.t.need} points in the tier below. You have ${have}.`;
   for (const [k, l] of TREE_LINKS[key] || []) if (nodeLvl(run, k) < l) return `Needs ${nodeName(k)}${l > 1 ? ` at level ${l}` : ''} first.`;
@@ -2575,9 +2620,20 @@ function treeNodes(run) {
     const d = AIM_SKILLS[k], l = sk[k] || 0, why = l >= d.max ? 'Maxed' : gateWhy(run, 'a:' + k);
     out.push({ key: 'a:' + k, branch: 'Weapons', name: d.name, lvl: l, max: d.max, cost: 1, desc: l >= d.max ? 'Maxed' : d.desc(l), why, sellWhy: !l ? 'none' : sellBlock(run, 'a:' + k) });
   }
+  for (const k in BOTS) {
+    const B = BOTS[k], l = botLvl(run, k), why = l >= B.max ? 'Maxed' : gateWhy(run, 'b:' + k);
+    const own = BUILDS[k] ? run.builds.filter(c => c.kind === k).length : run.units.filter(u => u.kind === k).length, capBelow = B.count ? B.count[l - 1] : l > 1 ? 1 : 0;
+    out.push({ key: 'b:' + k, branch: B.sky, name: B.name, lvl: l, max: B.max, cost: 1, desc: l >= B.max ? 'Maxed' : B.desc(l), why,
+      sellWhy: !l ? 'none' : own > capBelow && (B.count || l === 1) ? `You have ${own} built` : sellBlock(run, 'b:' + k) });
+  }
   out.push({ key: 'x:heal', branch: 'Any time', name: 'Field repair', lvl: 0, max: 99, cost: 1, desc: 'Restore 40% HP now', why: '', sellWhy: 'none' });
   out.push({ key: 'x:gold', branch: 'Any time', name: 'Salvage', lvl: 0, max: 99, cost: 1, desc: '+60 run gold now', why: '', sellWhy: 'none' });
   return out;
+}
+function botLevelled(run, id) { // builds already standing take their new HP; the row shows what you can build
+  if (id === 'turret' || id === 'jammer') for (const c of run.builds) if (c.kind === id) { const mh = 220 * bot(run, id, 'hp'), k = c.hp / c.maxhp; c.maxhp = mh; c.hp = mh * k; if (id === 'jammer') c.ring = bot(run, 'jammer', 'ring'); }
+  if (id === 'eng' && run.engSlots) for (const sl of run.engSlots) if (sl.wall) { const mh = bot(run, 'eng', 'barHp'), k = sl.wall.hp / sl.wall.maxhp; sl.wall.maxhp = mh; sl.wall.hp = mh * k; }
+  if (botLvl(run, id) === 1) tip(run, 'learned_bot', { at: run.p });
 }
 function addMote(run) {
   const bat = run.motes[0] ? run.motes[0].maxBat : 100;
@@ -2592,6 +2648,7 @@ function buyNode(run, key) {
   else if (t === 'p') p.passives[id] = (p.passives[id] || 0) + 1;
   else if (t === 'e') { p.evolved[id] = true; SFX.evo(); toast(run, `${WEAPONS[id].evo}: evolved`); }
   else if (t === 'd' || t === 'a') { run.skill[id] = (run.skill[id] || 0) + 1; if (id === 'drone') addMote(run); }
+  else if (t === 'b') { run.bots[id] = botLvl(run, id) + 1; botLevelled(run, id); }
   else if (id === 'heal') p.hp = Math.min(p.maxhp, p.hp + p.maxhp * 0.4);
   else if (id === 'gold') run.gold += 60;
   computeStats(run);
@@ -2606,6 +2663,7 @@ function sellNode(run, key) {
   else if (t === 'p') { if (--p.passives[id] <= 0) delete p.passives[id]; }
   else if (t === 'e') delete p.evolved[id];
   else if (t === 'a') run.skill[id]--;
+  else if (t === 'b') { run.bots[id]--; botLevelled(run, id); }
   else if (t === 'd') {
     run.skill[id]--;
     if (id === 'drone') { const m = run.motes.pop(); if (m.anchor) m.anchor.mote = null; droneHandover(run, m); }
@@ -2616,7 +2674,7 @@ function sellNode(run, key) {
 // headless bots and tests still use the old draft API: options are the buyable nodes
 function draftOptions(run) {
   return treeNodes(run).filter(n => !n.why && n.cost <= Math.max(1, run.points) && !n.key.startsWith('x:'))
-    .map(n => ({ key: n.key, kind: n.evo ? 'evo' : n.key[0] === 'w' ? 'weapon' : n.key[0] === 'p' ? 'passive' : n.key[0] === 'a' ? 'aim' : 'drone', id: n.key.split(':')[1], name: n.name, desc: n.desc }))
+    .map(n => ({ key: n.key, kind: n.evo ? 'evo' : n.key[0] === 'w' ? 'weapon' : n.key[0] === 'p' ? 'passive' : n.key[0] === 'a' ? 'aim' : n.key[0] === 'b' ? 'bot' : 'drone', id: n.key.split(':')[1], name: n.name, desc: n.desc }))
     .concat([{ key: 'x:heal', kind: 'heal', name: 'Field repair' }]);
 }
 function openDraft(run) {
@@ -2697,10 +2755,11 @@ function updateStrikes(run, dt) {
 const BUILDS = { turret: { name: 'Turret', cost: 30, desc: 'Shoots anything within 320px it has a clear line to (no Drone needed).' }, jammer: { name: 'Jammer', cost: 25, desc: 'Blinds enemies within 240px: they wander and cannot dash or shoot.' } };
 function build(run, kind) {
   const b = BUILDS[kind], p = run.p;
+  if (!botLvl(run, kind)) { toast(run, lat(kind) ? `Learn ${b.name} in the skill tree (Base) first` : `Unlock ${b.name} in the Workshop first`); return false; }
   if (run.parts < b.cost) { toast(run, `Need ${b.cost} parts for a ${b.name}`); return false; }
   if (run.builds.length >= 6) { toast(run, 'Six constructions max'); return false; }
   if (inWall(run, p.x, p.y) || run.builds.some(c => dist2(c.x, c.y, p.x, p.y) < 90 * 90)) { toast(run, 'Too close to another construction'); return false; }
-  const hp = 220; run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp, maxhp: hp, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
+  const hp = 220 * bot(run, kind, 'hp'); run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp, maxhp: hp, cd: 0, ring: kind === 'jammer' ? bot(run, 'jammer', 'ring') : 0 }); toast(run, `${b.name} placed`); SFX.mote();
   if (kind === 'jammer') tip(run, 'jammer_on', { at: p });
   return true;
 }
@@ -2725,9 +2784,11 @@ function autoArtillery(run, dt) {
   else run.autoT = 1;
 }
 function buildUnit(run, kind) {
-  const U = UNITS[kind], p = run.p;
+  const U = UNITS[kind], p = run.p, B = BOTS[kind];
+  if (!botLvl(run, kind)) { toast(run, lat(kind) ? `Learn ${U.name} in the skill tree (${B.sky}) first` : `Unlock ${U.name} in the Workshop first`); return false; }
+  const max = B.count ? B.count[botLvl(run, kind)] : 1;
   if (run.parts < U.cost) { toast(run, `Need ${U.cost} parts for a ${U.name}`); return false; }
-  if (run.units.filter(u => u.kind === kind).length >= U.max) { toast(run, `${U.max} ${U.name}s max`); return false; }
+  if (run.units.filter(u => u.kind === kind).length >= max) { toast(run, max > 1 ? `${max} ${U.name}s max (level it up for more)` : `One ${U.name} at a time`); return false; }
   run.parts -= U.cost; if (kind === 'gun' || kind === 'scav') statAdd('units'); /* the quest counts gun drones and scavengers */ run.units.push({ kind, x: p.x, y: p.y, hp: U.hp, maxhp: U.hp, r: U.r, cd: 0, carry: null, tgt: null });
   toast(run, `${U.name} ready`); SFX.mote(); tip(run, 'u_' + kind, { at: p }); return true;
 }
@@ -2756,16 +2817,16 @@ function updateUnits(run, dt) {
         if (!pressed && inRange.length > 1) t = droneTarget(run, inRange, true) || t; // otherwise your Drone targets choice comes first
         if (t && t.isCore && !t.hive.found) { t.hive.found = true; toast(run, 'Your gun drones found a hive'); }
         if (!t) u.cd = 0.2; // nothing in range: look again shortly, not every frame
-        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
+        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * bot(run, 'gun', 'dmg') * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
       }
     } else if (u.kind === 'fix') { // repair bot: downed Drones first, then worn constructions, then the base, else stay by you
       const down = run.motes.find(m => m.state === 'dimmed'), hit = b.breached || b.alarm > 0, worn = run.builds.filter(c => c.hp < c.maxhp * 0.9).sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
       const job = down || (hit ? b : null) || worn || (b.hp < b.maxhp ? b : null); // Drones, a base under attack, the most worn build, then the base
       if (job) { tx = job.x; ty = job.y; } else { tx = p.x - 40; ty = p.y + 40; }
       if (job && dist2(u.x, u.y, job.x, job.y) < (job === b ? BASE_R : U.near) ** 2) {
-        if (job === down) { if ((u.work = (u.work || 0) + dt) >= U.reviveT) { u.work = 0; down.state = 'follow'; down.bat = down.maxBat * 0.5; down.hp = 60; run.revives = (run.revives || 0) + 1; toast(run, 'Repair bot revived a Drone'); SFX.mote(); } }
-        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * dt);
-        else repairBase(run, U.healBase * dt);
+        if (job === down) { if ((u.work = (u.work || 0) + dt) >= bot(run, 'fix', 'revive')) { u.work = 0; down.state = 'follow'; down.bat = down.maxBat * 0.5; down.hp = 60; run.revives = (run.revives || 0) + 1; toast(run, 'Repair bot revived a Drone'); SFX.mote(); } }
+        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * bot(run, 'fix', 'heal') * dt);
+        else repairBase(run, U.healBase * bot(run, 'fix', 'heal') * dt);
       } else u.work = 0;
     } else if (u.kind === 'eng') { // Engineer: rebuild a missing barricade, repair the most worn barricade or build, else wait at the base
       tx = u.x; ty = u.y;
@@ -2779,10 +2840,10 @@ function updateUnits(run, dt) {
         tx = st.x; ty = st.y;
         const there = dist2(u.x, u.y, st.x, st.y) < (kind === 'build-fix' ? 26 * 26 : 14 * 14);
         if (job !== u.jobAt) { u.jobAt = job; u.work = 0; } /* progress belongs to one slot */
-        if (kind === 'build' && there) { if (slotClear(run, job, true)) { if ((u.work = (u.work || 0) + dt) >= ENG.buildT) { u.work = 0; placeBarricade(run, job); tip(run, 'barricade', { at: job.wall ? { x: job.x + job.w / 2, y: job.y + job.h / 2 } : u }); } } }
+        if (kind === 'build' && there) { if (slotClear(run, job, true)) { if ((u.work = (u.work || 0) + dt) >= (u.workMax = bot(run, 'eng', 'buildT'))) { u.work = 0; placeBarricade(run, job); tip(run, 'barricade', { at: job.wall ? { x: job.x + job.w / 2, y: job.y + job.h / 2 } : u }); } } }
         else u.work = 0;
-        if (kind === 'fix' && there) job.wall.hp = Math.min(job.wall.maxhp, job.wall.hp + ENG.heal * dt);
-        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + ENG.heal * dt);
+        if (kind === 'fix' && there) job.wall.hp = Math.min(job.wall.maxhp, job.wall.hp + bot(run, 'eng', 'heal') * dt);
+        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + bot(run, 'eng', 'heal') * dt);
         u.job = kind;
       }
     } else { // scavenger: flee what it sees, otherwise fetch and carry home
@@ -2805,7 +2866,7 @@ function updateUnits(run, dt) {
     }
     const d = Math.hypot(tx - u.x, ty - u.y);
     if (d > 3 && !u.down) {
-      const w = steer(run, u, tx, ty, d, dt), gx = w ? w.x : tx, gy = w ? w.y : ty, dd = Math.hypot(gx - u.x, gy - u.y) || 1, st = Math.min(d, U.spd * dt);
+      const w = steer(run, u, tx, ty, d, dt), gx = w ? w.x : tx, gy = w ? w.y : ty, dd = Math.hypot(gx - u.x, gy - u.y) || 1, st = Math.min(d, U.spd * (u.kind === 'scav' ? bot(run, 'scav', 'spd') : 1) * dt);
       let mx = (gx - u.x) / dd, my = (gy - u.y) / dd;
       if (u.slide > 0) { u.slide -= dt; const t = mx; mx = -my * u.sdir; my = t * u.sdir; } // pressed on a barricade: slide along it, like enemies do
       u.x += mx * st; u.y += my * st;
@@ -2903,13 +2964,13 @@ function drawBuild(ctx, c, now, flat) {
   else { poly(ctx, c.x, c.y, 13, 6, now); ctx.stroke(); if (flat) jamRing(ctx, c); }
   ctx.fillStyle = '#1b1f2b'; ctx.fillRect(c.x - 14, c.y + 16, 28, 4); ctx.fillStyle = c.kind === 'turret' ? '#ffb347' : '#a86bff'; ctx.fillRect(c.x - 14, c.y + 16, 28 * Math.max(0, c.hp / c.maxhp), 4);
 }
-function jamRing(ctx, c) { ctx.strokeStyle = 'rgba(168,107,255,0.25)'; ctx.lineWidth = 2; ctx.setLineDash([4, 8]); ctx.beginPath(); ctx.arc(c.x, c.y, 240, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
+function jamRing(ctx, c) { ctx.strokeStyle = 'rgba(168,107,255,0.25)'; ctx.lineWidth = 2; ctx.setLineDash([4, 8]); ctx.beginPath(); ctx.arc(c.x, c.y, c.ring || 240, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
 function drawUnit(ctx, u) {
   ctx.lineWidth = 2;
   if (u.kind === 'gun') { ctx.fillStyle = '#7ff5ff'; poly(ctx, u.x, u.y, 7, 4, 0); ctx.fill(); }
   else if (u.kind === 'fix') { ctx.strokeStyle = '#7dff9a'; ctx.beginPath(); ctx.moveTo(u.x - 7, u.y); ctx.lineTo(u.x + 7, u.y); ctx.moveTo(u.x, u.y - 7); ctx.lineTo(u.x, u.y + 7); ctx.stroke(); ctx.beginPath(); ctx.arc(u.x, u.y, 8, 0, 6.283); ctx.stroke(); }
   else if (u.kind === 'eng') { ctx.fillStyle = u.down ? '#5a5f6a' : '#ffb347'; ctx.fillRect(u.x - 10, u.y - 7, 20, 14); ctx.fillStyle = '#1b1f2b'; ctx.fillRect(u.x - 10, u.y - 2, 20, 4); /* treads and a blade */
-    if (u.work) { ctx.strokeStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(u.x, u.y, 15, -1.571, -1.571 + 6.283 * u.work / ENG.buildT); ctx.stroke(); } }
+    if (u.work) { ctx.strokeStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(u.x, u.y, 15, -1.571, -1.571 + 6.283 * u.work / (u.workMax || 2)); ctx.stroke(); } }
   else { ctx.strokeStyle = '#ffd166'; ctx.beginPath(); ctx.arc(u.x, u.y, 7, 0, 6.283); ctx.stroke(); if (u.carry) { ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(u.x, u.y, 3, 0, 6.283); ctx.fill(); } }
   if (u.hp < u.maxhp) { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(u.x - 9, u.y + 10, 18, 3); ctx.fillStyle = '#7ff5ff'; ctx.fillRect(u.x - 9, u.y + 10, 18 * Math.max(0, u.hp / u.maxhp), 3); }
 }
@@ -3727,7 +3788,7 @@ if (HAS_DOM) {
   /* skill tree screen: constellations per branch, a detail panel with Buy, and press-and-hold Sell */
   let treeFrom = 'levelup', treeTab = 'Weapons', treeSel = null, treeRun = null, treeAnim = 0, treeNodesCache = [], treeCache = null;
   const fmtPts = v => (Math.round(v * 2) / 2).toString();
-  const TABS = ['Weapons', 'Drones', 'Passives'];
+  const TABS = ['Weapons', 'Drones', 'Base', 'Passives'];
   const tabOf = key => TABS.find(t => TREE_SKY[t][key]);
   const SKY_STARS = Array.from({ length: 70 }, (_, i) => [(Math.sin(i * 12.9898) * 43758.5453) % 1, (Math.sin(i * 78.233) * 12543.1) % 1, (i % 3) + 1]).map(([a, b, r]) => [Math.abs(a), Math.abs(b), r]);
   UI.showTree = (run, from) => {
@@ -4082,7 +4143,7 @@ if (HAS_DOM) {
     try { data = JSON.parse(decodeURIComponent(escape(atob(raw.replace(/^SURVIVORS1:/, ''))))); } catch (e) { data = null; }
     if (!data || typeof data !== 'object' || !('gold' in data)) { el('bk-msg').textContent = 'That text is not a save backup.'; return; }
     if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = `Tap again: replace this save with ${Math.round(data.gold)} gold, ${data.cleared || 0} zones cleared`; return; }
-    SAVE = Object.assign(defaultSave(), data); persist(SAVE); UI.backup('Save restored.');
+    SAVE = grandfatherBots(Object.assign(defaultSave(), data)); persist(SAVE); UI.backup('Save restored.');
   };
   el('btn-notes-new').onclick = () => UI.note('notes');
   el('btn-notes-copy').onclick = () => {
@@ -4137,7 +4198,8 @@ if (HAS_DOM) {
     hud.shells.textContent = run.shells + ' shells';
     el('btn-shell').textContent = run.aim ? 'Cancel' : `Shell ${run.shells}`;
     el('btn-pause').classList.toggle('pts', run.points >= 1); // amber dot: saved skill points waiting in the tree
-    if (!run.tut && (run.parts >= UNITS.scav.cost || run.units.length)) run.unitsOpen = true; // the unit row appears once you could afford one
+    run.unitsOpen = !run.tut && (['gun', 'scav', 'fix', 'eng'].some(k => botLvl(run, k)) || run.units.length > 0); // the row (and Orders) shows once you have learned or own a unit
+    for (const k of ['gun', 'scav', 'fix', 'eng', 'turret', 'jammer']) { const b = el('btn-' + k), on = botLvl(run, k) > 0 && !run.tut; if (b.style.display !== (on ? '' : 'none')) b.style.display = on ? '' : 'none'; }
     { const ur = el('hud-units'), guns = run.units.some(u => u.kind === 'gun'), ob = el('btn-order'); ur.classList.toggle('on', !!run.unitsOpen && !run.aim); if (!guns) run.pickAttack = false;
       ob.style.display = guns ? '' : 'none'; const ot = run.pickAttack ? 'Tap the map' : 'Orders: ' + { follow: 'Follow', hold: 'Hold', attack: 'Attack' }[run.order.mode]; if (ob.textContent !== ot) ob.textContent = ot; ob.classList.toggle('pick', !!run.pickAttack); }
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
@@ -4163,7 +4225,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
