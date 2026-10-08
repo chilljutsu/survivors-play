@@ -606,7 +606,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s12';
+const BUILD_ID = 'playtest 2026-10-08 s13';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1200,11 +1200,40 @@ function computeStats(run) {
   p.regen = p.evolved.field ? 1.0 : 0;
 }
 
-/* ---------- walls ---------- */
-function inWall(run, x, y) { for (const o of run.walls) if (x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h) return true; return false; }
+/* ---------- walls ----------
+   Wall grid (s13 perf): walls never move during a run, so each 100 px cell lists the walls that touch it, built once
+   (rebuilt if run.walls is replaced). inWall, pushOut and castRay only look at nearby walls, in array order, so they
+   give the same answers as the full scan they replace. */
+const WG = CELL, WGC = COLS, NO_WALLS = []; // the same 100 px cells as the path grid
+function wallGrid(run) {
+  const W = run.walls; let g = run.wg;
+  if (g && g.src === W && g.n === W.length) return g;
+  g = run.wg = { src: W, n: W.length, cells: new Array(WGC * WGC).fill(null), seen: new Uint32Array(W.length), mark: 0, buf: [], deep: 0 };
+  // deep: a centre inside a wall leaves by its nearest face, so one push moves it at most half the wall's short side
+  W.forEach((o, i) => { o.i = i; g.deep = Math.max(g.deep, Math.min(o.w, o.h) / 2); const c0 = clamp(Math.floor(o.x / WG), 0, WGC - 1), c1 = clamp(Math.floor((o.x + o.w) / WG), 0, WGC - 1), r0 = clamp(Math.floor(o.y / WG), 0, WGC - 1), r1 = clamp(Math.floor((o.y + o.h) / WG), 0, WGC - 1);
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) (g.cells[r * WGC + c] || (g.cells[r * WGC + c] = [])).push(o); });
+  return g;
+}
+function wallsNear(run, x0, y0, x1, y1, ordered) { // walls touching a box, each once (in array order when `ordered`)
+  const g = wallGrid(run); if (!g.n) return NO_WALLS;
+  if (++g.mark === 0xffffffff) { g.seen.fill(0); g.mark = 1; }
+  const out = g.buf; out.length = 0;
+  const c0 = clamp(Math.floor(x0 / WG), 0, WGC - 1), c1 = clamp(Math.floor(x1 / WG), 0, WGC - 1), r0 = clamp(Math.floor(y0 / WG), 0, WGC - 1), r1 = clamp(Math.floor(y1 / WG), 0, WGC - 1);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const cell = g.cells[r * WGC + c]; if (cell) for (const o of cell) if (g.seen[o.i] !== g.mark) { g.seen[o.i] = g.mark; out.push(o); } }
+  if (ordered && out.length > 1) out.sort((a, b) => a.i - b.i);
+  return out;
+}
+function inWall(run, x, y) {
+  const g = wallGrid(run); if (!g.n) return false;
+  const cx = Math.floor(x / WG), cy = Math.floor(y / WG);
+  const cell = cx >= 0 && cy >= 0 && cx < WGC && cy < WGC ? g.cells[cy * WGC + cx] : run.walls; // off the map: check them all (never happens in play)
+  if (cell) for (const o of cell) if (x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h) return true;
+  return false;
+}
 function pushOut(run, b) { // circle b {x,y,r} out of any wall; returns true if pushed
   let hit = false;
-  for (const o of run.walls) {
+  const g = wallGrid(run), m = 2 * b.r + g.deep; // one push moves it at most r (or, from deep inside, half a wall plus r)
+  for (const o of wallsNear(run, b.x - m, b.y - m, b.x + m, b.y + m, true)) {
     const cx = clamp(b.x, o.x, o.x + o.w), cy = clamp(b.y, o.y, o.y + o.h);
     const dx = b.x - cx, dy = b.y - cy, d2 = dx * dx + dy * dy;
     if (d2 < b.r * b.r) {
@@ -1228,7 +1257,7 @@ function losClear(run, x0, y0, x1, y1) {
 const RAYS = 96;
 function castRay(run, ox, oy, dx, dy, maxT) {
   let best = maxT;
-  for (const o of run.walls) {
+  for (const o of wallsNear(run, Math.min(ox, ox + dx * maxT), Math.min(oy, oy + dy * maxT), Math.max(ox, ox + dx * maxT), Math.max(oy, oy + dy * maxT))) {
     // slab test against the rect
     let t0 = 0, t1 = best;
     if (Math.abs(dx) < 1e-6) { if (ox <= o.x || ox >= o.x + o.w) continue; }
@@ -1239,15 +1268,17 @@ function castRay(run, ox, oy, dx, dy, maxT) {
   }
   return best;
 }
-function visionPoly(run, x, y, r) {
-  const pts = new Array(RAYS);
-  for (let i = 0; i < RAYS; i++) { const a = i / RAYS * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a); const t = castRay(run, x, y, dx, dy, r); pts[i] = [x + dx * t, y + dy * t]; }
-  return { x, y, r, pts };
+const RAY_DIR = Array.from({ length: RAYS }, (_, i) => [Math.cos(i / RAYS * Math.PI * 2), Math.sin(i / RAYS * Math.PI * 2)]);
+function visionPoly(run, x, y, r, q) { // q: a polygon from last frame to refill (no new arrays each frame)
+  q = q || { pts: Array.from({ length: RAYS }, () => [0, 0]) }; q.x = x; q.y = y; q.r = r;
+  for (let i = 0; i < RAYS; i++) { const dx = RAY_DIR[i][0], dy = RAY_DIR[i][1], t = castRay(run, x, y, dx, dy, r), pt = q.pts[i]; pt[0] = x + dx * t; pt[1] = y + dy * t; }
+  return q;
 }
 function computeVision(run) {
-  const v = [visionPoly(run, run.p.x, run.p.y, playerSight(run))]; // Aperture widens your sight too
-  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) { const q = visionPoly(run, m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1)); q.perched = true; v.push(q); } else if (m.state === 'follow' && m.bat > 10) v.push(visionPoly(run, m.x, m.y, 150)); }
-  run.vis = v;
+  const pool = run.visPool || (run.visPool = []), v = run.vis || (run.vis = []); v.length = 0;
+  const add = (x, y, r, perched) => { const q = visionPoly(run, x, y, r, pool[v.length]); pool[v.length] = q; q.perched = perched; v.push(q); };
+  add(run.p.x, run.p.y, playerSight(run), false); // Aperture widens your sight too
+  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) add(m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1), true); else if (m.state === 'follow' && m.bat > 10) add(m.x, m.y, 150, false); }
 }
 
 function visibleTo(run, x, y, perchedOnly) {
@@ -1385,20 +1416,22 @@ function buildBlocked(run) { // a cell is blocked when walls cover >= blockFrac 
   return b;
 }
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+// each neighbour cell j of cell i (8 directions, no cutting past a blocked corner): fn(j)
+function forNeighbours(bl, i, fn) {
+  const r = (i / COLS) | 0, c = i % COLS;
+  for (const [dc, dr] of DIRS8) {
+    const nr = r + dr, nc = c + dc; if (nr < 0 || nc < 0 || nr >= COLS || nc >= COLS) continue;
+    if (dr && dc && (bl[r * COLS + nc] || bl[nr * COLS + c])) continue; // no corner cutting
+    fn(nr * COLS + nc);
+  }
+}
 function fieldTo(run, ti) { // steps from every cell to cell ti (-1 = unreachable); walls never move, so cache it
   let f = run.fields.get(ti);
   if (f) { run.fields.delete(ti); run.fields.set(ti, f); return f; }
   f = new Int16Array(COLS * COLS).fill(-1); const q = new Int16Array(COLS * COLS); let h = 0, t = 0; f[ti] = 0; q[t++] = ti;
   const bl = run.blocked;
-  while (h < t) {
-    const i = q[h++], r = (i / COLS) | 0, c = i % COLS, d = f[i] + 1;
-    for (const [dc, dr] of DIRS8) {
-      const nr = r + dr, nc = c + dc; if (nr < 0 || nc < 0 || nr >= COLS || nc >= COLS) continue;
-      const j = nr * COLS + nc; if (f[j] >= 0 || bl[j]) continue;
-      if (dr && dc && (bl[r * COLS + nc] || bl[nr * COLS + c])) continue; // no corner cutting
-      f[j] = d; q[t++] = j;
-    }
-  }
+  let d = 0; const visit = j => { if (f[j] < 0 && !bl[j]) { f[j] = d; q[t++] = j; } }; // one callback for the whole search
+  while (h < t) { const i = q[h++]; d = f[i] + 1; forNeighbours(bl, i, visit); }
   run.fields.set(ti, f); if (run.fields.size > PATH.cacheMax) run.fields.delete(run.fields.keys().next().value);
   return f;
 }
@@ -1410,14 +1443,8 @@ function steer(run, e, tx, ty, d, dt) {
   if (e.pathT <= 0) {
     e.pathT = PATH.recheck + Math.random() * 0.1; e.wp = null;
     if (!losClear(run, e.x, e.y, tx, ty)) {
-      const f = fieldTo(run, cellIdx(tx, ty)), ci = cellIdx(e.x, e.y), r = (ci / COLS) | 0, c = ci % COLS;
-      let best = -1, bd = 1e9;
-      for (const [dc, dr] of DIRS8) {
-        const nr = r + dr, nc = c + dc; if (nr < 0 || nc < 0 || nr >= COLS || nc >= COLS) continue;
-        const j = nr * COLS + nc; if (f[j] < 0) continue;
-        if (dr && dc && (run.blocked[r * COLS + nc] || run.blocked[nr * COLS + c])) continue;
-        if (f[j] < bd) { bd = f[j]; best = j; }
-      }
+      const f = fieldTo(run, cellIdx(tx, ty)); let best = -1, bd = 1e9;
+      forNeighbours(run.blocked, cellIdx(e.x, e.y), j => { if (f[j] >= 0 && f[j] < bd) { bd = f[j]; best = j; } });
       if (best >= 0) e.wp = { x: (best % COLS) * CELL + CELL / 2, y: ((best / COLS) | 0) * CELL + CELL / 2 };
     }
   }
@@ -1433,19 +1460,23 @@ const HIVE = {
   scoutsMax: 2, gatherersMax: 1, guardsBase: 6, guardsPerTier: 2, sight: 260, lookEvery: 0.5, guardR: 140, engageR: 220,
   squadBase: 3, squadPerTier: 1,
   value: { cache: 3, drone: 4, build: 3, base: 7 }, risk: { cache: 1, drone: 1, build: 1.5, base: 3 }, raidScoreMin: 0.8,
-  cacheStock: 12, gatherRange: 1400, outpostAt: 40, outpostCost: 25, maxOutposts: 2,
+  cacheStock: 12, gatherRange: 1400, outpostAt: 40, outpostCost: 25, maxOutposts: 2, outpostBaseDist: 700, outpostGap: 400,
   turretRange: 300, turretEvery: 1.6, lootParts: 8, lootPerStock: 0.5, lootGold: 10,
 };
+// can a hive (or outpost) stand at x,y: open ground, far enough from your base and other hives, unseen if asked,
+// and reachable on foot from `from` (a cell)
+function validHiveSpot(run, x, y, from, o) {
+  if (run.blocked[cellIdx(x, y)] || inWall(run, x, y)) return false;
+  if (dist2(x, y, run.base.x, run.base.y) < o.baseDist * o.baseDist || run.hives.some(h => dist2(h.x, h.y, x, y) < o.gap * o.gap)) return false;
+  if (o.unseen && isSeen(run, x, y)) return false;
+  return fieldTo(run, from)[cellIdx(x, y)] >= 0;
+}
 function placeHives(run) {
   run.blocked = buildBlocked(run); run.fields = new Map(); run.hives = [];
   const n = (HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0);
   for (let tries = 0; run.hives.length < n && tries < 3000; tries++) {
     const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
-    if (dist2(x, y, run.base.x, run.base.y) < HIVE.minBaseDist * HIVE.minBaseDist) continue;
-    if (run.hives.some(h => dist2(h.x, h.y, x, y) < HIVE.minGap * HIVE.minGap)) continue;
-    if (run.blocked[cellIdx(x, y)] || inWall(run, x, y)) continue;
-    if (fieldTo(run, cellIdx(run.base.x, run.base.y))[cellIdx(x, y)] < 0) continue; // must be reachable
-    addHive(run, x, y, null);
+    if (validHiveSpot(run, x, y, cellIdx(run.base.x, run.base.y), { baseDist: HIVE.minBaseDist, gap: HIVE.minGap })) addHive(run, x, y, null); // reachable from your base
   }
 }
 function addHive(run, x, y, parent) {
@@ -1591,7 +1622,7 @@ function updateHives(run, dt) {
     if (!h.parent && h.stock >= HIVE.outpostAt && h.outposts < HIVE.maxOutposts) { // grow outward
       for (let k = 0; k < 30; k++) {
         const a = rnd(0, 6.283), d = rnd(450, 750), x = clamp(h.x + Math.cos(a) * d, 200, WORLD - 200), y = clamp(h.y + Math.sin(a) * d, 200, WORLD - 200);
-        if (run.blocked[cellIdx(x, y)] || inWall(run, x, y) || dist2(x, y, run.base.x, run.base.y) < 700 * 700 || isSeen(run, x, y) || run.hives.some(o => dist2(x, y, o.x, o.y) < 400 * 400) || fieldTo(run, cellIdx(h.x, h.y))[cellIdx(x, y)] < 0) continue;
+        if (!validHiveSpot(run, x, y, cellIdx(h.x, h.y), { baseDist: HIVE.outpostBaseDist, gap: HIVE.outpostGap, unseen: true })) continue;
         const o = addHive(run, x, y, h); o.known = h.known; o.explored = h.explored; markExplored(o, x, y, 3); h.stock -= HIVE.outpostCost; h.outposts++;
         break;
       }
@@ -1834,7 +1865,7 @@ function update(run, dt) {
   updateParticles(run, dt);
   updateTips(run, dt);
   for (const t of run.toasts) t.t -= dt;
-  run.toasts = run.toasts.filter(t => t.t > 0);
+  compact(run.toasts, t => t.t > 0);
 
   if (p.hp <= 0 && !run.over) endRun(run, false);
 }
@@ -2016,11 +2047,18 @@ function sendMote(run, anchor) {
 function recallMote(run, m) { if (m.anchor) { m.anchor.mote = null; m.anchor = null; } if (m.state === 'perched' || m.state === 'flying') m.state = 'returning'; m.jammed = false; }
 function recallAll(run) { for (const m of run.motes) recallMote(run, m); toast(run, 'Drones recalled'); }
 
+/* Enemy grid (s13 perf): 40 px cells as linked lists in typed arrays, rebuilt each use without allocating. Separation
+   and bullets x enemies read it. */
+const SG = 40, SGC = Math.ceil(WORLD / SG), sgHead = new Int32Array(SGC * SGC);
+let sgNext = new Int32Array(1024);
+const SG_BIG = 16, sgBig = []; // bullets search SG_BIG around them in the grid; bigger enemies (hive cores, the boss) are on a short list
+function enemyGrid(es) {
+  sgHead.fill(-1); if (sgNext.length < es.length) sgNext = new Int32Array(es.length * 2); sgBig.length = 0;
+  for (let i = 0; i < es.length; i++) { const e = es[i], c = clamp((e.y / SG) | 0, 0, SGC - 1) * SGC + clamp((e.x / SG) | 0, 0, SGC - 1); sgNext[i] = sgHead[c]; sgHead[c] = i; if (e.r > SG_BIG) sgBig.push(i); }
+}
 function updateEnemies(run, dt) {
   const p = run.p, es = run.enemies;
-  // cheap separation via grid
-  const grid = new Map();
-  for (let i = 0; i < es.length; i++) { const e = es[i]; const k = ((e.x / 40) | 0) * 1000 + ((e.y / 40) | 0); let a = grid.get(k); if (!a) { a = []; grid.set(k, a); } a.push(e); }
+  enemyGrid(es); const n0 = es.length; // cheap separation via grid (enemies spawned during the loop join next frame, as before)
   for (const e of es) {
     if (e.flash > 0) e.flash -= dt;
     if (e.hitT > 0) e.hitT -= dt;
@@ -2060,10 +2098,10 @@ function updateEnemies(run, dt) {
     }
     // separation
     let sx = 0, sy = 0;
-    const gx = (e.x / 40) | 0, gy = (e.y / 40) | 0;
+    const gx = (e.x / SG) | 0, gy = (e.y / SG) | 0;
     for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) {
-      const a = grid.get((gx + ox) * 1000 + (gy + oy)); if (!a) continue;
-      for (const o of a) { if (o === e) continue; const dd = dist2(e.x, e.y, o.x, o.y), mind = (e.r + o.r) * 1.1; if (dd < mind * mind && dd > 0.01) { const l = Math.sqrt(dd); sx += (e.x - o.x) / l * (mind - l); sy += (e.y - o.y) / l * (mind - l); } }
+      const cx = gx + ox, cy = gy + oy; if (cx < 0 || cy < 0 || cx >= SGC || cy >= SGC) continue;
+      for (let j = sgHead[cy * SGC + cx]; j >= 0; j = sgNext[j]) { if (j >= n0) continue; const o = es[j]; if (o === e) continue; const ddx = e.x - o.x, ddy = e.y - o.y, dd = ddx * ddx + ddy * ddy, mind = (e.r + o.r) * 1.1; if (dd < mind * mind && dd > 0.01) { const l = Math.sqrt(dd); sx += ddx / l * (mind - l); sy += ddy / l * (mind - l); } }
     }
     if (e.slide > 0) { e.slide -= dt; const tmp = mx; mx = -my * e.sdir; my = tmp * e.sdir; }
     e.x += (mx * sp + sx * 4) * dt; e.y += (my * sp + sy * 4) * dt;
@@ -2081,8 +2119,9 @@ function updateEnemies(run, dt) {
     if (inWall(run, b.x, b.y)) b.t = 0;
     if (dist2(b.x, b.y, p.x, p.y) < (b.r + p.r) * (b.r + p.r)) { hurtPlayer(run, b.dmg); b.t = 0; }
   }
-  run.ebullets = run.ebullets.filter(b => b.t > 0);
+  compact(run.ebullets, b => b.t > 0);
 }
+function compact(arr, keep) { let j = 0; for (let i = 0; i < arr.length; i++) { const x = arr[i]; if (keep(x)) arr[j++] = x; } arr.length = j; return arr; } // filter in place: no new array each frame
 function hurtPlayer(run, dmg) {
   const p = run.p;
   if (p.inv > 0) return;
@@ -2219,8 +2258,10 @@ function updateWeapons(run, dt) {
   } else run.fieldR = 0;
   reapDead(run);
 }
+const HITS = [];
 function updateProjectiles(run, dt) {
-  const turn = HOMING.turn[Math.min(2, run.skill.homing || 0)] * dt;
+  const turn = HOMING.turn[Math.min(2, run.skill.homing || 0)] * dt, es = run.enemies;
+  enemyGrid(es); // positions after this frame's moves and kills
   for (const b of run.bullets) {
     if (b.tgt && turn) { // Homing: bend toward the target once it is close, never more than a quarter turn off
       const g = b.tgt;
@@ -2235,7 +2276,13 @@ function updateProjectiles(run, dt) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.t -= dt;
     if (b.x < 0 || b.y < 0 || b.x > WORLD || b.y > WORLD || inWall(run, b.x, b.y)) b.t = 0;
     if (b.t <= 0) continue;
-    for (const e of run.enemies) {
+    const R = b.r + SG_BIG, c0 = clamp(((b.x - R) / SG) | 0, 0, SGC - 1), c1 = clamp(((b.x + R) / SG) | 0, 0, SGC - 1), r0 = clamp(((b.y - R) / SG) | 0, 0, SGC - 1), r1 = clamp(((b.y + R) / SG) | 0, 0, SGC - 1);
+    const cand = HITS; cand.length = 0;
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) for (let j = sgHead[r * SGC + c]; j >= 0; j = sgNext[j]) if (es[j].r <= SG_BIG) cand.push(j);
+    for (const j of sgBig) cand.push(j);
+    if (cand.length > 1) cand.sort((a, b2) => a - b2); // enemy array order, as the full scan had
+    for (const j of cand) {
+      const e = es[j];
       if (b.hit.has(e)) continue;
       if (dist2(b.x, b.y, e.x, e.y) < (b.r + e.r) * (b.r + e.r)) {
         damageEnemy(run, e, b.dmg); b.hit.add(e); SFX.hit();
@@ -2243,14 +2290,14 @@ function updateProjectiles(run, dt) {
       }
     }
   }
-  run.bullets = run.bullets.filter(b => b.t > 0);
+  compact(run.bullets, b => b.t > 0);
   for (const n of run.novas) {
     n.t += dt; n.r = n.max * Math.min(1, n.t / 0.35);
     for (const e of run.enemies) if (!n.hit.has(e) && dist2(n.x, n.y, e.x, e.y) < (n.r + e.r) * (n.r + e.r)) { n.hit.add(e); const l = Math.hypot(e.x - n.x, e.y - n.y) || 1; damageEnemy(run, e, n.dmg, (e.x - n.x) / l * 18, (e.y - n.y) / l * 18); }
   }
-  run.novas = run.novas.filter(n => n.t < 0.6);
+  compact(run.novas, n => n.t < 0.6);
   for (const b of run.beams) b.t -= dt;
-  run.beams = run.beams.filter(b => b.t > 0);
+  compact(run.beams, b => b.t > 0);
   reapDead(run);
 }
 function updateGems(run, dt) {
@@ -2518,7 +2565,7 @@ function updateStrikes(run, dt) {
       reapDead(run);
     }
   }
-  run.strikes = run.strikes.filter(s => !s.hit || s.t > -0.5);
+  compact(run.strikes, s => !s.hit || s.t > -0.5);
   for (const s of run.strikes) if (s.hit) s.t -= dt;
 }
 
@@ -2629,7 +2676,7 @@ function updateUnits(run, dt) {
 
 /* ---------- particles ---------- */
 function spark(run, x, y, col) { if (run.particles.length > 240) return; const a = rnd(0, 6.28), s = rnd(40, 180); run.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rnd(0.25, 0.5), col }); }
-function updateParticles(run, dt) { for (const q of run.particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.t -= dt; } run.particles = run.particles.filter(q => q.t > 0); }
+function updateParticles(run, dt) { for (const q of run.particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.t -= dt; } compact(run.particles, q => q.t > 0); }
 
 /* ---------- end of run ---------- */
 function endRun(run, won) {
@@ -3351,9 +3398,14 @@ if (HAS_DOM) {
     } else el('hist-extra').textContent = `${logs.length} session${logs.length === 1 ? '' : 's'} logged.`;
     recentList(el('hist-list'), logs.slice(0, 30), msg => { UI.hist(histKind, histMetric); if (msg) el('hist-extra').textContent = msg; });
   };
+  // a canvas at W x H CSS px, sharp on the phone (device pixels, capped at 3x); resized only when it changes
+  function prepCanvas(c, W, H) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return g;
+  }
   function drawChart(pts, m, c, H) { // m.ref: a dashed line to measure against (a daily value)
-    c = c || el('hist-chart'); H = H || 190; const W = c.clientWidth || 360, dpr = Math.min(3, window.devicePixelRatio || 1);
-    c.width = W * dpr; c.height = H * dpr; const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    c = c || el('hist-chart'); H = H || 190; const W = c.clientWidth || 360, g = prepCanvas(c, W, H); g.clearRect(0, 0, W, H);
     g.font = '12px Roboto, Arial, sans-serif'; g.fillStyle = '#8b93a3';
     if (pts.length < 2) { g.textAlign = 'center'; g.fillText(pts.length ? 'One entry so far. Log another to see a trend.' : m.empty || 'No entries with details in the last 30 days.', W / 2, H / 2); c.onclick = null; return; }
     const L = 44, R = 12, T = 22, B = 24, vs = pts.map(q => q.v);
@@ -3462,9 +3514,7 @@ if (HAS_DOM) {
   // shared constellation drawing (skill tree and Workshop). A model gives normalized star positions, star states and links.
   const skyXY = (c, q) => { const W = c.clientWidth || 360, H = c.clientHeight || 360; return [24 + q[0] * (W - 48), 28 + q[1] * (H - 64)]; };
   function drawSky(c, now, M) {
-    const W = c.clientWidth || 360, H = c.clientHeight || 360, dpr = Math.min(3, window.devicePixelRatio || 1);
-    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
-    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = c.clientWidth || 360, H = c.clientHeight || 360, g = prepCanvas(c, W, H);
     g.fillStyle = '#070a14'; g.fillRect(0, 0, W, H);
     for (const [x, y, r] of SKY_STARS) { g.fillStyle = `rgba(200,220,255,${0.08 + 0.05 * r + 0.04 * Math.sin(now / 900 + x * 40)})`; g.fillRect(x * W, y * H, r * 0.7, r * 0.7); }
     const pulse = 0.5 + 0.5 * Math.sin(now / 260), pos = k => skyXY(c, M.pos[k]);
@@ -3695,9 +3745,7 @@ if (HAS_DOM) {
     drawDial();
   };
   function drawDial() {
-    const G = dialGeom(), c = G.c, dpr = Math.min(3, window.devicePixelRatio || 1);
-    if (c.width !== Math.round(G.W * dpr) || c.height !== Math.round(G.H * dpr)) { c.width = Math.round(G.W * dpr); c.height = Math.round(G.H * dpr); }
-    const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#070a14'; g.fillRect(0, 0, G.W, G.H);
+    const G = dialGeom(), c = G.c, g = prepCanvas(c, G.W, G.H); g.fillStyle = '#070a14'; g.fillRect(0, 0, G.W, G.H);
     g.strokeStyle = 'rgba(120,140,170,0.3)'; g.lineWidth = 1; for (const r of [G.R0, G.R1]) { g.beginPath(); g.arc(G.cx, G.cy, r, 0, 6.283); g.stroke(); }
     g.font = '12px Roboto, Arial, sans-serif'; g.textAlign = 'center';
     for (let h = 0; h < 12; h++) for (const near of [true, false]) { const [x, y] = slotXY(G, h, near); g.fillStyle = 'rgba(120,140,170,0.45)'; g.beginPath(); g.arc(x, y, 4, 0, 6.283); g.fill(); }
@@ -3851,7 +3899,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { SWIPE, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { SWIPE, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
