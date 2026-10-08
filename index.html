@@ -514,7 +514,7 @@ const WEAPONS = {
   pulse: { name: 'Pulse',  evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
   orbit: { name: 'Orbit',  evo: 'Halo',      desc: 'Shards circle you.',                     evoDesc: 'Wide ring, more shards, knockback.' },
   nova:  { name: 'Nova',   evo: 'Supernova', desc: 'Periodic burst around you.',             evoDesc: 'Twice as fast, far larger.' },
-  lance: { name: 'Lance',  evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'Instant full-length line, double damage.' },
+  lance: { name: 'Lance',  evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'Instant full-length wide line, double damage.' },
   field: { name: 'Field',  evo: 'Bastion',   desc: 'Damage aura. Stand your ground.',        evoDesc: 'Larger aura, slows enemies, regenerates you.' },
 };
 const PASSIVES = {
@@ -606,7 +606,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s14';
+const BUILD_ID = 'playtest 2026-10-08 s15';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1500,6 +1500,34 @@ function targetGone(run, t) {
   return false;
 }
 // what a hive unit sees: map cells for its hive, and targets it will carry home
+/* Gunner intel (Lance 10-08: "I'm ok with gunners shooting when I can't see them, I just don't think they should be
+   shooting if they don't know I'm there. Maybe they can shoot if a hive member can see me? Unless jammed.")
+   Every `every` s, enemies (not hive cores, not blinded) within `sight` of you with a clear line report you to their
+   hive; hiveless enemies report to hiveless Gunners within `freeR`. A Gunner fires (range and clear line as before)
+   only if it sees you itself or its side spotted you in the last `memory` s. */
+const GUNNER_INTEL = { sight: HIVE.sight, every: 0.25, memory: 1.5, freeR: 500, maxLos: 24, maxFree: 4 };
+function updateSpotting(run, dt) { // its own clock (run.t stands still in the tutorial); a hive remembers on itself (h.spotT)
+  const I = GUNNER_INTEL, p = run.p, sp = run.spot || (run.spot = { clock: 0, free: [] }); sp.clock += dt;
+  if ((run.spotT = (run.spotT || 0) - dt) > 0) return; run.spotT = I.every;
+  sp.free = sp.free.filter(f => sp.clock - f.t < I.memory);
+  const near = [];
+  for (const e of run.enemies) { if (e.isCore || e.blind > 0) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < I.sight * I.sight) near.push([d, e]); }
+  near.sort((a, b) => a[0] - b[0]);
+  let los = 0, free = 0; // one report per hive per check and a few hiveless ones, so a crowd cannot hide a scout
+  for (const [, e] of near) {
+    if (los >= I.maxLos) break;
+    if (e.hive ? e.hive.spotT === sp.clock : free >= I.maxFree) continue;
+    los++; if (!losClear(run, e.x, e.y, p.x, p.y)) continue;
+    if (e.hive) e.hive.spotT = sp.clock; else { sp.free.push({ x: e.x, y: e.y, t: sp.clock }); free++; }
+  }
+}
+function gunnerKnows(run, e, d, los) { // it sees you itself (los: its clear line to you), or its side spotted you just now
+  const I = GUNNER_INTEL, sp = run.spot; if (e.blind > 0) return false;
+  if (d < I.sight && los) return true;
+  if (!sp) return false;
+  if (e.hive) return e.hive.spotT != null && sp.clock - e.hive.spotT < I.memory;
+  return sp.free.some(f => sp.clock - f.t < I.memory && dist2(f.x, f.y, e.x, e.y) < I.freeR * I.freeR);
+}
 function hiveLook(run, e) {
   const h = e.hive, S = HIVE.sight * HIVE.sight;
   markExplored(h, e.x, e.y, 2);
@@ -1650,7 +1678,7 @@ const TIPS = {
   e_static:   { group: 'Enemies', title: 'Swarm (grey squares)', body: 'Slow and weak, but there are lots of them. They walk straight at you and hurt on contact. Keep moving and let your weapons grind them down.' },
   e_spike:    { group: 'Enemies', title: 'Rusher (red triangles)', body: 'When a Rusher gets close it dashes at you in a quick burst. Sidestep the dash instead of running in a straight line.' },
   e_null:     { group: 'Enemies', title: 'Jammer (purple hexagons)', body: 'Tough and slow. Any perched Drone inside its faint purple ring is blinded and stops seeing. Kill Jammers near your perches first.' },
-  e_harmonic: { group: 'Enemies', title: 'Gunner (blue diamonds)', body: 'Keeps its distance and fires a fan of 5 bullets when it can see you. Walls block the bullets, so duck behind cover or close in fast. It sidesteps, so your Pulse aims where it was and can miss: Lead shot in the skill tree fixes that.' },
+  e_harmonic: { group: 'Enemies', title: 'Gunner (blue diamonds)', body: 'Keeps its distance and fires a fan of 5 bullets when it can see you. Walls block the bullets, so duck behind cover or close in fast. It only shoots when it sees you or its hive spotted you a moment ago; your Jammer blinds it. It sidesteps, so your Pulse aims where it was and can miss: Lead shot in the skill tree fixes that.' },
   e_hive:     { group: 'Hives', title: 'Hive', body: 'An enemy base. It grows by gathering caches and parts, sends scouts to learn the map, and raids only what its scouts have found: a lone drone, a turret, a cache, or your base. Destroy every hive to clear the zone early, and loot what it stockpiled. A hive cannot make units while you or a drone watch it.' },
   e_scout:    { group: 'Hives', title: 'Scout (green)', body: 'Fast and fragile. It explores for its hive, and when it spots something new it runs home to report. Kill it before it gets home and its hive stays blind to you.' },
   e_gatherer: { group: 'Hives', title: 'Gatherer (yellow ring)', body: 'Takes caches its hive knows about and carries them home so the hive can grow. One carrying loot shows a yellow dot; kill it to drop half of it.' },
@@ -1659,6 +1687,11 @@ const TIPS = {
   summon:     { group: 'Enemies', title: 'The boss summons', body: 'Every 6 seconds the boss calls 4 Swarm right beside itself (the orange flash). They are the only enemies that can appear where you are looking.' },
   ring:       { group: 'Enemies', title: 'Rusher ring', body: 'A ring of Rushers just formed around you. Pick one side and break out through it rather than waiting for them to close in.' },
   pack:       { group: 'Enemies', title: 'Hunting pack', body: 'Heat is high, so a pack is hunting you directly. Fight near walls or your base, or let Heat cool by not killing for a while.' },
+  // strategy: read in How it works only
+  s_hives:   { group: 'Strategy', title: 'Hives first', body: 'Destroying every hive clears the zone without the boss, and from Zone 7 hives grow faster. Perch a Drone near a hive to find it, then send gun drones with Orders on Attack.' },
+  s_gunners: { group: 'Strategy', title: 'Gunners', body: 'Fight them from behind walls and take Lead shot. They fire only when they see you or their hive spotted you a moment ago. Your Jammer blinds whatever is in its ring, Gunners and spotters alike.' },
+  s_ammo:    { group: 'Strategy', title: 'Ammo', body: 'Orbit, Nova and Field use no ammo, so you need fewer trips home. Caches give ammo where you are.' },
+  s_base:    { group: 'Strategy', title: 'Defending the base', body: 'Turrets shoot; Jammers only blind what is inside their ring. Put Turrets on the paths raiders take and keep your base turret alive.' },
   // pickups
   gem:      { group: 'Pickups', title: 'XP gems', body: 'Enemies drop small cyan diamonds. Walk near them to pull them in. Filling the thin cyan bar under the HUD levels you up.' },
   heal:     { group: 'Pickups', title: 'Health', body: 'Green crosses heal you a little. Enemies drop them now and then.' },
@@ -2059,6 +2092,7 @@ function enemyGrid(es) {
 }
 function updateEnemies(run, dt) {
   const p = run.p, es = run.enemies;
+  updateSpotting(run, dt);
   enemyGrid(es); const n0 = es.length; // cheap separation via grid (enemies spawned during the loop join next frame, as before)
   for (const e of es) {
     if (e.flash > 0) e.flash -= dt;
@@ -2076,11 +2110,18 @@ function updateEnemies(run, dt) {
       if (e.cd <= 0 && d < 240 && !(e.blind > 0)) { e.dash = 0.3; e.cd = rnd(1.6, 2.6); }
       if (e.dash > 0) { e.dash -= dt; sp *= 2.8; }
     } else if (e.type === 'harmonic') {
-      if (d < 200) { mx = -mx; my = -my; } else if (d < 250) { mx = -ddy / d; my = ddx / d; }
+      const px = p.x - e.x, py = p.y - e.y, dp = Math.hypot(px, py) || 1; // keep-away, range and aim are about you, not its hive's goal
+      if (dp < 200) { mx = -px / dp; my = -py / dp; } else if (dp < 250) { mx = -py / dp; my = px / dp; }
       e.cd -= dt;
-      if (e.cd <= 0 && d < 420 && !(e.blind > 0) && losClear(run, e.x, e.y, p.x, p.y)) {
+      let aim = null;
+      if (e.cd <= 0 && dp < 420 && !(e.blind > 0)) {
+        const los = losClear(run, e.x, e.y, p.x, p.y);
+        if (los && gunnerKnows(run, e, dp, los)) aim = p;
+        else if (e.role === 'raid' && tgt !== p && dist2(tgt.x, tgt.y, e.x, e.y) < 420 * 420 && losClear(run, e.x, e.y, tgt.x, tgt.y)) aim = tgt; // a raider shoots the target its hive sent it to
+      }
+      if (aim) {
         e.cd = 2.6;
-        const base = Math.atan2(ddy, ddx);
+        const base = Math.atan2(aim.y - e.y, aim.x - e.x);
         for (let i = -2; i <= 2; i++) run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(base + i * 0.22) * 150, vy: Math.sin(base + i * 0.22) * 150, r: 5, dmg: e.dmg, t: 4 });
       }
     } else if (e.type === 'resonator') {
@@ -2235,7 +2276,7 @@ function updateWeapons(run, dt) {
       run.ammo -= 4;
       const lvl = W.lance;
       wcd.lance = (ev.lance ? 1.0 : 1.6) * p.cdMult;
-      const a = Math.atan2(t.y - p.y, t.x - p.x), len = (ev.lance ? 720 : 380 + 20 * lvl) * p.area, w = ev.lance ? 16 : 12;
+      const a = Math.atan2(t.y - p.y, t.x - p.x), len = (ev.lance ? 720 : 380 + 20 * lvl) * p.area, w = ev.lance ? 32 : 10 + 3 * lvl; // levels widen the beam (Lance 10-08)
       const dmg = (22 + 8 * lvl) * p.dmgMult * (ev.lance ? 2 : 1);
       const bx = Math.cos(a), by = Math.sin(a);
       for (const e of run.enemies) {
@@ -2376,11 +2417,11 @@ const TREE_SKY = {
 const SKILL_INFO = {
   'w:pulse': 'Your starting gun: a bolt at the nearest enemy you can see. Level 2 adds a second bolt and level 4 a third, each aimed at a different enemy; every level adds damage.',
   'w:orbit': 'Shards circle you and cut whatever they touch. Levels add shards and damage. Strong against Swarm that crowds you.',
-  'w:lance': 'A beam that pierces through the nearest enemy and everything lined up behind it. Levels add damage and length.',
+  'w:lance': 'A beam that pierces through the nearest enemy and everything lined up behind it. Levels add damage, length and width, so it catches more of a crowd.',
   'w:nova': 'Every few seconds a burst goes off around you and hits everything close. Levels add damage and size.',
   'w:field': 'An aura that hurts everything inside it every second. Levels widen it and hit harder. Good for standing your ground.',
   'e:pulse': 'Barrage, the stronger Pulse: three-way piercing bolts.', 'e:orbit': 'Halo, the stronger Orbit: a wide ring, more shards, and it knocks enemies back.',
-  'e:nova': 'Supernova, the stronger Nova: fires twice as often and much larger.', 'e:lance': 'Rail, the stronger Lance: an instant full-length line for double damage.',
+  'e:nova': 'Supernova, the stronger Nova: fires twice as often and much larger.', 'e:lance': 'Rail, the stronger Lance: an instant full-length, extra-wide line for double damage.',
   'e:field': 'Bastion, the stronger Field: a larger aura that slows enemies and heals you.',
   'p:signal': 'More damage from everything you deal: weapons, turrets, artillery and Drone strikes. +10% a level.',
   'p:capacitor': 'More max HP: +20 a level.', 'p:clock': 'You move 8% faster a level, which makes Rusher dashes and Gunner fans easier to dodge.',
@@ -2423,7 +2464,7 @@ function weaponNextDesc(k, l) {
   if (!l) return WEAPONS[k].desc;
   if (k === 'pulse' && l + 1 === 2) return 'Level 2: 2 bolts, each at a different enemy';
   if (k === 'pulse' && l + 1 === 4) return 'Level 4: 3 bolts, each at a different enemy';
-  return `Level ${l + 1}: more damage${k === 'orbit' ? ' and shards' : k === 'nova' ? ' and a bigger burst' : k === 'lance' ? ' and a longer beam' : k === 'field' ? ' and a wider aura' : ''}`;
+  return `Level ${l + 1}: more damage${k === 'orbit' ? ' and shards' : k === 'nova' ? ' and a bigger burst' : k === 'lance' ? ', a longer and wider beam' : k === 'field' ? ' and a wider aura' : ''}`;
 }
 // every node the tree shows, with whether it can be bought or sold right now (and why not)
 function treeNodes(run) {
@@ -3900,7 +3941,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { SWIPE, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
