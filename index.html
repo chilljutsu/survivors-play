@@ -612,7 +612,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s17b';
+const BUILD_ID = 'playtest 2026-10-08 s17c';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1704,16 +1704,16 @@ const TIPS = {
   // strategy: read in How it works only
   s_hives:   { group: 'Strategy', title: 'Hives first', body: 'Destroying every hive clears the zone without the boss, and from Zone 7 hives grow faster. Perch a Drone near a hive to find it, then send gun drones with Orders on Attack.' },
   s_gunners: { group: 'Strategy', title: 'Gunners', body: 'Fight them from behind walls and take Lead shot. They fire only when they see you or their hive spotted you a moment ago. Your Jammer blinds whatever is in its ring, Gunners and spotters alike.' },
-  s_ammo:    { group: 'Strategy', title: 'Ammo', body: 'Orbit, Nova and Field use no ammo, so you need fewer trips home. Caches give ammo where you are.' },
-  s_base:    { group: 'Strategy', title: 'Defending the base', body: 'Turrets shoot; Jammers only blind what is inside their ring. An Engineer walls the base in so raiders come through the gaps, where Turrets can catch them. Fortify in the Workshop makes the base turret hit harder and reach farther, and gives the base more HP.' },
+  s_ammo:    { group: 'Strategy', title: 'Your main gun', body: 'Pulse carries you: take it to level 5 and Barrage, then cut cooldowns with Gain and add damage with Signal. Orbit, Nova and Field use no ammo but are support, not a replacement. Pulse and Lance use ammo; caches refill it where you are, and with the base down they are your only refill.' },
+  s_base:    { group: 'Strategy', title: 'Defending the base', body: 'Turrets shoot anything with a clear line (no Drone needed) and scale with the zone; Jammers only blind what is inside their ring. An Engineer walls the base in so raiders come through the gaps, where Turrets can catch them. Fortify in the Workshop makes the base turret hit harder and reach farther, and gives the base more HP.' },
   // pickups
   gem:      { group: 'Pickups', title: 'XP gems', body: 'Enemies drop small cyan diamonds. Walk near them to pull them in. Filling the thin cyan bar under the HUD levels you up.' },
   heal:     { group: 'Pickups', title: 'Health', body: 'Green crosses heal you a little. Enemies drop them now and then.' },
   part:     { group: 'Pickups', title: 'Parts', body: 'Small orange hexagons are parts. They pay for Turrets and Jammers from the buttons at the bottom. Tougher enemies drop more. Unspent parts carry to your next run (all after a clear, half after a death, up to 90).' },
   cache:    { group: 'Pickups', title: 'Supply cache', body: 'The yellow box is a supply cache: +120 ammo, +8 parts and +2 artillery shells. Walk over it to grab it. Each one can be taken once.' },
-  ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache. Orbit, Nova and Field never use ammo, so drafting one keeps you fighting.' },
+  ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache (gold squares). Orbit, Nova and Field never use ammo, so they keep hitting while you go.' },
   jammer_on: { group: 'Pickups', title: 'Your Jammer', body: 'Enemies inside the dashed purple ring are blinded while they stay in it (a purple arc spins on them): they wander instead of chasing you, Rushers cannot dash and Gunners cannot shoot. It does not hurt them, and the boss ignores it. Enemies that touch it wear it down. Fight inside the ring, or drop it to cover the base or a perch.' },
-  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything it can see. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down. The row above has units: Gun drone (20 parts) and Scavenger (15).' },
+  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything within 320px it has a clear line to, no Drone needed, and gets stronger in harder zones. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down. The row above has units: Gun drone (20 parts) and Scavenger (15).' },
   // aim upgrades
   lead:      { group: 'Weapons', title: 'Lead shot', body: 'That Gunner is sidestepping. Your Pulse, gun drones and turrets now aim where it will be when the bolt arrives, so the shot lands instead of passing behind it.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
@@ -1938,7 +1938,7 @@ function updateBase(run, dt) {
     if (c.kind === 'turret') {
       c.cd -= dt;
       if (c.cd <= 0) { let t = null, bd = 320 * 320; for (const e of run.enemies) { const dd = dist2(e.x, e.y, c.x, c.y); if (dd < bd && losClear(run, c.x, c.y, e.x, e.y)) { bd = dd; t = e; } }
-        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
+        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * allyDmg(run) * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
     } else if (c.kind === 'jammer') {
       for (const e of run.enemies) if (e.type !== 'resonator' && dist2(e.x, e.y, c.x, c.y) < 240 * 240) e.blind = 0.25;
     }
@@ -1951,7 +1951,7 @@ function updateBase(run, dt) {
   if (b.cd <= 0 && !b.breached) {
     const fk = 1 + FORTIFY.gun * lat('fortify'), reach = 380 * fk; let t = null, bd = reach * reach;
     for (const e of run.enemies) { const d = dist2(e.x, e.y, b.x, b.y); if (d < bd) { bd = d; t = e; } }
-    if (t) { b.cd = 0.8; const a = aimAt(run, b.x, b.y, t, 480, fk); run.bullets.push({ x: b.x, y: b.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 14 * fk * run.p.dmgMult, pierce: 0, t: fk, hit: new Set(), turret: true }); }
+    if (t) { b.cd = 0.8; const a = aimAt(run, b.x, b.y, t, 480, fk); run.bullets.push({ x: b.x, y: b.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 14 * fk * allyDmg(run) * run.p.dmgMult, pierce: 0, t: fk, hit: new Set(), turret: true }); }
   }
   // assault: high heat sends Noise at the base instead of you
   if (run.heat >= 6 && !run.assault && run.assaultCd <= 0) { run.assault = true; run.assaultT = 0; run.assaultLeft = 40; toast(run, 'Heat 3: enemies are marching on your base. Hold 40 seconds.'); SFX.boss(); tip(run, 'assault', { at: b }); }
@@ -2673,13 +2673,20 @@ function updateStrikes(run, dt) {
 }
 
 /* ---------- constructions ---------- */
-const BUILDS = { turret: { name: 'Turret', cost: 30, desc: 'Shoots anything it can see within 320px.' }, jammer: { name: 'Jammer', cost: 25, desc: 'Blinds enemies within 240px: they wander and cannot dash or shoot.' } };
+/* Your turrets, the base turret and gun drones keep up with the enemies (Lance 10-08 15:55: "I had like 5 turrets. are
+   they not shooting?" They were, at World 1 strength, against enemies with 2-4x the HP). allyDmg: zone difficulty x the
+   run-time growth enemy HP gets (heat left out: that one is yours to manage). buildHp: sqrt(diff), the factor enemy
+   contact damage gets. Repairs scale with buildHp so they take the same time everywhere. */
+const zoneDiff = run => (run.z && run.z.diff) || 1;
+const allyDmg = run => zoneDiff(run) * (1 + 0.13 * (run.t || 0) / 60);
+const buildHp = run => Math.sqrt(zoneDiff(run));
+const BUILDS = { turret: { name: 'Turret', cost: 30, desc: 'Shoots anything within 320px it has a clear line to (no Drone needed). Stronger in harder zones.' }, jammer: { name: 'Jammer', cost: 25, desc: 'Blinds enemies within 240px: they wander and cannot dash or shoot.' } };
 function build(run, kind) {
   const b = BUILDS[kind], p = run.p;
   if (run.parts < b.cost) { toast(run, `Need ${b.cost} parts for a ${b.name}`); return false; }
   if (run.builds.length >= 6) { toast(run, 'Six constructions max'); return false; }
   if (inWall(run, p.x, p.y) || run.builds.some(c => dist2(c.x, c.y, p.x, p.y) < 90 * 90)) { toast(run, 'Too close to another construction'); return false; }
-  run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp: 220, maxhp: 220, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
+  const hp = 220 * buildHp(run); run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp, maxhp: hp, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
   if (kind === 'jammer') tip(run, 'jammer_on', { at: p });
   return true;
 }
@@ -2735,7 +2742,7 @@ function updateUnits(run, dt) {
         if (!pressed && inRange.length > 1) t = droneTarget(run, inRange, true) || t; // otherwise your Drone targets choice comes first
         if (t && t.isCore && !t.hive.found) { t.hive.found = true; toast(run, 'Your gun drones found a hive'); }
         if (!t) u.cd = 0.2; // nothing in range: look again shortly, not every frame
-        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
+        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * allyDmg(run) * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
       }
     } else if (u.kind === 'fix') { // repair bot: downed Drones first, then worn constructions, then the base, else stay by you
       const down = run.motes.find(m => m.state === 'dimmed'), hit = b.breached || b.alarm > 0, worn = run.builds.filter(c => c.hp < c.maxhp * 0.9).sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
@@ -2743,7 +2750,7 @@ function updateUnits(run, dt) {
       if (job) { tx = job.x; ty = job.y; } else { tx = p.x - 40; ty = p.y + 40; }
       if (job && dist2(u.x, u.y, job.x, job.y) < (job === b ? BASE_R : U.near) ** 2) {
         if (job === down) { if ((u.work = (u.work || 0) + dt) >= U.reviveT) { u.work = 0; down.state = 'follow'; down.bat = down.maxBat * 0.5; down.hp = 60; run.revives = (run.revives || 0) + 1; toast(run, 'Repair bot revived a Drone'); SFX.mote(); } }
-        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * dt);
+        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * buildHp(run) * dt);
         else repairBase(run, U.healBase * dt);
       } else u.work = 0;
     } else if (u.kind === 'eng') { // Engineer: rebuild a missing barricade, repair the most worn barricade or build, else wait at the base
@@ -2761,7 +2768,7 @@ function updateUnits(run, dt) {
         if (kind === 'build' && there) { if (slotClear(run, job, true)) { if ((u.work = (u.work || 0) + dt) >= ENG.buildT) { u.work = 0; placeBarricade(run, job); tip(run, 'barricade', { at: job.wall ? { x: job.x + job.w / 2, y: job.y + job.h / 2 } : u }); } } }
         else u.work = 0;
         if (kind === 'fix' && there) job.wall.hp = Math.min(job.wall.maxhp, job.wall.hp + ENG.heal * dt);
-        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + ENG.heal * dt);
+        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + ENG.heal * buildHp(run) * dt);
         u.job = kind;
       }
     } else { // scavenger: flee what it sees, otherwise fetch and carry home
@@ -4141,7 +4148,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { allyDmg, buildHp, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
