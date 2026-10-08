@@ -469,19 +469,22 @@ const BASE_R = 70;
 const ENEMY_CAP = 300;
 const PLAYER_VISION = 250, MOTE_VISION = 300;
 
-// difficulty steps smoothed 10-08 (Lance: zone 5 was a wall): 1.35/1.6/1.9 -> 1.32/1.5/1.68, see BALANCE_LOG
+/* A zone is harder by what it sends, never by hidden HP (Lance 10-08: "it doesn't make sense to change enemy hp, just
+   change the type and number of enemies, or have the evolved forms show up"). rate: spawn multiplier; evo + evoMin per
+   minute: the share of enemies that come in their evolved form (EVOLVED); bossTier: the boss's form. Tuned with
+   tests/bal.js, numbers in docs/BALANCE_LOG.md. */
 const ZONES = [
-  { name: 'Zone 1',  dur: 180, diff: 1.00, gold: 60,  desc: 'Swarm, Rushers and 3 hives. Destroy the hives or survive to the boss.' },
-  { name: 'Zone 2',  dur: 210, diff: 1.15, gold: 100, desc: 'Jammers appear. They blind perched Drones.' },
-  { name: 'Zone 3',  dur: 240, diff: 1.32, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
-  { name: 'Zone 4',  dur: 270, diff: 1.5,  gold: 220, desc: 'Everything, faster. Heat climbs and the base gets hit.' },
-  { name: 'Zone 5',  dur: 300, diff: 1.68, gold: 320, desc: 'Five minutes to the boss. Everything you have.' },
+  { name: 'Zone 1',    dur: 180, rate: 1.0, evo: 0, evoMin: 0.03, bossAdds: 4, gold: 60,  desc: 'Swarm, Rushers and 3 hives. Destroy the hives or survive to the boss.' },
+  { name: 'Zone 2',    dur: 210, rate: 1.1, evo: 0.02, evoMin: 0.04, bossAdds: 4, gold: 100, desc: 'Jammers appear. They blind perched Drones.' },
+  { name: 'Zone 3',    dur: 240, rate: 1.22, evo: 0.05, evoMin: 0.05, bossAdds: 5, gold: 150, desc: 'Gunners fire fans of bullets. Walls block them.' },
+  { name: 'Zone 4',    dur: 270, rate: 1.35, evo: 0.08, evoMin: 0.06, bossAdds: 5,  gold: 220, desc: 'More of everything and the first evolved forms. Heat climbs and the base gets hit.' },
+  { name: 'Zone 5',    dur: 300, rate: 1.5, evo: 0.12, evoMin: 0.06, bossTier: 1, bossAdds: 6, gold: 320, desc: 'Five minutes to the boss. Everything you have.' },
   // World 2 (Lance 10-07: after zone 5 the next zones get a new look; beat them and the look is yours in Settings)
-  { name: 'Zone 6',  dur: 240, diff: 1.86, gold: 420, world: 2, desc: 'World 2, the Ember fields. Everything from World 1, hotter. More hives.' },
-  { name: 'Zone 7',  dur: 270, diff: 2.04, gold: 520, world: 2, hiveRate: 0.8, desc: 'Hives grow faster from here on: hit them early.' },
-  { name: 'Zone 8',  dur: 270, diff: 2.22, gold: 620, world: 2, hiveRate: 0.8, desc: 'Tougher everything, six hives. Walls are your friends.' },
-  { name: 'Zone 9',  dur: 300, diff: 2.4,  gold: 740, world: 2, hiveRate: 0.8, desc: 'Long and loud. Bring gun drones.' },
-  { name: 'Zone 10', dur: 300, diff: 2.6,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Ember look for every zone.' },
+  { name: 'Zone 6',    dur: 240, rate: 1.65, evo: 0.18, evoMin: 0.07, bossTier: 1, bossAdds: 6, gold: 420, world: 2, desc: 'World 2, the Ember fields. Everything from World 1, hotter. More hives.' },
+  { name: 'Zone 7',    dur: 270, rate: 1.8, evo: 0.24, evoMin: 0.07, bossTier: 1, bossAdds: 6, gold: 520, world: 2, hiveRate: 0.8, desc: 'Hives grow faster from here on: hit them early.' },
+  { name: 'Zone 8',    dur: 270, rate: 1.95, evo: 0.3, evoMin: 0.07, bossTier: 1, bossAdds: 7, gold: 620, world: 2, hiveRate: 0.8, desc: 'More evolved forms, six hives. Walls are your friends.' },
+  { name: 'Zone 9',    dur: 300, rate: 2.1, evo: 0.36, evoMin: 0.07, bossTier: 1, bossAdds: 7,  gold: 740, world: 2, hiveRate: 0.8, desc: 'Long and loud. Bring gun drones.' },
+  { name: 'Zone 10',   dur: 300, rate: 2.25, evo: 0.42, evoMin: 0.08, bossTier: 1, bossAdds: 8,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Ember look for every zone.' },
 ];
 const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Ember', skin: 'ember' } };
 // colours the map is drawn with; a zone uses its world's skin, World 1 uses the skin you picked once Ember is earned
@@ -504,14 +507,26 @@ const MODES = {
 const ENEMY = {
   static:    { hp: 8,   spd: 64,  dmg: 7,  r: 7,  xp: 1,  gold: 0.15, heat: 0.02, parts: 0.04 },
   spike:     { hp: 14,  spd: 110, dmg: 14, r: 8,  xp: 2,  gold: 0.3,  heat: 0.06, parts: 0.10 },
-  null:      { hp: 110, spd: 38,  dmg: 12, r: 16, xp: 7,  gold: 1.5,  heat: 0.25, parts: 0.6 },
-  harmonic:  { hp: 34,  spd: 50,  dmg: 9,  r: 10, xp: 4,  gold: 0.8,  heat: 0.12, parts: 0.4 },
-  resonator: { hp: 1300, spd: 36, dmg: 16, r: 34, xp: 80, gold: 40,   heat: 0, parts: 1 },
+  null:      { hp: 110, spd: 38,  dmg: 12, r: 16, xp: 7,  gold: 1.5,  heat: 0.25, parts: 0.6, ring: 230 },
+  harmonic:  { hp: 34,  spd: 50,  dmg: 9,  r: 10, xp: 4,  gold: 0.8,  heat: 0.12, parts: 0.4, fan: 5, gap: 0.22 },
+  resonator: { hp: 1300, spd: 36, dmg: 16, r: 34, xp: 80, gold: 40,   heat: 0, parts: 1, ring: 12 },
   hive:      { hp: 1,    spd: 0,  dmg: 0,  r: 26, xp: 30, gold: 12,   heat: 0.4, parts: 1 },   // hp from HIVE
   scout:     { hp: 10,   spd: 100, dmg: 5, r: 6,  xp: 2,  gold: 0.3,  heat: 0.03, parts: 0.05 },
   gatherer:  { hp: 24,   spd: 72, dmg: 6,  r: 9,  xp: 3,  gold: 0.6,  heat: 0.05, parts: 0.3 },
 };
 
+/* Evolved forms: same behaviour, fixed tougher stats, a bright ring so you can tell (tier 1). */
+const EVOLVED = {
+  static:    { name: 'Hardened Swarm',  hp: 2.5, dmg: 1.4, spd: 1.1,  r: 1.25, reward: 2 },
+  spike:     { name: 'Lancer',          hp: 2.4, dmg: 1.3, spd: 1.15, r: 1.15, reward: 2 },
+  harmonic:  { name: 'Heavy Gunner',    hp: 2.5, dmg: 1.2, spd: 0.95, r: 1.2,  reward: 2, fan: 7, gap: 0.19 },
+  null:      { name: 'Warden',          hp: 2.2, dmg: 1.2, spd: 1,    r: 1.15, reward: 2, ring: 320 },
+  resonator: { name: 'Resonator Prime', hp: 2.4, dmg: 1.3, spd: 1.1,  r: 1.15, reward: 2, ring: 18 },
+};
+const BASE_FORM = { hp: 1, dmg: 1, spd: 1, r: 1, reward: 1 };
+const form = e => (e.tier ? EVOLVED[e.type] : ENEMY[e.type]); // where a form's own numbers live (ring, fan, gap)
+const JAM_R = e => (e.tier ? EVOLVED.null.ring : ENEMY.null.ring); // a Jammer's blinding ring
+const evoShare = run => (run.tut ? 0 : clamp((run.z.evo || 0) + (run.z.evoMin || 0) * run.t / 60, 0, 0.9));
 const WEAPONS = {
   pulse: { name: 'Pulse',  evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
   orbit: { name: 'Orbit',  evo: 'Halo',      desc: 'Shards circle you.',                     evoDesc: 'Wide ring, more shards, knockback.' },
@@ -612,7 +627,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s17c';
+const BUILD_ID = 'playtest 2026-10-08 s18';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1365,20 +1380,21 @@ function spawnPos(run) {
   const a = rnd(0, Math.PI * 2), d = 900;
   return { x: clamp(p.x + Math.cos(a) * d, 20, WORLD - 20), y: clamp(p.y + Math.sin(a) * d, 20, WORLD - 20) };
 }
-function makeEnemy(run, type, x, y) {
-  const b = ENEMY[type], min = run.t / 60, diff = run.z.diff, heat = run.heat;
-  const hpMult = (1 + 0.13 * min) * diff * (1 + 0.06 * heat);
-  const e = { type, x, y, r: b.r, hp: b.hp * hpMult, maxhp: b.hp * hpMult, spd: b.spd * (1 + 0.02 * min) * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
-    dmg: b.dmg * (1 + 0.05 * min) * Math.sqrt(diff) * run.M.dmg, xp: b.xp, gold: b.gold, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0, mvx: 0, mvy: 0 }; // mvx/mvy: smoothed stride for Lead shot (declared here so every enemy keeps one shape)
-  if (type === 'resonator') { e.hp *= 1; e.maxhp = e.hp; e.cd = 3; e.spawnCd = 4; }
+function makeEnemy(run, type, x, y, tier) { // stats come from the type and its form only (tier: 0 base, 1 evolved; rolled by the zone if not given)
+  const b = ENEMY[type], V = EVOLVED[type];
+  if (tier == null) tier = V && type !== 'resonator' && Math.random() < evoShare(run) ? 1 : 0;
+  const k = (tier && V) || BASE_FORM, hp = b.hp * k.hp;
+  const e = { type, tier: k === BASE_FORM ? 0 : 1, x, y, r: b.r * k.r, hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
+    dmg: b.dmg * k.dmg * run.M.dmg, xp: b.xp * k.reward, gold: b.gold * k.reward, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0, mvx: 0, mvy: 0 }; // mvx/mvy: smoothed stride for Lead shot (declared here so every enemy keeps one shape)
+  if (type === 'resonator') { e.cd = 3; e.spawnCd = 4; }
   if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1);
   run.enemies.push(e);
   return e;
 }
 function spawnDirector(run, dt) {
   if (run.enemies.length >= ENEMY_CAP) return;
-  const min = run.t / 60, z = run.z, diff = z.diff;
-  const rate = (1.7 + min * 1.2) * Math.sqrt(diff) * (1 + 0.07 * run.heat) * (run.phase === 'boss' ? 0.35 : 1) * run.M.spawn;
+  const min = run.t / 60, z = run.z, zr = z.rate || 1;
+  const rate = (1.7 + min * 1.2) * zr * (1 + 0.07 * run.heat) * (run.phase === 'boss' ? 0.35 : 1) * run.M.spawn;
   run.spawnAcc += rate * dt;
   while (run.spawnAcc >= 1 && run.enemies.length < ENEMY_CAP) {
     run.spawnAcc -= 1;
@@ -1394,7 +1410,7 @@ function spawnDirector(run, dt) {
   run.burstT -= dt;
   if (run.burstT <= 0) {
     run.burstT = Math.max(30, 60 - min * 4);
-    const n = Math.min(40, Math.round((8 + min * 3) * Math.sqrt(diff) * run.M.ring));
+    const n = Math.min(40, Math.round((8 + min * 3) * zr * run.M.ring));
     for (let i = 0; i < n && run.enemies.length < ENEMY_CAP; i++) {
       const a = (i / n) * Math.PI * 2, d = 420;
       makeEnemy(run, 'spike', clamp(run.p.x + Math.cos(a) * d, 20, WORLD - 20), clamp(run.p.y + Math.sin(a) * d, 20, WORLD - 20));
@@ -1497,7 +1513,7 @@ function addHive(run, x, y, parent) {
     prodT: rnd(3, 7), decideT: rnd(0, 2), nextRole: 'scout', turretT: 0, found: false, dead: false };
   markExplored(h, x, y, 3);
   const core = makeEnemy(run, 'hive', x, y); core.spd = 0; core.isCore = true; core.hive = h;
-  core.hp = core.maxhp = HIVE.hp * (parent ? 0.6 : 1) * run.z.diff; h.core = core;
+  core.hp = core.maxhp = HIVE.hp * (parent ? 0.6 : 1); h.core = core;
   run.hives.push(h); return h;
 }
 function markExplored(h, x, y, rc) {
@@ -1646,12 +1662,12 @@ function updateHives(run, dt) {
   for (const h of run.hives) {
     if (h.dead) continue;
     const tier = Math.floor(h.stock / (HIVE.tierEvery * (run.z.hiveRate || 1))); // hiveRate < 1: zones where hives grow faster
-    if (tier > h.tier) { const add = (tier - h.tier) * HIVE.hpPerTier * run.z.diff; h.core.maxhp += add; h.core.hp += add; h.tier = tier; }
+    if (tier > h.tier) { const add = (tier - h.tier) * HIVE.hpPerTier; h.core.maxhp += add; h.core.hp += add; h.tier = tier; }
     if (h.tier >= 1) { // a grown hive defends itself
       h.turretT -= dt; const p = run.p;
       if (h.turretT <= 0 && dist2(p.x, p.y, h.x, h.y) < HIVE.turretRange * HIVE.turretRange && losClear(run, h.x, h.y, p.x, p.y)) {
         h.turretT = HIVE.turretEvery; const a = Math.atan2(p.y - h.y, p.x - h.x);
-        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 5, dmg: 8 * Math.sqrt(run.z.diff) * run.M.dmg, t: 3 });
+        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 5, dmg: 8 * run.M.dmg, t: 3 });
       }
     }
     h.decideT -= dt; if (h.decideT <= 0) { h.decideT = HIVE.decideEvery; hiveDecide(run, h); }
@@ -1689,6 +1705,10 @@ const TIPS = {
   camera:    { group: 'Basics', title: 'Camera', body: 'Two cameras, same game. Top-down is the flat map. 2.5D tilts it: things stand up with a shadow, walls have height and fade when they hide you, and you see a little farther up and down. Switch in Settings or from the pause screen.' },
   zoom:      { group: 'Basics', title: 'Zoom', body: 'Pinch with two fingers to zoom between 0.6x and 1.4x. Zoomed out you see more of the map around you (your sight range stays the same). Double tap open ground to reset to 1x. Your zoom is kept for the next run.' },
   // enemies
+  v_static:   { group: 'Enemies', title: 'Hardened Swarm (ringed square)', body: 'The evolved Swarm: a white ring round it, about 2.5 times the HP and it hits harder. Harder zones send more evolved forms as the run goes on, never secretly tougher ones.' },
+  v_spike:    { group: 'Enemies', title: 'Lancer (ringed triangle)', body: 'The evolved Rusher: faster, about 2.4 times the HP, hits harder. Same dash, so the same sidestep works.' },
+  v_harmonic: { group: 'Enemies', title: 'Heavy Gunner (ringed diamond)', body: 'The evolved Gunner: fires 7 bullets instead of 5 and takes about 2.5 times the damage to kill. It follows the same rules: it shoots only when it or its hive knows where you are.' },
+  v_null:     { group: 'Enemies', title: 'Warden (ringed hexagon)', body: 'The evolved Jammer: its blinding ring reaches 320 px instead of 230 and it is tougher. Keep Drones farther away from it.' },
   e_static:   { group: 'Enemies', title: 'Swarm (grey squares)', body: 'Slow and weak, but there are lots of them. They walk straight at you and hurt on contact. Keep moving and let your weapons grind them down.' },
   e_spike:    { group: 'Enemies', title: 'Rusher (red triangles)', body: 'When a Rusher gets close it dashes at you in a quick burst. Sidestep the dash instead of running in a straight line.' },
   e_null:     { group: 'Enemies', title: 'Jammer (purple hexagons)', body: 'Tough and slow. Any perched Drone inside its faint purple ring is blinded and stops seeing. Kill Jammers near your perches first.' },
@@ -1705,7 +1725,7 @@ const TIPS = {
   s_hives:   { group: 'Strategy', title: 'Hives first', body: 'Destroying every hive clears the zone without the boss, and from Zone 7 hives grow faster. Perch a Drone near a hive to find it, then send gun drones with Orders on Attack.' },
   s_gunners: { group: 'Strategy', title: 'Gunners', body: 'Fight them from behind walls and take Lead shot. They fire only when they see you or their hive spotted you a moment ago. Your Jammer blinds whatever is in its ring, Gunners and spotters alike.' },
   s_ammo:    { group: 'Strategy', title: 'Your main gun', body: 'Pulse carries you: take it to level 5 and Barrage, then cut cooldowns with Gain and add damage with Signal. Orbit, Nova and Field use no ammo but are support, not a replacement. Pulse and Lance use ammo; caches refill it where you are, and with the base down they are your only refill.' },
-  s_base:    { group: 'Strategy', title: 'Defending the base', body: 'Turrets shoot anything with a clear line (no Drone needed) and scale with the zone; Jammers only blind what is inside their ring. An Engineer walls the base in so raiders come through the gaps, where Turrets can catch them. Fortify in the Workshop makes the base turret hit harder and reach farther, and gives the base more HP.' },
+  s_base:    { group: 'Strategy', title: 'Defending the base', body: 'Turrets shoot anything with a clear line (no Drone needed); Jammers only blind what is inside their ring. An Engineer walls the base in so raiders come through the gaps, where Turrets can catch them. Fortify in the Workshop makes the base turret hit harder and reach farther, and gives the base more HP.' },
   // pickups
   gem:      { group: 'Pickups', title: 'XP gems', body: 'Enemies drop small cyan diamonds. Walk near them to pull them in. Filling the thin cyan bar under the HUD levels you up.' },
   heal:     { group: 'Pickups', title: 'Health', body: 'Green crosses heal you a little. Enemies drop them now and then.' },
@@ -1713,7 +1733,7 @@ const TIPS = {
   cache:    { group: 'Pickups', title: 'Supply cache', body: 'The yellow box is a supply cache: +120 ammo, +8 parts and +2 artillery shells. Walk over it to grab it. Each one can be taken once.' },
   ammo_low: { group: 'Pickups', title: 'Low ammo', body: 'Under 60 ammo. Head back to base or find a cache (gold squares). Orbit, Nova and Field never use ammo, so they keep hitting while you go.' },
   jammer_on: { group: 'Pickups', title: 'Your Jammer', body: 'Enemies inside the dashed purple ring are blinded while they stay in it (a purple arc spins on them): they wander instead of chasing you, Rushers cannot dash and Gunners cannot shoot. It does not hurt them, and the boss ignores it. Enemies that touch it wear it down. Fight inside the ring, or drop it to cover the base or a perch.' },
-  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything within 320px it has a clear line to, no Drone needed, and gets stronger in harder zones. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down. The row above has units: Gun drone (20 parts) and Scavenger (15).' },
+  build:    { group: 'Pickups', title: 'You can build', body: 'You have enough parts. Turret (30) shoots anything within 320px it has a clear line to, no Drone needed. Jammer (25) blinds enemies in its ring so they wander and cannot dash or shoot. Both go down where you stand. Six max, and enemies wear them down. The row above has units: Gun drone (20 parts) and Scavenger (15).' },
   // aim upgrades
   lead:      { group: 'Weapons', title: 'Lead shot', body: 'That Gunner is sidestepping. Your Pulse, gun drones and turrets now aim where it will be when the bolt arrives, so the shot lands instead of passing behind it.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
@@ -1748,7 +1768,7 @@ const TIPS = {
   food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. Search the USDA food database, type the number under a barcode, find vitamins and supplements in the NIH label database, or make your own. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
-  world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look and tougher numbers: more hives, more pressure. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
+  world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look: more enemies, more evolved forms, more hives and an evolved boss. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
   u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Up to 6. Enemies that touch them or shoot them wear them down.' },
@@ -1776,7 +1796,7 @@ function updateTips(run, dt) {
   const near = (x, y, r) => dist2(x, y, p.x, p.y) < r * r && Math.abs(x - run.cam.x) < vw2 && Math.abs(y - run.cam.y) < vh2;
   if (run.t > 30 && !tipSeen('zoom')) tip(run, 'zoom', { at: p });
   if ((run.z.world || 1) > 1 && !tipSeen('world2')) tip(run, 'world2', { at: run.base }); // after any tutorial // pinch zoom is invisible until someone says so
-  for (const e of run.enemies) if (e.type !== 'resonator' && !tipSeen('e_' + e.type) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, 'e_' + e.type, { at: e });
+  for (const e of run.enemies) { if (e.type === 'resonator') continue; const k = (e.tier && tipSeen('e_' + e.type) ? 'v_' : 'e_') + e.type; if (TIPS[k] && !tipSeen(k) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, k, { at: e }); }
   for (const g of run.gems) {
     if (g.part) { if (!tipSeen('part') && near(g.x, g.y, 330)) tip(run, 'part', { at: g }); }
     else if (g.heal) { if (!tipSeen('heal') && near(g.x, g.y, 330)) tip(run, 'heal', { at: g }); }
@@ -1898,7 +1918,7 @@ function update(run, dt) {
     run.phase = 'boss';
     const strong = hivesAlive(run).sort((a, b) => b.stock - a.stock)[0];
     const pos = strong ? { x: strong.x + 60, y: strong.y } : spawnPos(run);
-    run.boss = makeEnemy(run, 'resonator', pos.x, pos.y);
+    run.boss = makeEnemy(run, 'resonator', pos.x, pos.y, run.z.bossTier || 0);
     run.bossWarn = 3; toast(run, 'Boss. Kill it to clear the zone.'); SFX.boss(); tip(run, 'boss', { at: run.boss });
   }
   if (run.bossWarn > 0) run.bossWarn -= dt;
@@ -1938,7 +1958,7 @@ function updateBase(run, dt) {
     if (c.kind === 'turret') {
       c.cd -= dt;
       if (c.cd <= 0) { let t = null, bd = 320 * 320; for (const e of run.enemies) { const dd = dist2(e.x, e.y, c.x, c.y); if (dd < bd && losClear(run, c.x, c.y, e.x, e.y)) { bd = dd; t = e; } }
-        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * allyDmg(run) * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
+        if (t) { c.cd = 0.7; const a = aimAt(run, c.x, c.y, t, 480, 0.8); run.bullets.push({ x: c.x, y: c.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 12 * p.dmgMult, pierce: 0, t: 0.8, hit: new Set(), turret: true }); } }
     } else if (c.kind === 'jammer') {
       for (const e of run.enemies) if (e.type !== 'resonator' && dist2(e.x, e.y, c.x, c.y) < 240 * 240) e.blind = 0.25;
     }
@@ -1951,7 +1971,7 @@ function updateBase(run, dt) {
   if (b.cd <= 0 && !b.breached) {
     const fk = 1 + FORTIFY.gun * lat('fortify'), reach = 380 * fk; let t = null, bd = reach * reach;
     for (const e of run.enemies) { const d = dist2(e.x, e.y, b.x, b.y); if (d < bd) { bd = d; t = e; } }
-    if (t) { b.cd = 0.8; const a = aimAt(run, b.x, b.y, t, 480, fk); run.bullets.push({ x: b.x, y: b.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 14 * fk * allyDmg(run) * run.p.dmgMult, pierce: 0, t: fk, hit: new Set(), turret: true }); }
+    if (t) { b.cd = 0.8; const a = aimAt(run, b.x, b.y, t, 480, fk); run.bullets.push({ x: b.x, y: b.y, vx: Math.cos(a) * 480, vy: Math.sin(a) * 480, r: 4, dmg: 14 * fk * run.p.dmgMult, pierce: 0, t: fk, hit: new Set(), turret: true }); }
   }
   // assault: high heat sends Noise at the base instead of you
   if (run.heat >= 6 && !run.assault && run.assaultCd <= 0) { run.assault = true; run.assaultT = 0; run.assaultLeft = 40; toast(run, 'Heat 3: enemies are marching on your base. Hold 40 seconds.'); SFX.boss(); tip(run, 'assault', { at: b }); }
@@ -2009,9 +2029,9 @@ function updateMotes(run, dt) {
       else if (!run.tut) m.bat -= 4 * dt; // tutorial: no battery pressure while learning
       // gathers XP and parts it can see; you collect them when it comes within HANDOVER_R of you (or you of it)
       if (!m.jammed) for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < run.moteVision * run.moteVision) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { if (g.part) m.cargoParts = (m.cargoParts || 0) + g.part; else m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } }
-      // jamming: any Null within 230 blinds the Mote
+      // jamming: a Jammer within its ring (JAM_R) blinds the Mote
       let jam = false;
-      for (const e of run.enemies) if (e.type === 'null' && dist2(e.x, e.y, m.x, m.y) < 230 * 230) { jam = true; break; }
+      for (const e of run.enemies) if (e.type === 'null' && dist2(e.x, e.y, m.x, m.y) < JAM_R(e) ** 2) { jam = true; break; }
       if (jam && !m.jammed) { toast(run, 'Drone jammed by a Jammer'); SFX.jam(); }
       m.jammed = jam;
       // contact: Noise wears the Mote down
@@ -2081,7 +2101,7 @@ function relocateMote(run, m) { // tier 3: pick the nearest free perch with no J
   let best = null, bd = 1e12;
   for (const a of run.anchors) {
     if (a.mote || a === m.anchor) continue;
-    if (run.enemies.some(e => e.type === 'null' && dist2(e.x, e.y, a.x, a.y) < 280 * 280)) continue;
+    if (run.enemies.some(e => e.type === 'null' && dist2(e.x, e.y, a.x, a.y) < (JAM_R(e) + 50) ** 2)) continue; /* clear of any Jammer or Warden ring, with room */
     const d = dist2(a.x, a.y, m.x, m.y); if (d < bd) { bd = d; best = a; }
   }
   if (!best) return;
@@ -2139,17 +2159,18 @@ function updateEnemies(run, dt) {
       if (aim) {
         e.cd = 2.6;
         const base = Math.atan2(aim.y - e.y, aim.x - e.x);
-        for (let i = -2; i <= 2; i++) run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(base + i * 0.22) * 150, vy: Math.sin(base + i * 0.22) * 150, r: 5, dmg: e.dmg, t: 4 });
+        const fan = form(e).fan, gap = form(e).gap; /* a Heavy Gunner fires 7 */
+        for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: 5, dmg: e.dmg, t: 4 }); }
       }
     } else if (e.type === 'resonator') {
       e.ang += dt * 0.8;
       if (d < 150) { mx *= 0.2; my *= 0.2; }
       e.cd -= dt; e.spawnCd -= dt;
       if (e.cd <= 0 && d < 460) {
-        e.cd = 3.6; const n = 12, off = e.ang;
+        e.cd = 3.6; const n = form(e).ring, off = e.ang;
         for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: 6, dmg: e.dmg, t: 3.5 }); }
       }
-      if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < 4 && es.length < ENEMY_CAP; i++) { const s = makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); for (let k = 0; k < 5; k++) spark(run, s.x, s.y, '#ffb347'); } tip(run, 'summon', { at: e }); }
+      if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < (run.z.bossAdds || 4) && es.length < ENEMY_CAP; i++) { const s = makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); for (let k = 0; k < 5; k++) spark(run, s.x, s.y, '#ffb347'); } tip(run, 'summon', { at: e }); }
     } else if (e.type === 'null') {
       e.ang += dt * 0.5;
     } else {
@@ -2195,7 +2216,7 @@ function killEnemy(run, e, idx) {
   run.gold += e.gold;
   run.gems.push({ x: e.x + rnd(-6, 6), y: e.y + rnd(-6, 6), v: e.xp, t: 0 });
   if (Math.random() < (e.type === 'static' ? 0.02 : 0.08)) run.gems.push({ x: e.x, y: e.y, v: 0, heal: 12, t: 0 });
-  if (Math.random() < ENEMY[e.type].parts) run.gems.push({ x: e.x + rnd(-8, 8), y: e.y + rnd(-8, 8), v: 0, part: e.type === 'resonator' ? 20 : 1, t: 0 });
+  if (Math.random() < ENEMY[e.type].parts * (e.tier ? 2 : 1)) run.gems.push({ x: e.x + rnd(-8, 8), y: e.y + rnd(-8, 8), v: 0, part: e.type === 'resonator' ? 20 : 1, t: 0 });
   for (let i = 0; i < (e.type === 'resonator' ? 40 : 4); i++) spark(run, e.x, e.y, ENEMY_COLOR[e.type]);
   SFX.kill(); if (e.maxhp >= 200 && !e.isCore && e.type !== 'resonator') buzz(18); // a big kill you can feel
   if (e.type === 'resonator') { run.boss = null; SFX.win(); endRun(run, true); }
@@ -2673,20 +2694,13 @@ function updateStrikes(run, dt) {
 }
 
 /* ---------- constructions ---------- */
-/* Your turrets, the base turret and gun drones keep up with the enemies (Lance 10-08 15:55: "I had like 5 turrets. are
-   they not shooting?" They were, at World 1 strength, against enemies with 2-4x the HP). allyDmg: zone difficulty x the
-   run-time growth enemy HP gets (heat left out: that one is yours to manage). buildHp: sqrt(diff), the factor enemy
-   contact damage gets. Repairs scale with buildHp so they take the same time everywhere. */
-const zoneDiff = run => (run.z && run.z.diff) || 1;
-const allyDmg = run => zoneDiff(run) * (1 + 0.13 * (run.t || 0) / 60);
-const buildHp = run => Math.sqrt(zoneDiff(run));
-const BUILDS = { turret: { name: 'Turret', cost: 30, desc: 'Shoots anything within 320px it has a clear line to (no Drone needed). Stronger in harder zones.' }, jammer: { name: 'Jammer', cost: 25, desc: 'Blinds enemies within 240px: they wander and cannot dash or shoot.' } };
+const BUILDS = { turret: { name: 'Turret', cost: 30, desc: 'Shoots anything within 320px it has a clear line to (no Drone needed).' }, jammer: { name: 'Jammer', cost: 25, desc: 'Blinds enemies within 240px: they wander and cannot dash or shoot.' } };
 function build(run, kind) {
   const b = BUILDS[kind], p = run.p;
   if (run.parts < b.cost) { toast(run, `Need ${b.cost} parts for a ${b.name}`); return false; }
   if (run.builds.length >= 6) { toast(run, 'Six constructions max'); return false; }
   if (inWall(run, p.x, p.y) || run.builds.some(c => dist2(c.x, c.y, p.x, p.y) < 90 * 90)) { toast(run, 'Too close to another construction'); return false; }
-  const hp = 220 * buildHp(run); run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp, maxhp: hp, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
+  const hp = 220; run.parts -= b.cost; run.builds.push({ kind, x: p.x, y: p.y, hp, maxhp: hp, cd: 0 }); toast(run, `${b.name} placed`); SFX.mote();
   if (kind === 'jammer') tip(run, 'jammer_on', { at: p });
   return true;
 }
@@ -2742,7 +2756,7 @@ function updateUnits(run, dt) {
         if (!pressed && inRange.length > 1) t = droneTarget(run, inRange, true) || t; // otherwise your Drone targets choice comes first
         if (t && t.isCore && !t.hive.found) { t.hive.found = true; toast(run, 'Your gun drones found a hive'); }
         if (!t) u.cd = 0.2; // nothing in range: look again shortly, not every frame
-        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * allyDmg(run) * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
+        if (t) { u.cd = U.every; const an = aimAt(run, u.x, u.y, t, 480, 0.7); run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * 480, vy: Math.sin(an) * 480, r: 3, dmg: U.dmg * p.dmgMult, pierce: 0, t: 0.7, hit: new Set(), turret: true }); }
       }
     } else if (u.kind === 'fix') { // repair bot: downed Drones first, then worn constructions, then the base, else stay by you
       const down = run.motes.find(m => m.state === 'dimmed'), hit = b.breached || b.alarm > 0, worn = run.builds.filter(c => c.hp < c.maxhp * 0.9).sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
@@ -2750,7 +2764,7 @@ function updateUnits(run, dt) {
       if (job) { tx = job.x; ty = job.y; } else { tx = p.x - 40; ty = p.y + 40; }
       if (job && dist2(u.x, u.y, job.x, job.y) < (job === b ? BASE_R : U.near) ** 2) {
         if (job === down) { if ((u.work = (u.work || 0) + dt) >= U.reviveT) { u.work = 0; down.state = 'follow'; down.bat = down.maxBat * 0.5; down.hp = 60; run.revives = (run.revives || 0) + 1; toast(run, 'Repair bot revived a Drone'); SFX.mote(); } }
-        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * buildHp(run) * dt);
+        else if (job === worn) worn.hp = Math.min(worn.maxhp, worn.hp + U.healBuild * dt);
         else repairBase(run, U.healBase * dt);
       } else u.work = 0;
     } else if (u.kind === 'eng') { // Engineer: rebuild a missing barricade, repair the most worn barricade or build, else wait at the base
@@ -2768,7 +2782,7 @@ function updateUnits(run, dt) {
         if (kind === 'build' && there) { if (slotClear(run, job, true)) { if ((u.work = (u.work || 0) + dt) >= ENG.buildT) { u.work = 0; placeBarricade(run, job); tip(run, 'barricade', { at: job.wall ? { x: job.x + job.w / 2, y: job.y + job.h / 2 } : u }); } } }
         else u.work = 0;
         if (kind === 'fix' && there) job.wall.hp = Math.min(job.wall.maxhp, job.wall.hp + ENG.heal * dt);
-        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + ENG.heal * buildHp(run) * dt);
+        if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + ENG.heal * dt);
         u.job = kind;
       }
     } else { // scavenger: flee what it sees, otherwise fetch and carry home
@@ -2920,8 +2934,9 @@ function drawEnemy(ctx, e, p, now, flat) { // caller has checked it is in sight 
     poly(ctx, e.x, e.y, e.r, 7, e.ang); ctx.stroke(); poly(ctx, e.x, e.y, e.r * 0.66, 7, -e.ang * 1.5); ctx.stroke(); poly(ctx, e.x, e.y, e.r * 0.3, 7, e.ang * 2); ctx.fill();
     ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80, 6); ctx.fillStyle = '#ffb347'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80 * Math.max(0, e.hp / e.maxhp), 6);
   }
+  if (e.tier) { ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 5, 0, 6.283); ctx.stroke(); } // evolved form
 }
-function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, 230, 0, 6.283); ctx.stroke(); }
+function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, JAM_R(e), 0, 6.283); ctx.stroke(); }
 function drawMote(ctx, m, run, now, flat) {
   if (m.state === 'dimmed') { ctx.strokeStyle = 'rgba(200,200,220,0.5)'; ctx.lineWidth = 1.5; poly(ctx, m.x, m.y, 7, 5, now); ctx.stroke(); ctx.fillStyle = 'rgba(200,200,220,0.5)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('down', m.x, m.y + 20); return; }
   ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; poly(ctx, m.x, m.y, 6, 5, now * 2 + m.id); ctx.fill();
@@ -4148,7 +4163,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { allyDmg, buildHp, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
