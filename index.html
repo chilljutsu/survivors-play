@@ -110,6 +110,12 @@
   .qrow .qbar { grid-column:1 / span 2; height:4px; background:var(--line); border-radius:2px; overflow:hidden; } .qrow .qbar i { display:block; height:100%; background:var(--cyan); }
   .qrow button { grid-column:1 / span 2; text-align:center; border-color:var(--amber); color:var(--amber); padding:9px; }
   .qrow small { grid-column:1 / span 2; color:var(--dim); font-size:12px; }
+  .rrow { border:1px solid var(--line); border-radius:6px; padding:6px 10px 5px; display:grid; grid-template-columns:1fr auto; gap:4px 8px; align-items:baseline; text-align:left; }
+  .rrow b { font-weight:500; font-size:14px; } .rrow em { font-style:normal; color:var(--cyan); font-size:12px; margin-left:8px; }
+  .rrow small { color:var(--dim); font-size:12px; text-align:right; white-space:nowrap; }
+  .rrow .qbar { grid-column:1 / span 2; height:3px; background:var(--line); border-radius:2px; overflow:hidden; } .rrow .qbar i { display:block; height:100%; background:var(--amber); }
+  .rtop { display:flex; justify-content:space-between; align-items:center; font-size:14px; } .rnote { margin:0; font-size:12px; color:var(--dim); }
+  .rprof { font-size:12px; padding:5px 12px; width:auto; }
   select, input[type=number] { font:inherit; color:var(--ink); background:var(--field); border:1px solid var(--line); border-radius:6px; padding:11px 12px; width:100%; box-sizing:border-box; }
   button.row.mod { border-style:dashed; } button.row.mod.on { border-style:solid; border-color:var(--amber); } button.row.mod.on em { color:var(--amber); }
   #btn-quests { position:relative; } #btn-quests.pts::after { content:''; position:absolute; top:50%; right:14px; width:9px; height:9px; margin-top:-4px; border-radius:50%; background:var(--amber); }
@@ -192,6 +198,7 @@
   <h1>SURVIVORS<small>working build. The name is yours to pick.</small></h1>
   <div class="stat"><b id="m-gold">0</b> gold banked</div>
   <div class="stat" id="m-streak"></div>
+  <div class="stat" id="m-level" hidden></div>
   <div class="stat" id="m-cleared"></div>
   <button class="primary" id="btn-zones">Enter the field</button>
   <button id="btn-quests">Quests and goals</button>
@@ -241,17 +248,12 @@
 <div id="quests" class="screen fit"><div class="col">
   <h2>Quests and goals</h2>
   <div class="itip" id="it-quests" hidden></div>
-  <div id="q-tabs" class="tabs"></div>
+  <div id="q-tabs" class="tabs four"></div>
   <div id="q-pages" class="col grow">
   <div id="q-day" class="col"></div>
   <div id="q-week" class="col"></div>
-  <div id="q-goalspage" class="col"><div id="q-goals" class="col"></div>
-  <details id="q-add"><summary>Add a goal</summary><div class="col" style="padding-top:8px">
-    <select id="g-ex"></select>
-    <input id="g-target" type="number" inputmode="decimal" step="any" placeholder="Target">
-    <select id="g-by"><option value="week">By the end of this week</option><option value="month">By the end of this month</option><option value="year">By the end of this year</option></select>
-    <button class="primary" id="btn-goal-add">Add goal</button>
-  </div></details></div>
+  <div id="q-goalspage" class="col"><div id="q-goals" class="col"></div></div>
+  <div id="q-ratings" class="col"></div>
   </div>
   <p id="q-msg"></p>
   <button class="back">Back</button>
@@ -333,6 +335,7 @@
 <div id="settings" class="screen"><div class="col">
   <h2>Settings</h2>
   <p id="set-msg"></p>
+  <button class="row" id="btn-profile"></button>
   <button class="row" id="btn-mute"></button>
   <button class="row" id="btn-tips"></button>
   <button class="row" id="btn-tips-reset"><b>Replay the tutorial</b><span>Shows the practice run and every tip card again from your next run.</span></button>
@@ -340,6 +343,12 @@
   <button class="row" id="btn-skin"></button>
   <button class="row" id="btn-spawn"></button>
   <button class="row" id="btn-backup"><b>Backup or restore save</b><span>Your save as text, for moving to a new install.</span></button>
+  <button class="back">Back</button>
+</div></div>
+
+<div id="profile" class="screen"><div class="col">
+  <h2>Your profile</h2>
+  <div id="pf-box" class="col"></div>
   <button class="back">Back</button>
 </div></div>
 
@@ -537,7 +546,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s9';
+const BUILD_ID = 'playtest 2026-10-08 s10';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -584,20 +593,20 @@ function stepDay(st, today) {
   return note;
 }
 
-/* Strength bands: approximate 1RM / bodyweight ratios for a male lifter (Beginner..Elite), in line with the
-   commonly published bodyweight-ratio standards. StrengthLevel has no public API, so these are built in and
-   only an estimate. */
+/* Strength bands: approximate 1RM / bodyweight ratios (Beginner..Elite), in line with the commonly published
+   bodyweight-ratio standards. `bands` is the male column, `female` the female one. StrengthLevel has no public API,
+   so these are built in and only an estimate. Which column applies comes from the profile (Settings). */
 const BAND_NAMES = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'];
 const LIFTS = {
-  squat:    { name: 'Squat',          bands: [0.75, 1.25, 1.5, 2.25, 2.75] },
-  bench:    { name: 'Bench press',    bands: [0.5, 0.75, 1.25, 1.75, 2.0] },
-  deadlift: { name: 'Deadlift',       bands: [1.0, 1.5, 2.0, 2.5, 3.0] },
-  press:    { name: 'Overhead press', bands: [0.4, 0.55, 0.8, 1.05, 1.35] },
-  clean:    { name: 'Power clean',    bands: [0.5, 0.75, 1.0, 1.25, 1.6] },
+  squat:    { name: 'Squat',          bands: [0.75, 1.25, 1.5, 2.25, 2.75], female: [0.5, 0.75, 1.0, 1.5, 1.75] },
+  bench:    { name: 'Bench press',    bands: [0.5, 0.75, 1.25, 1.75, 2.0],  female: [0.25, 0.5, 0.75, 1.0, 1.25] },
+  deadlift: { name: 'Deadlift',       bands: [1.0, 1.5, 2.0, 2.5, 3.0],     female: [0.5, 1.0, 1.25, 1.75, 2.25] },
+  press:    { name: 'Overhead press', bands: [0.4, 0.55, 0.8, 1.05, 1.35],  female: [0.2, 0.35, 0.5, 0.75, 0.9] },
+  clean:    { name: 'Power clean',    bands: [0.5, 0.75, 1.0, 1.25, 1.6],   female: [0.3, 0.45, 0.65, 0.85, 1.1] },
 };
 const BAND_BONUS = 100;
 const e1rm = (w, reps) => reps <= 1 ? w : w * (1 + reps / 30); // Epley
-function liftBand(lift, oneRm, bw) { if (!bw) return -1; const r = oneRm / bw; let b = -1; LIFTS[lift].bands.forEach((t, i) => { if (r >= t) b = i; }); return b; }
+function liftBand(lift, oneRm, bw) { if (!bw) return -1; const r = oneRm / bw; let b = -1; liftBars(lift).forEach((t, i) => { if (r >= t) b = i; }); return b; }
 function bestBands(logs) { // highest band reached per lift across a log list
   const out = {};
   for (const l of logs) for (const x of ((l.detail && l.detail.lifts) || [])) { const b = liftBand(x.lift, e1rm(x.w, x.reps), l.detail.bw); if (b > (out[x.lift] ?? -1)) out[x.lift] = b; }
@@ -621,6 +630,7 @@ function logWorkout(id, now, detail) {
     if (b > (before[x.lift] ?? -1)) { bonus += BAND_BONUS * (b - (before[x.lift] ?? -1)); before[x.lift] = b; line += ' (new band)'; }
     lines.push(line + '.');
   }
+  if (detail && detail.bw > 0) SAVE.bodyweight = detail.bw; // the latest bodyweight feeds Ratings
   SAVE.gold += gold + bonus; statAdd('workouts', 1, now);
   SAVE.logs.unshift({ id, day: today, gold, bonus, ts: now.getTime(), detail: detail || null });
   SAVE.logs = SAVE.logs.slice(0, 400);
@@ -631,6 +641,7 @@ function logWorkout(id, now, detail) {
 function undoLog(ts) {
   const i = SAVE.logs.findIndex(l => l.ts === ts); if (i < 0) return null;
   const l = SAVE.logs.splice(i, 1)[0]; statAdd('workouts', -1);
+  if (l.detail && l.detail.bw) { const prev = SAVE.logs.find(x => x.detail && x.detail.bw > 0); if (prev) SAVE.bodyweight = prev.detail.bw; } // a mistyped bodyweight goes with its log
   SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0));
   const st = { streak: 0, freezes: 2, lastLog: null };
   const days = [...new Set(SAVE.logs.map(x => x.day))].sort((a, b) => daysBetween(b, a));
@@ -669,6 +680,7 @@ const GOALS = {
     squat: { name: 'Squat, est. 1 rep max (lb)' }, bench: { name: 'Bench press, est. 1 rep max (lb)' }, deadlift: { name: 'Deadlift, est. 1 rep max (lb)' },
     press: { name: 'Overhead press, est. 1 rep max (lb)' }, clean: { name: 'Power clean, est. 1 rep max (lb)' },
     run_mi: { name: 'Run distance in one run (mi)' }, run_pace: { name: 'Run pace (minutes per mile)', less: true }, cindy: { name: 'Cindy rounds' },
+    bjj_n: { name: 'BJJ sessions', count: 'bjj' }, dance_n: { name: 'Dance sessions', count: 'dance' },
   },
 };
 const MODS = [ // one per calendar day, opt in on the zone screen
@@ -703,18 +715,102 @@ function addGoal(ex, target, period, now) {
 }
 function goalBest(g) { // best value logged for this goal's exercise inside its window
   let best = null; const better = (v) => { if (v == null || !isFinite(v)) return; if (best == null || (GOALS.ex[g.ex].less ? v < best : v > best)) best = v; };
+  const cnt = GOALS.ex[g.ex].count; if (cnt) return SAVE.logs.filter(l => l.id === cnt && l.ts >= g.from && l.ts < g.until).length; // sessions in the window
   for (const l of SAVE.logs) {
     if (!l.ts || l.ts < g.from || l.ts >= g.until || !l.detail) continue; const d = l.detail;
     if (LIFTS[g.ex]) for (const x of d.lifts || []) if (x.lift === g.ex) better(e1rm(x.w, x.reps));
     if (g.ex === 'run_mi' && l.id === 'run') better(+d.mi);
-    if (g.ex === 'run_pace' && l.id === 'run' && d.mi > 0 && d.min > 0) better(d.min / d.mi);
+    if (g.ex === 'run_pace' && l.id === 'run' && (g.auto ? d.mi >= RATINGS.pace.minMi : d.mi > 0) && d.min > 0) better(d.min / d.mi); // dealt goals: a mile or more, as in Ratings
     if (g.ex === 'cindy' && l.id === 'cindy') better(+d.rounds + (+d.extra || 0) / 30); // 30 reps a round, as in the history chart
   }
   return best;
 }
-const fmtGoal = (ex, v) => ex === 'run_pace' ? `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, '0')}/mi` : ex === 'run_mi' || ex === 'cindy' ? (Math.round(v * 10) / 10).toString() : Math.round(v).toString(); // how a goal number reads
+const fmtPace = m => { const t = Math.round(m * 60); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }; // 7.999 reads 8:00, not 7:60
+const fmtGoal = (ex, v) => ex === 'run_pace' ? fmtPace(v) + '/mi' : ex === 'run_mi' || ex === 'cindy' ? (Math.round(v * 10) / 10).toString() : Math.round(v).toString(); // how a goal number reads
 const goalMet = g => { const b = goalBest(g); return b != null && (GOALS.ex[g.ex].less ? b <= g.target : b >= g.target); };
 function claimGoal(i) { const g = (SAVE.goals || [])[i]; if (!g || g.claimed || !goalMet(g)) return 0; g.claimed = true; SAVE.gold += g.reward; persist(SAVE); return g.reward; }
+/* Ratings and dealt goals (s10, Lance 10-08: "I want the goals to be determined by you, like Liftoff or StrengthLevel,
+   a rating like novice and advanced"). Lifts use LIFTS (est. 1RM / bodyweight, by the profile's sex). Run: best pace
+   over runs of a mile or more. Cindy: best rounds. BJJ and dance: sessions a week over the last 4 weeks. Bests count
+   for a year. Past 40 the lift, run and Cindy bars ease 1% a year (max 30%). Pace and Cindy bars are approximations. */
+const RATINGS = {
+  pace: { male: [12, 10, 8.5, 7.25, 6.25], female: [13.5, 11.5, 9.75, 8.25, 7.25], minMi: 1 }, // minutes per mile, lower is better
+  cindy: { male: [8, 12, 16, 20, 25], female: [6, 10, 14, 18, 22] },
+  weekly: [0.5, 1, 2, 3, 4], weeks: 4, window: 365,
+  age: { from: 40, per: 0.01, max: 0.3 },
+  step: { lift: 0.025, cindy: 1, pace: 10 / 60 }, // the weekly PR step: +2.5% est. 1RM, +1 round, 10 s/mi faster
+  keep: 7, // days a dealt goal stays listed after it ends
+};
+const RATED = [...Object.keys(LIFTS), 'run', 'cindy', 'bjj', 'dance'];
+const RATED_NAME = { run: 'Run pace', cindy: 'Cindy', bjj: 'BJJ', dance: 'Dance' };
+const profileSex = () => (SAVE.profile && SAVE.profile.sex) || 'male';
+const ageEase = () => { const a = SAVE.profile && +SAVE.profile.age, A = RATINGS.age; return a > A.from ? Math.min(A.max, (a - A.from) * A.per) : 0; };
+const liftBars = lift => (profileSex() === 'female' ? LIFTS[lift].female : LIFTS[lift].bands).map(t => t * (1 - ageEase()));
+function ratingOf(key, now) {
+  now = now || new Date(); const T = now.getTime(), t0 = T - RATINGS.window * 864e5, sex = profileSex(), ease = ageEase();
+  const r = { key, name: LIFTS[key] ? LIFTS[key].name : RATED_NAME[key], value: null, level: -1, bars: null, less: key === 'run', prog: 0, goalEx: null };
+  const logs = SAVE.logs.filter(l => (l.ts || 0) >= t0 && (l.ts || 0) <= T);
+  if (LIFTS[key]) { // level from the best ratio (bodyweight on the day); the bars read in lb at today's bodyweight
+    let best = null;
+    for (const l of logs) for (const x of (l.detail && l.detail.lifts) || []) if (x.lift === key && x.w > 0) { const bw = l.detail.bw || SAVE.bodyweight, one = e1rm(x.w, x.reps); if (bw > 0 && (!best || one / bw > best.ratio)) best = { ratio: one / bw, one, bw }; }
+    if (!best) return r;
+    const bw = SAVE.bodyweight || best.bw, rb = liftBars(key);
+    Object.assign(r, { value: best.one, bars: rb.map(t => t * bw), goalEx: key, level: rb.reduce((b, t, i) => (best.ratio >= t ? i : b), -1) }); // the lift as logged; level by its own bodyweight, bars at today's
+  } else {
+    if (key === 'run') { for (const l of logs) if (l.id === 'run' && l.detail && l.detail.mi >= RATINGS.pace.minMi && l.detail.min > 0) { const p = l.detail.min / l.detail.mi; if (r.value == null || p < r.value) r.value = p; } r.bars = RATINGS.pace[sex].map(t => t * (1 + ease)); r.goalEx = 'run_pace'; }
+    else if (key === 'cindy') { for (const l of logs) if (l.id === 'cindy' && l.detail && l.detail.rounds != null) { const v = +l.detail.rounds + (+l.detail.extra || 0) / 30; if (r.value == null || v > r.value) r.value = v; } r.bars = RATINGS.cindy[sex].map(t => t * (1 - ease)); r.goalEx = 'cindy'; }
+    else if (logs.some(l => l.id === key)) { /* trained in the last year */ r.value = logs.filter(l => l.id === key && l.ts >= T - RATINGS.weeks * 7 * 864e5).length / RATINGS.weeks; r.bars = RATINGS.weekly; r.goalEx = key + '_n'; }
+    if (r.value == null) return r;
+    r.level = r.bars.reduce((b, t, i) => ((r.less ? r.value <= t : r.value >= t) ? i : b), -1);
+  }
+  const next = r.level < 4 ? r.bars[r.level + 1] : null, lo = r.level >= 0 ? r.bars[r.level] : r.less ? r.bars[0] * 1.25 : 0;
+  r.prog = next == null ? 1 : clamp(r.less ? (lo - r.value) / (lo - next) : (r.value - lo) / (next - lo), 0, 1);
+  return r;
+}
+const hasProfile = () => !!(SAVE.profile && SAVE.profile.sex); // nothing is rated or dealt before the profile says which standards apply
+function overallLevel(now) { // floor of the average level over everything rated
+  if (!hasProfile()) return null;
+  const rs = RATED.map(k => ratingOf(k, now)).filter(r => r.value != null); if (!rs.length) return null;
+  const lv = Math.floor(rs.reduce((a, r) => a + r.level, 0) / rs.length + 1e-9);
+  return { level: lv, name: lv >= 0 ? BAND_NAMES[lv] : 'Getting started', n: rs.length };
+}
+const GOAL_DAYS = { week: 7, month: 30, year: 365 };
+function periodStart(period, now) { const y = now.getFullYear(), m = now.getMonth(); return (period === 'week' ? new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7)) : period === 'month' ? new Date(y, m, 1) : new Date(y, 0, 1)).getTime(); }
+// the number a dealt goal asks for: week = a small PR step, month = halfway to the next level, year = the next level
+function goalTarget(r, period, now) {
+  const v = r.value, L = r.level, next = L < 4 ? r.bars[L + 1] : null, after = L < 3 ? r.bars[L + 2] : null, S = RATINGS.step, up = next == null ? null : BAND_NAMES[L + 1];
+  if (GOALS.ex[r.goalEx].count) { // sessions inside the period
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), inPeriod = SAVE.logs.filter(l => l.id === r.key && l.ts >= today && l.ts <= now.getTime()).length; // already done today
+    const rate = period === 'week' ? clamp(Math.round(v) + 1, 1, 6) : period === 'month' ? Math.ceil(Math.max(v + 0.5, next != null ? (v + next) / 2 : v + 1) * 4) : Math.ceil((next != null ? next : v + 1) * 48);
+    return { t: Math.max(rate, inPeriod + 1), why: period === 'week' ? 'One more than your usual week' : period === 'month' ? (up ? `Halfway to ${up}` : 'Past Elite') : (up ? `${up} pace for a year` : 'Past Elite') };
+  }
+  const less = r.less, step = r.key === 'cindy' ? S.cindy : less ? S.pace : v * S.lift, dir = less ? -1 : 1, by = k => v + dir * step * k;
+  const beyond = (a, b) => (less ? Math.min(a, b) : Math.max(a, b)), gap = next == null ? 0 : Math.abs(next - v);
+  let t, why;
+  if (period === 'week') { t = by(1); why = 'A small step past your best'; }
+  else if (period === 'month') { t = next != null ? beyond(by(2), v + (next - v) / 2) : by(2); why = !up ? 'Past Elite' : (less ? t <= next : t >= next) ? `Reach ${up}` : `Halfway to ${up}`; } // always past the week's step
+  else if (next != null && after != null && gap < 2 * step) { t = after; why = `Two levels up: ${BAND_NAMES[L + 2]}`; }
+  else { t = next != null ? beyond(next, by(1)) : by(4); why = up ? `Reach ${up}` : 'Past Elite'; }
+  t = r.key === 'cindy' ? Math.ceil(t - 1e-9) : less ? Math.floor(t * 12 + 1e-9) / 12 : Math.ceil(t / 5 - 1e-9) * 5; // whole rounds, 5 s/mi, 5 lb
+  return { t, why };
+}
+function dealGoals(now) { // one goal per week, month and year from what you actually log; each runs a full 7, 30 or 365 days from the day it is dealt
+  now = now || new Date(); const T = now.getTime(), before = (SAVE.goals || []).length;
+  SAVE.goals = (SAVE.goals || []).filter(g => !g.auto || T - g.until < RATINGS.keep * 864e5 || (!g.claimed && goalMet(g))); // a met goal waits for its claim
+  const goals = SAVE.goals; let n = 0;
+  const rs = hasProfile() ? RATED.map(k => ratingOf(k, now)).filter(r => r.value != null) : [];
+  if (rs.length) for (const period of ['week', 'month', 'year']) {
+    if (goals.some(g => g.auto && g.period === period && T < g.until)) continue;
+    const key = period + ':' + dayKey(now);
+    const busy = new Set(goals.filter(g => g.auto && !g.claimed && T < g.until).map(g => g.ex)); // a different exercise per period where possible
+    const order = rs.map(r => [hashStr(key + r.key), r]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const r = order.find(q => !busy.has(q.goalEx)) || order[0], G = goalTarget(r, period, now);
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    goals.push({ ex: r.goalEx, target: G.t, period, from, until: from + GOAL_DAYS[period] * 864e5, reward: GOALS.reward[period], claimed: false, auto: key, why: G.why });
+    n++;
+  }
+  if (n || goals.length !== before) persist(SAVE); return n;
+}
 const anyClaimable = () => { const Q = SAVE.quests || {}; return ['day', 'week'].some(k => Q[k] && Q[k].list.some(q => !q.claimed && questProg(q) >= q.need)) || (SAVE.goals || []).some(g => !g.claimed && goalMet(g)); };
 
 /* ---------- audio + haptics ---------- */
@@ -1300,7 +1396,8 @@ const TIPS = {
   hard:     { group: 'Between runs', title: 'Hard mode unlocked', body: 'You cleared a zone, so its Hard mode is open: the original tuning, about twice the enemies and harder hits. The zone bonus pays 1.5x on Hard.' },
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
-  quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are yours: pick an exercise and a number, like a squat 1 rep max or a run pace, and a deadline. Log it in the workout ledger before then and claim the reward: 400 gold for a week, 1500 for a month, 6000 for a year.' },
+  quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
+  ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
   world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look and tougher numbers: more hives, more pressure. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
@@ -2510,7 +2607,7 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile'];
   let curScreen = 'menu';
   UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
@@ -2595,7 +2692,8 @@ if (HAS_DOM) {
     { const pips = (n, c) => ZONES.map((z, i) => `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); // cleared zones as marks, not words (Lance 10-07)
       el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
     el('m-ver').textContent = BUILD_ID;
-    ensureQuests(); el('btn-quests').classList.toggle('pts', anyClaimable()); // amber dot: a reward is waiting
+    { const ov = overallLevel(); el('m-level').hidden = !ov; if (ov) el('m-level').innerHTML = `Athlete level: <b>${ov.name}</b>`; }
+    ensureQuests(); dealGoals(); el('btn-quests').classList.toggle('pts', anyClaimable()); // amber dot: a reward is waiting
   };
   const hardOpen = i => i < SAVE.cleared || SAVE.playtest;
   UI.zones = () => {
@@ -2629,14 +2727,50 @@ if (HAS_DOM) {
     return { pos: LAT_SKY, links, stars, sel: latSel, groups: LAT_GROUPS };
   }
   window.latStarXY = id => { const c = el('lat-sky'), r = c.getBoundingClientRect(), [x, y] = skyXY(c, LAT_SKY[id]); return { x: r.left + x, y: r.top + y }; }; // for tests
-  const Q_TABS = ['Today', 'Week', 'Goals']; let questTab = 'Today';
+  const Q_TABS = ['Today', 'Week', 'Goals', 'Ratings']; let questTab = 'Today';
+  // the profile ratings compare against: a card on the Ratings tab until it is set, and Settings > Your profile
+  function profileForm(box, onSave) {
+    const P = SAVE.profile || {}; let sex = P.sex || null;
+    box.innerHTML = `<p>Ratings compare you with published standards for your sex and bodyweight, like StrengthLevel. Saved on this phone only.</p>`
+      + `<div class="chips pf-sex"><button class="chip${sex === 'male' ? ' on' : ''}" data-v="male">Male standards</button><button class="chip${sex === 'female' ? ' on' : ''}" data-v="female">Female standards</button></div>`
+      + `<label>Bodyweight (lb)<input class="pf-bw" type="number" inputmode="decimal" min="0" value="${SAVE.bodyweight || ''}"></label>`
+      + `<label>Age (optional: past 40 the bars ease a little)<input class="pf-age" type="number" inputmode="numeric" min="0" value="${P.age || ''}"></label>`
+      + `<button class="primary pf-save">Save profile</button><p class="pf-msg"></p>`;
+    const q = c => box.querySelector(c);
+    box.querySelectorAll('.pf-sex button').forEach(b => { b.onclick = () => { sex = b.dataset.v; box.querySelectorAll('.pf-sex button').forEach(x => x.classList.toggle('on', x === b)); }; });
+    q('.pf-save').onclick = () => {
+      if (!sex) { q('.pf-msg').textContent = 'Pick which standards to compare with.'; return; }
+      const bw = parseFloat(q('.pf-bw').value), age = parseFloat(q('.pf-age').value);
+      SAVE.profile = { sex, age: age > 0 ? Math.round(age) : null }; if (bw > 0) SAVE.bodyweight = bw; persist(SAVE); beep(660, 0.08, 'triangle', 0.05); onSave();
+    };
+  }
+  UI.profile = () => { UI.go('profile'); profileForm(el('pf-box'), () => UI.settings('Profile saved.')); };
+  const rNum = (r, v) => r.goalEx === 'run_pace' ? fmtPace(v) : LIFTS[r.key] ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+  const rUnit = r => r.goalEx.endsWith('_n') ? ' a week' : r.key === 'cindy' ? ' rounds' : r.goalEx === 'run_pace' ? '/mi' : ' lb';
+  const fmtRating = (r, v) => rNum(r, v) + rUnit(r);
+  function ratingsPage(box) {
+    if (!SAVE.profile || !SAVE.profile.sex) { profileForm(box, () => UI.quests('Profile saved.')); return; }
+    const rs = RATED.map(k => ratingOf(k)), rated = rs.filter(r => r.value != null), ov = overallLevel();
+    box.innerHTML = `<div class="rtop"><span>Overall: <b>${ov ? ov.name : 'not rated yet'}</b></span></div>`;
+    const pb = document.createElement('button'); pb.className = 'rprof'; pb.textContent = 'Profile'; pb.onclick = () => profileForm(box, () => UI.quests('Profile saved.')); box.firstChild.appendChild(pb);
+    for (const r of rated) { // one line each (tap for the full sentence): name, level, now -> next level's number
+      const next = r.level < 4 ? r.bars[r.level + 1] : null, lv = r.level >= 0 ? BAND_NAMES[r.level] : 'Below Beginner', d = document.createElement('button'); d.className = 'rrow';
+      d.innerHTML = `<span><b>${r.name}</b><em>${lv}</em></span><small>${next != null ? `${rNum(r, r.value)} → ${fmtRating(r, next)}` : `${fmtRating(r, r.value)}, top`}</small><div class="qbar"><i style="width:${Math.round(r.prog * 100)}%"></i></div>`;
+      d.onclick = () => { el('q-msg').textContent = `${r.name}: ${lv}, ${fmtRating(r, r.value)}${next != null ? `. ${fmtRating(r, next)} reaches ${BAND_NAMES[r.level + 1]}.` : '. That is the top level.'}`; };
+      box.appendChild(d);
+    }
+    const un = rs.filter(r => r.value == null);
+    if (un.length) { const p = document.createElement('p'); p.className = 'rnote'; p.textContent = rated.length ? `Not rated yet: ${un.map(r => r.name).join(', ')}.` : 'Log a lift, a run of a mile or more, Cindy, BJJ or dance to get rated.'; box.appendChild(p); }
+  }
   swipeTabs(el('quests'), dir => { questTab = cycle(Q_TABS, questTab, dir); UI.quests(); slideIn(el('q-pages'), dir); });
   UI.quests = (msg, fromMenu) => {
-    UI.go('quests'); inlineTip('it-quests', 'quests'); const Q = ensureQuests();
+    UI.go('quests'); const Q = ensureQuests(); dealGoals();
     { const ready = { Today: Q.day.list.some(q => !q.claimed && questProg(q) >= q.need), Week: Q.week.list.some(q => !q.claimed && questProg(q) >= q.need), Goals: (SAVE.goals || []).some(g => !g.claimed && goalMet(g)) };
       if (fromMenu && !ready[questTab]) questTab = Q_TABS.find(t => ready[t]) || questTab; // open where a reward waits
       renderTabs(el('q-tabs'), Q_TABS, questTab, t => { questTab = t; UI.quests(); }, null, t => ready[t] ? 'pts' : '');
-      for (const [t, id] of [['Today', 'q-day'], ['Week', 'q-week'], ['Goals', 'q-goalspage']]) el(id).hidden = t !== questTab; }
+      for (const [t, id] of [['Today', 'q-day'], ['Week', 'q-week'], ['Goals', 'q-goalspage'], ['Ratings', 'q-ratings']]) el(id).hidden = t !== questTab; }
+    inlineTip('it-quests', questTab === 'Ratings' ? 'ratings' : 'quests');
+    if (questTab === 'Ratings') ratingsPage(el('q-ratings'));
     const row = (text, prog, need, gold, claimed, onClaim, sub) => {
       const d = document.createElement('div'), done = prog >= need; d.className = 'qrow' + (claimed ? ' claimed' : done ? ' done' : '');
       d.innerHTML = `<b>${text}</b><em>${claimed ? 'Claimed' : '+' + gold + ' gold'}</em><div class="qbar"><i style="width:${Math.round(Math.min(1, prog / need) * 100)}%"></i></div>` + (sub ? `<small>${sub}</small>` : '');
@@ -2650,17 +2784,17 @@ if (HAS_DOM) {
     const gb = el('q-goals'); gb.innerHTML = ''; const now = Date.now();
     (SAVE.goals || []).forEach((g, i) => {
       const ex = GOALS.ex[g.ex], best = goalBest(g), met = goalMet(g), over = now >= g.until && !met;
-      const shown = best == null ? 'nothing logged yet' : `best ${fmtGoal(g.ex, best)}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
+      const shown = best == null ? 'Nothing logged yet' : `Best ${fmtGoal(g.ex, best)}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
       const prog = best == null ? 0 : ex.less ? (met ? 1 : Math.min(0.99, g.target / best)) : Math.min(1, best / g.target);
-      const d = row(`${ex.name}: ${fmtGoal(g.ex, g.target)}`, prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } }, over ? `Missed (${shown}). Hold Remove to clear it.` : `${shown}, ${left} day${left === 1 ? '' : 's'} left`);
-      if (over || g.claimed) { const hs = holdSell('Hold to remove', () => { SAVE.goals.splice(i, 1); persist(SAVE); UI.quests(); }); d.appendChild(hs); }
+      const cnt = ex.count ? `${best} of ${g.target}` : shown;
+      const d = row(`${ex.name}: ${fmtGoal(g.ex, g.target)}`, ex.count ? Math.min(1, best / g.target) : prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } },
+        (g.auto && g.why ? `This ${g.period}: ${g.why[0].toLowerCase() + g.why.slice(1)}. ` : '') + (over ? `Missed (${cnt}).${g.auto ? '' : ' Hold Remove to clear it.'}` : `${cnt}, ${left} day${left === 1 ? '' : 's'} left`));
+      if (!g.auto && (over || g.claimed)) { const hs = holdSell('Hold to remove', () => { SAVE.goals.splice(i, 1); persist(SAVE); UI.quests(); }); d.appendChild(hs); }
       gb.appendChild(d);
     });
-    if (!(SAVE.goals || []).length) gb.innerHTML = '<p>No goals yet. Pick an exercise and a number below: hit it in your ledger before the deadline.</p>';
+    if (!(SAVE.goals || []).length) gb.innerHTML = hasProfile() ? '<p>Goals are dealt each week, month and year from what you log. Log a lift, a run of a mile or more, Cindy, BJJ or dance to get your first ones.</p>' : '<p>Goals are dealt from your ratings. Set your profile on the Ratings tab first.</p>';
     el('q-msg').textContent = typeof msg === 'string' ? msg : '';
   };
-  { const ge = el('g-ex'); ge.innerHTML = Object.entries(GOALS.ex).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
-    el('btn-goal-add').onclick = () => { const g = addGoal(ge.value, parseFloat(el('g-target').value), el('g-by').value); if (!g) { el('q-msg').textContent = 'Enter a target number above zero.'; return; } el('g-target').value = ''; el('q-add').open = false; beep(660, 0.08, 'triangle', 0.05); UI.quests(`Goal added: ${GOALS.ex[g.ex].name} ${g.target}, worth ${g.reward} gold.`); }; }
   UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
     el('l-gold').textContent = Math.round(SAVE.gold);
@@ -2715,7 +2849,6 @@ if (HAS_DOM) {
     if (d.style) parts.push(d.style);
     return parts.join(', ');
   }
-  const fmtPace = m => `${Math.floor(m)}:${String(Math.round((m % 1) * 60)).padStart(2, '0')}`;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function recentList(box, logs, back) {
     box.innerHTML = '';
@@ -2766,7 +2899,7 @@ if (HAS_DOM) {
       const num = (root, k) => { const e = root.querySelector(`[data-k="${k}"]`); const v = e ? parseFloat(e.value) : NaN; return isFinite(v) ? v : null; };
       let detail = {};
       if (id === 'gym') {
-        const bw = num(box, 'bw'); if (bw) { detail.bw = bw; SAVE.bodyweight = bw; }
+        const bw = num(box, 'bw'); if (bw) detail.bw = bw;
         detail.lifts = [...box.querySelectorAll('.liftrow')].map(r => ({ lift: r.querySelector('[data-k="lift"]').value, w: num(r, 'w'), reps: num(r, 'reps') || 1, sets: num(r, 'sets') || 1 })).filter(x => x.w);
       } else for (const f of FORMS[id]) { const e = box.querySelector(`[data-k="${f.k}"]`); const v = f.text ? e.value.trim() : num(box, f.k); if (v !== null && v !== '') detail[f.k] = v; }
       const r = logWorkout(id, new Date(), Object.keys(detail).length ? detail : null);
@@ -3009,7 +3142,7 @@ if (HAS_DOM) {
   };
   el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
-  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', logform: 'log', hist: 'log' };
+  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', logform: 'log', hist: 'log' };
   function goBack() {
     const id = curScreen;
     if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
@@ -3246,6 +3379,7 @@ if (HAS_DOM) {
   const setRow = (id, title, on, desc) => { el(id).innerHTML = `<b>${title}</b><em>${on}</em><span>${desc}</span>`; };
   UI.settings = msg => {
     UI.go('settings'); el('set-msg').textContent = msg || '';
+    setRow('btn-profile', 'Your profile', SAVE.profile && SAVE.profile.sex ? (SAVE.profile.sex === 'female' ? 'Female' : 'Male') : 'Not set', 'Sex for standards, bodyweight and age, for your ratings and dealt goals.');
     setRow('btn-mute', 'Sound and vibration', SAVE.muted ? 'Off' : 'On', 'Beeps and haptic buzzes.');
     setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
     setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
@@ -3253,6 +3387,7 @@ if (HAS_DOM) {
     setRow('btn-spawn', 'Enemy spawns', SAVE.spawnAnywhere ? 'Anywhere off screen' : 'Only unwatched', 'Normally enemies only appear where neither you nor a Drone can see, so scouting matters. The other option spawns them anywhere outside your view.');
   };
   el('btn-settings').onclick = () => UI.settings();
+  el('btn-profile').onclick = () => UI.profile();
   el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.settings(); };
   el('btn-skin').onclick = () => { if (SAVE.cleared < EMBER_AT) { UI.settings(`Clear Zone ${EMBER_AT} first.`); return; } SAVE.skin = SAVE.skin === 'ember' ? 'static' : 'ember'; persist(SAVE); UI.settings(); };
   el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.settings(); };
@@ -3298,7 +3433,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { SWIPE, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { SWIPE, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
