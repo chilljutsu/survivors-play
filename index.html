@@ -516,7 +516,7 @@ const WEAPONS = {
   pulse: { name: 'Pulse',  evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
   orbit: { name: 'Orbit',  evo: 'Halo',      desc: 'Shards circle you.',                     evoDesc: 'Wide ring, more shards, knockback.' },
   nova:  { name: 'Nova',   evo: 'Supernova', desc: 'Periodic burst around you.',             evoDesc: 'Twice as fast, far larger.' },
-  lance: { name: 'Lance',  evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'Instant full-length wide line, double damage.' },
+  lance: { name: 'Lance',  evo: 'Rail',      desc: 'Piercing beam through the nearest.',     evoDesc: 'The widest cone, twice as long, double damage.' },
   field: { name: 'Field',  evo: 'Bastion',   desc: 'Damage aura. Stand your ground.',        evoDesc: 'Larger aura, slows enemies, regenerates you.' },
 };
 const PASSIVES = {
@@ -555,6 +555,7 @@ LATTICE.push({ id: 'tier', name: 'Drone autonomy', base: 300, max: 3, per: 1, fm
 // on certain targets autonomously"). Targets are chosen in Pause > Drone positions and used by Auto artillery,
 // Kamikaze strike level 2 and gun drones.
 const FORTIFY = { gun: 0.25, hp: 0.2 }; // per level (Lance 10-08: "my base is just a kill zone")
+const LANCE = { w0: 12, spread: [0.04, 0.0525, 0.065, 0.0775, 0.09], rail: 0.11 }; // cone: w0 wide at you, half-width grows by spread[level - 1] per px; Rail opens widest
 const AUTO_SHELL = { every: [0, 14, 10, 7], groupN: 5, groupR: 130, safeR: 200 };
 const DRONE_TARGETS = { jammer: { name: 'Jammers', type: 'null' }, gunner: { name: 'Gunners', type: 'harmonic' }, group: { name: 'Groups' }, boss: { name: 'Boss', type: 'resonator' } };
 const latticeCost = (u, lvl) => Math.round(u.base * Math.pow(1.35, lvl));
@@ -611,7 +612,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s17';
+const BUILD_ID = 'playtest 2026-10-08 s17b';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -2292,14 +2293,15 @@ function updateWeapons(run, dt) {
       run.ammo -= 4;
       const lvl = W.lance;
       wcd.lance = (ev.lance ? 1.0 : 1.6) * p.cdMult;
-      const a = Math.atan2(t.y - p.y, t.x - p.x), len = (ev.lance ? 720 : 380 + 20 * lvl) * p.area, w = ev.lance ? 32 : 10 + 3 * lvl; // levels widen the beam (Lance 10-08)
+      const a = Math.atan2(t.y - p.y, t.x - p.x), len = (ev.lance ? 720 : 380 + 20 * lvl) * p.area;
+      const sp = ev.lance ? LANCE.rail : LANCE.spread[clamp(lvl, 1, LANCE.spread.length) - 1], w = LANCE.w0 + 2 * sp * len; // a cone (Lance 10-08: "more of a cone, not just straight widening"); w: its far end
       const dmg = (22 + 8 * lvl) * p.dmgMult * (ev.lance ? 2 : 1);
       const bx = Math.cos(a), by = Math.sin(a);
       for (const e of run.enemies) {
         const ex = e.x - p.x, ey = e.y - p.y, proj = ex * bx + ey * by;
-        if (proj > 0 && proj < len) { const perp = Math.abs(ex * by - ey * bx); if (perp < w / 2 + e.r && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) damageEnemy(run, e, dmg); }
+        if (proj > 0 && proj < len) { const perp = Math.abs(ex * by - ey * bx); if (perp < LANCE.w0 / 2 + sp * proj + e.r && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) damageEnemy(run, e, dmg); }
       }
-      run.beams.push({ x: p.x, y: p.y, a, len, w, t: 0.18 });
+      run.beams.push({ x: p.x, y: p.y, a, len, w0: LANCE.w0, w, t: 0.18 });
       beep(1600, 0.08, 'sawtooth', 0.03, 0.4);
     }
   }
@@ -2476,11 +2478,11 @@ const TREE_SKY = {
 const SKILL_INFO = {
   'w:pulse': 'Your starting gun: a bolt at the nearest enemy you can see. Level 2 adds a second bolt and level 4 a third, each aimed at a different enemy; every level adds damage.',
   'w:orbit': 'Shards circle you and cut whatever they touch. Levels add shards and damage. Strong against Swarm that crowds you.',
-  'w:lance': 'A beam that pierces through the nearest enemy and everything lined up behind it. Levels add damage, length and width, so it catches more of a crowd.',
+  'w:lance': 'A beam that pierces through the nearest enemy and everything behind it. It is a cone: narrow at you, wider the farther it goes. Levels add damage and length and open the cone, so it catches more of a crowd.',
   'w:nova': 'Every few seconds a burst goes off around you and hits everything close. Levels add damage and size.',
   'w:field': 'An aura that hurts everything inside it every second. Levels widen it and hit harder. Good for standing your ground.',
   'e:pulse': 'Barrage, the stronger Pulse: three-way piercing bolts.', 'e:orbit': 'Halo, the stronger Orbit: a wide ring, more shards, and it knocks enemies back.',
-  'e:nova': 'Supernova, the stronger Nova: fires twice as often and much larger.', 'e:lance': 'Rail, the stronger Lance: an instant full-length, extra-wide line for double damage.',
+  'e:nova': 'Supernova, the stronger Nova: fires twice as often and much larger.', 'e:lance': 'Rail, the stronger Lance: the widest cone, twice as long, for double damage.',
   'e:field': 'Bastion, the stronger Field: a larger aura that slows enemies and heals you.',
   'p:signal': 'More damage from everything you deal: weapons, turrets, artillery and Drone strikes. +10% a level.',
   'p:capacitor': 'More max HP: +20 a level.', 'p:clock': 'You move 8% faster a level, which makes Rusher dashes and Gunner fans easier to dodge.',
@@ -2523,7 +2525,7 @@ function weaponNextDesc(k, l) {
   if (!l) return WEAPONS[k].desc;
   if (k === 'pulse' && l + 1 === 2) return 'Level 2: 2 bolts, each at a different enemy';
   if (k === 'pulse' && l + 1 === 4) return 'Level 4: 3 bolts, each at a different enemy';
-  return `Level ${l + 1}: more damage${k === 'orbit' ? ' and shards' : k === 'nova' ? ' and a bigger burst' : k === 'lance' ? ', a longer and wider beam' : k === 'field' ? ' and a wider aura' : ''}`;
+  return `Level ${l + 1}: more damage${k === 'orbit' ? ' and shards' : k === 'nova' ? ' and a bigger burst' : k === 'lance' ? ', a longer beam and a wider cone' : k === 'field' ? ' and a wider aura' : ''}`;
 }
 // every node the tree shows, with whether it can be bought or sold right now (and why not)
 function treeNodes(run) {
@@ -2956,7 +2958,10 @@ function drawEffects(ctx, run, beamLift) { // over builds and units in top-down:
   for (const g of run.gems) { if (g.part) { ctx.fillStyle = '#ffb347'; poly(ctx, g.x, g.y, 4.5, 6, 0); ctx.fill(); continue; } if (g.heal) { ctx.fillStyle = '#7dff9a'; ctx.fillRect(g.x - 4, g.y - 1.5, 8, 3); ctx.fillRect(g.x - 1.5, g.y - 4, 3, 8); continue; } ctx.fillStyle = g.big ? '#ffe37a' : '#7fd7ff'; const s = g.big ? 6 : 3.2; ctx.beginPath(); ctx.moveTo(g.x, g.y - s); ctx.lineTo(g.x + s, g.y); ctx.lineTo(g.x, g.y + s); ctx.lineTo(g.x - s, g.y); ctx.closePath(); ctx.fill(); }
   if (run.fieldR) { ctx.fillStyle = p.evolved.field ? 'rgba(255,227,122,0.10)' : 'rgba(127,215,255,0.08)'; ctx.beginPath(); ctx.arc(p.x, p.y, run.fieldR, 0, 6.283); ctx.fill(); ctx.strokeStyle = 'rgba(127,215,255,0.35)'; ctx.lineWidth = 1; ctx.stroke(); }
   for (const n of run.novas) { ctx.strokeStyle = `rgba(255,227,122,${Math.max(0, 1 - n.t / 0.6)})`; ctx.lineWidth = 6 * (1 - n.t / 0.6) + 1; ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.283); ctx.stroke(); }
-  for (const b of run.beams) { ctx.save(); ctx.translate(b.x, b.y - beamLift); ctx.rotate(b.a); ctx.fillStyle = `rgba(255,255,255,${b.t / 0.18 * 0.9})`; ctx.fillRect(0, -b.w / 2, b.len, b.w); ctx.fillStyle = `rgba(127,245,255,${b.t / 0.18 * 0.5})`; ctx.fillRect(0, -b.w, b.len, b.w * 2); ctx.restore(); }
+  for (const b of run.beams) { // a cone: narrow at you, b.w wide at the far end, with a glow around it
+    ctx.save(); ctx.translate(b.x, b.y - beamLift); ctx.rotate(b.a);
+    const w0 = b.w0, cone = k => { ctx.beginPath(); ctx.moveTo(0, -w0 * k / 2); ctx.lineTo(b.len, -b.w * k / 2); ctx.lineTo(b.len, b.w * k / 2); ctx.lineTo(0, w0 * k / 2); ctx.closePath(); ctx.fill(); };
+    ctx.fillStyle = `rgba(127,245,255,${b.t / 0.18 * 0.5})`; cone(1.6); ctx.fillStyle = `rgba(255,255,255,${b.t / 0.18 * 0.9})`; cone(1); ctx.restore(); }
 }
 const BARRICADE = { fill: '#3a2c1c', edge: '#ffb347', h: 11 }; // h: height in 2.5D (terrain walls are VIEW25.wallH)
 function barricadeBar(ctx, o, lift) { if (o.hp >= o.maxhp) return; ctx.fillStyle = '#1b1f2b'; ctx.fillRect(o.x + o.w / 2 - 14, o.y - lift - 9, 28, 4); ctx.fillStyle = '#ffb347'; ctx.fillRect(o.x + o.w / 2 - 14, o.y - lift - 9, 28 * Math.max(0, o.hp / o.maxhp), 4); }
@@ -4136,7 +4141,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
