@@ -138,6 +138,8 @@
   #f-nut { gap:6px; } .nscope { margin-left:auto; }
   .nrow .qbar { grid-column:1 / span 2; } .nrow.over .qbar i { background:var(--red); } .nrow.over small { color:var(--red); }
   #food > .col { position:relative; }
+  .fitsum { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:13px; color:var(--dim); } .fitsum b { color:var(--ink); font-weight:500; font-size:17px; margin-right:4px; }
+  .fitchart { justify-content:center; }
   select, input[type=number] { font:inherit; color:var(--ink); background:var(--field); border:1px solid var(--line); border-radius:6px; padding:11px 12px; width:100%; box-sizing:border-box; }
   button.row.mod { border-style:dashed; } button.row.mod.on { border-style:solid; border-color:var(--amber); } button.row.mod.on em { color:var(--amber); }
   #btn-quests { position:relative; } #btn-quests.pts::after { content:''; position:absolute; top:50%; right:14px; width:9px; height:9px; margin-top:-4px; border-radius:50%; background:var(--amber); }
@@ -227,6 +229,7 @@
   <button id="btn-lattice">Workshop: permanent upgrades</button>
   <button id="btn-log">Log a workout</button>
   <button id="btn-food">Food and nutrients</button>
+  <button id="btn-fitness">Fitness progress</button>
   <button id="btn-help">How it works</button>
   <button id="btn-notes">Feedback notes</button>
   <button id="btn-settings">Settings</button>
@@ -382,6 +385,16 @@
   <p id="f-msg"></p>
   <button class="back">Back</button>
   <div id="f-sheet" class="fsheet" hidden></div>
+</div></div>
+
+<div id="fitness" class="screen fit"><div class="col">
+  <h2>Fitness progress</h2>
+  <div class="itip" id="it-fitness" hidden></div>
+  <div id="fit-sum" class="fitsum"></div>
+  <div id="fit-chips" class="chips"></div>
+  <div class="col grow fitchart"><canvas id="fit-chart" style="position:static;width:100%;height:220px"></canvas></div>
+  <p id="fit-cap" class="fnote"></p>
+  <button class="back">Back</button>
 </div></div>
 
 <div id="fdckey" class="screen"><div class="col">
@@ -593,7 +606,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s11';
+const BUILD_ID = 'playtest 2026-10-08 s12';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1001,6 +1014,43 @@ function nutrientSeries(k, days, now) {
   now = now || new Date(); const out = [];
   for (let i = days - 1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 12), key = dayKey(d); if (mealsOn(key).length) out.push({ t: d.getTime(), day: key, v: dayTotals(key)[k] || 0 }); }
   return out;
+}
+/* Fitness progress (s12): one number per week for the last 12 weeks, from the ledger and the food log. */
+const LEVEL_SHORT = ['Below', 'Beginner', 'Novice', 'Interm.', 'Advanced', 'Elite'];
+const FIT_METRICS = [ // per metric: caption, how a value reads, axis labels, a dashed line to measure against
+  { k: 'workouts', name: 'Workouts', cap: 'Workouts logged each week', fmt: v => `${v} workout${v === 1 ? '' : 's'}` },
+  { k: 'volume', name: 'Volume', cap: 'Pounds lifted each week (weight x reps x sets)', fmt: v => Math.round(v).toLocaleString() + ' lb', axis: v => (v >= 10000 ? Math.round(v / 1000) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(Math.round(v))) },
+  { k: 'miles', name: 'Run miles', cap: 'Miles run each week', fmt: v => round1(v) + ' mi' },
+  { k: 'big3', name: 'Big 3', cap: 'Best est. squat + bench + deadlift so far (the 1000 lb goal)', fmt: v => Math.round(v) + ' lb', ref: () => 1000 },
+  { k: 'level', name: 'Rating', cap: 'Your overall rating at the end of each week', fmt: v => (Math.round(v) >= 1 ? BAND_NAMES[Math.round(v) - 1] : 'Below Beginner'), ticks: [0, 1, 2, 3, 4, 5], axis: v => LEVEL_SHORT[Math.round(v)] || '' },
+  { k: 'bw', name: 'Bodyweight', cap: 'Bodyweight logged that week (lb)', fmt: v => round1(v) + ' lb' },
+  { k: 'protein', name: 'Protein', cap: 'Average protein a day that week, on days you logged food (g)', fmt: v => Math.round(v) + ' g', ref: () => dvOf(NUT.protein) },
+];
+// local midnights of each Monday, plus the Monday after the last week (so a DST week still ends at a real midnight)
+function weekStarts(weeks, now) { const m = new Date(periodStart('week', now)); return [...Array(weeks + 1).keys()].map(i => new Date(m.getFullYear(), m.getMonth(), m.getDate() - 7 * (weeks - 1 - i)).getTime()); }
+function bestTotal(until) { // best est. squat + bench + deadlift logged before `until` (all time, as the Log history screen shows)
+  const best = lift => Math.max(0, ...(SAVE.logs || []).filter(l => (l.ts || 0) < until && l.detail && l.detail.lifts).flatMap(l => l.detail.lifts.filter(x => x.lift === lift).map(x => e1rm(x.w, x.reps))));
+  return best('squat') + best('bench') + best('deadlift');
+}
+function weeklySeries(k, weeks, now) {
+  now = now || new Date(); const out = [], L = SAVE.logs || [], ws = weekStarts(weeks, now);
+  for (let i = 0; i < weeks; i++) {
+    const w0 = ws[i], w1 = ws[i + 1], inW = L.filter(l => l.ts >= w0 && l.ts < w1), end = new Date(Math.min(w1 - 1, now.getTime())); let v = null;
+    if (k === 'workouts') v = inW.length;
+    else if (k === 'volume') v = inW.reduce((a, l) => a + ((l.detail && l.detail.lifts) || []).reduce((b, x) => b + (x.w || 0) * (x.reps || 1) * (x.sets || 1), 0), 0);
+    else if (k === 'miles') v = inW.reduce((a, l) => a + (l.id === 'run' && l.detail ? +l.detail.mi || 0 : 0), 0);
+    else if (k === 'big3') { const t = bestTotal(w1); v = t > 0 ? Math.round(t) : null; }
+    else if (k === 'level') { const o = overallLevel(end); v = o ? o.level + 1 : null; } // 0 = below Beginner .. 5 = Elite
+    else if (k === 'bw') { const b = inW.filter(l => l.detail && l.detail.bw > 0).sort((a, c) => c.ts - a.ts)[0]; v = b ? b.detail.bw : null; }
+    else if (k === 'protein') { const days = []; for (let d = 0; d < 7; d++) { const key = dayKey(new Date(new Date(w0).getFullYear(), new Date(w0).getMonth(), new Date(w0).getDate() + d, 12)); if (mealsOn(key).length) days.push(dayTotals(key).protein || 0); } v = days.length ? Math.round(days.reduce((a, x) => a + x, 0) / days.length) : null; }
+    if (v != null) out.push({ t: (w0 + w1) / 2, v, w0 });
+  }
+  return out.every(q => q.v === 0) ? [] : out; // nothing logged for this metric: no flat line at zero
+}
+function weeklyAverage(now) { // workouts a week over the last 4 finished weeks, counting only weeks since your first log
+  now = now || new Date(); const first = Math.min(...(SAVE.logs || []).map(l => l.ts || Infinity)); if (!isFinite(first)) return 0;
+  const ws = weekStarts(5, now).slice(0, 5), done = []; for (let i = 0; i < 4; i++) if (ws[i + 1] > first) done.push((SAVE.logs || []).filter(l => l.ts >= ws[i] && l.ts < ws[i + 1]).length);
+  return done.length ? done.reduce((a, x) => a + x, 0) / done.length : 0;
 }
 const foodActive = now => (SAVE.meals || []).some(m => m.ts > (now || new Date()).getTime() - 14 * 864e5); // food quests only once you use the food log
 // network: the APK asks Android directly (CapacitorHttp, no browser cross-site rules); a browser falls back to fetch
@@ -1616,6 +1666,7 @@ const TIPS = {
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
+  fitness:  { group: 'Between runs', title: 'Fitness progress', body: 'Your training week by week for the last 12 weeks: workouts, pounds lifted, run miles, your best squat + bench + deadlift against 1000 lb, your rating, bodyweight and protein. Pick one above the chart; tap the chart to read a week.' },
   food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. Search the USDA food database, type the number under a barcode, find vitamins and supplements in the NIH label database, or make your own. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
@@ -2827,7 +2878,7 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile', 'food', 'fdckey'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile', 'food', 'fdckey', 'fitness'];
   let curScreen = 'menu';
   UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
@@ -3140,6 +3191,20 @@ if (HAS_DOM) {
     closeBtn(s); const pts = nutrientSeries(n.k, 30, fday()).map(q => ({ t: q.t, v: q.v, l: { ts: q.t } }));
     drawChart(pts, { name: n.name, fmt: v => fmtN(v, n), ref: dvOf(n) }, s.querySelector('canvas'), 170);
   }
+  /* Fitness progress (s12): a week-by-week chart per metric, the streak and the rating on one screen */
+  let fitMetric = 'workouts';
+  UI.fitness = () => {
+    UI.go('fitness'); inlineTip('it-fitness', 'fitness');
+    const ws = weeklySeries('workouts', 1), ov = overallLevel(), thisWeek = ws.length ? ws[0].v : 0;
+    el('fit-sum').innerHTML = `<span><b>${thisWeek}</b> this week</span><span><b>${round1(weeklyAverage())}</b> a week, last 4</span><span><b>${SAVE.streak}</b> day streak</span>` + (ov ? `<span>Rating <b>${ov.name}</b></span>` : '');
+    const box = el('fit-chips'); box.innerHTML = ''; const M = FIT_METRICS.find(m => m.k === fitMetric);
+    const row = chipRow(box, FIT_METRICS.map(m => m.name), M.name, t => { fitMetric = FIT_METRICS.find(m => m.name === t).k; UI.fitness(); }); box.replaceWith(row); row.id = 'fit-chips';
+    const pts = weeklySeries(fitMetric, 12).map(q => ({ t: q.t, v: q.v, l: { ts: q.w0 } }));
+    el('fit-cap').textContent = M.cap + ', last 12 weeks. Tap the chart to read a week.';
+    const c = el('fit-chart'), H = Math.max(160, Math.min(320, c.parentNode.clientHeight || 220)); c.style.height = H + 'px';
+    drawChart(pts, { name: M.name, fmt: M.fmt, axis: M.axis, ticks: M.ticks, ref: M.ref ? M.ref() : 0, empty: 'Nothing logged in these 12 weeks yet.' }, c, H);
+  };
+  el('btn-fitness').onclick = () => UI.fitness();
   UI.fdckey = msg => {
     UI.go('fdckey'); el('fk-in').value = SAVE.fdcKey || ''; el('fk-msg').textContent = msg || (SAVE.fdcKey ? 'Using your key.' : 'Using DEMO_KEY for now.');
   };
@@ -3281,8 +3346,7 @@ if (HAS_DOM) {
     drawChart(pts, m);
     // the 1000 lb goal: best estimated squat + bench + deadlift
     if (histKind === 'gym') {
-      const best = k => Math.max(0, ...SAVE.logs.filter(l => l.detail && l.detail.lifts).flatMap(l => l.detail.lifts.filter(x => x.lift === k).map(x => e1rm(x.w, x.reps))));
-      const tot = Math.round(best('squat') + best('bench') + best('deadlift'));
+      const tot = Math.round(bestTotal(Infinity));
       el('hist-extra').innerHTML = `Best est. total (squat + bench + deadlift): <b>${tot} / 1000 lb</b>`;
     } else el('hist-extra').textContent = `${logs.length} session${logs.length === 1 ? '' : 's'} logged.`;
     recentList(el('hist-list'), logs.slice(0, 30), msg => { UI.hist(histKind, histMetric); if (msg) el('hist-extra').textContent = msg; });
@@ -3291,14 +3355,15 @@ if (HAS_DOM) {
     c = c || el('hist-chart'); H = H || 190; const W = c.clientWidth || 360, dpr = Math.min(3, window.devicePixelRatio || 1);
     c.width = W * dpr; c.height = H * dpr; const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     g.font = '12px Roboto, Arial, sans-serif'; g.fillStyle = '#8b93a3';
-    if (pts.length < 2) { g.textAlign = 'center'; g.fillText(pts.length ? 'One entry so far. Log another to see a trend.' : 'No entries with details in the last 30 days.', W / 2, H / 2); c.onclick = null; return; }
+    if (pts.length < 2) { g.textAlign = 'center'; g.fillText(pts.length ? 'One entry so far. Log another to see a trend.' : m.empty || 'No entries with details in the last 30 days.', W / 2, H / 2); c.onclick = null; return; }
     const L = 44, R = 12, T = 22, B = 24, vs = pts.map(q => q.v);
     if (m.ref) vs.push(m.ref);
     let lo = Math.min(...vs), hi = Math.max(...vs); const pad = (hi - lo) * 0.15 || Math.max(1, hi * 0.1); lo = Math.max(0, lo - pad); hi += pad;
+    if (m.ticks) { lo = m.ticks[0]; hi = m.ticks[m.ticks.length - 1]; } // a fixed scale (the rating levels)
     const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
     const X = t => L + (t1 === t0 ? (W - L - R) / 2 : (t - t0) / (t1 - t0) * (W - L - R)), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
     g.strokeStyle = 'rgba(139,147,163,0.18)'; g.lineWidth = 1; g.textAlign = 'right';
-    for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(W - R, y); g.stroke(); g.fillText(m.name === 'Pace' ? fmtPace(v) : (v >= 100 ? Math.round(v) : v.toFixed(1)), L - 6, y + 4); }
+    for (const v of m.ticks || [0, 1, 2, 3].map(i => lo + (hi - lo) * i / 3)) { const y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(W - R, y); g.stroke(); g.fillText(m.axis ? m.axis(v) : m.name === 'Pace' ? fmtPace(v) : (v >= 100 ? Math.round(v) : v.toFixed(1)), L - 6, y + 4); }
     g.textAlign = 'left'; g.fillText(fmtDay(pts[0].l), L, H - 6); g.textAlign = 'right'; g.fillText(fmtDay(pts[pts.length - 1].l), W - R, H - 6);
     if (m.ref) { g.strokeStyle = 'rgba(255,179,71,0.6)'; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(m.ref)); g.lineTo(W - R, Y(m.ref)); g.stroke(); g.setLineDash([]); }
     g.strokeStyle = '#7ff5ff'; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath(); pts.forEach((q, i) => g[i ? 'lineTo' : 'moveTo'](X(q.t), Y(q.v))); g.stroke();
@@ -3493,7 +3558,7 @@ if (HAS_DOM) {
   };
   el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
-  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', logform: 'log', hist: 'log' };
+  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', fitness: 'menu', logform: 'log', hist: 'log' };
   function goBack() {
     const id = curScreen;
     if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
@@ -3786,7 +3851,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { SWIPE, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { SWIPE, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
