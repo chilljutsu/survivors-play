@@ -116,6 +116,28 @@
   .rrow .qbar { grid-column:1 / span 2; height:3px; background:var(--line); border-radius:2px; overflow:hidden; } .rrow .qbar i { display:block; height:100%; background:var(--amber); }
   .rtop { display:flex; justify-content:space-between; align-items:center; font-size:14px; } .rnote { margin:0; font-size:12px; color:var(--dim); }
   .rprof { font-size:12px; padding:5px 12px; width:auto; }
+  .fday { display:flex; align-items:center; gap:6px; } .fday button { width:auto; padding:6px 12px; font-size:16px; } .fday b { font-weight:500; font-size:14px; min-width:88px; text-align:center; }
+  .ftot { display:flex; justify-content:space-between; font-size:14px; color:var(--dim); } .ftot b { color:var(--ink); font-weight:500; font-size:18px; }
+  #f-today .qbar, .nrow .qbar { height:4px; background:var(--line); border-radius:2px; overflow:hidden; } #f-today .qbar i, .nrow .qbar i { display:block; height:100%; background:var(--cyan); }
+  button.row.fmeal, button.row.frow { padding:9px 12px; } button.row.fmeal span, button.row.frow span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  button.row.frow b { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chips.modes .chip { padding:6px 10px; font-size:12px; }
+  .fsearch { display:grid; grid-template-columns:1fr auto; gap:8px; } .fsearch button { width:auto; padding:10px 16px; }
+  input[type=text], input[type=number], input[type=search] { font:inherit; color:var(--ink); background:transparent; border:1px solid var(--line); border-radius:6px; padding:11px 12px; width:100%; -webkit-user-select:text; user-select:text; }
+  .fnote { font-size:12px; }
+  .fsheet { position:absolute; left:0; right:0; bottom:0; max-height:80%; overflow-y:auto; background:#121827; border-top:1px solid var(--cyan); border-radius:14px 14px 0 0; padding:16px 18px max(16px, env(safe-area-inset-bottom)); z-index:8; display:flex; flex-direction:column; gap:10px; }
+  .fsheet h3 { margin:0; font-weight:500; font-size:17px; }
+  .fitem { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:8px; }
+  .fitem b { font-weight:500; font-size:14px; } .fitem small { display:block; color:var(--dim); font-size:12px; }
+  .fitem .fx { width:auto; padding:7px 9px; font-size:12px; color:var(--dim); }
+  .step { display:inline-flex; align-items:center; gap:4px; } .step button { width:34px; padding:6px 0; text-align:center; } .step input { width:56px; padding:6px; text-align:center; }
+  .fmac { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; font-size:12px; color:var(--dim); } .fmac b { display:block; font-size:18px; color:var(--ink); font-weight:500; }
+  .fvit { font-size:12px; }
+  .fogrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .fogrid label, .fown label { font-size:12px; color:var(--dim); display:flex; flex-direction:column; gap:4px; } .fown { display:flex; flex-direction:column; gap:8px; }
+  .nrow { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:2px 2px 4px; border:none; border-radius:0; } .nrow span { font-size:14px; } .nrow small { color:var(--dim); font-size:12px; text-align:right; }
+  #f-nut { gap:6px; } .nscope { margin-left:auto; }
+  .nrow .qbar { grid-column:1 / span 2; } .nrow.over .qbar i { background:var(--red); } .nrow.over small { color:var(--red); }
+  #food > .col { position:relative; }
   select, input[type=number] { font:inherit; color:var(--ink); background:var(--field); border:1px solid var(--line); border-radius:6px; padding:11px 12px; width:100%; box-sizing:border-box; }
   button.row.mod { border-style:dashed; } button.row.mod.on { border-style:solid; border-color:var(--amber); } button.row.mod.on em { color:var(--amber); }
   #btn-quests { position:relative; } #btn-quests.pts::after { content:''; position:absolute; top:50%; right:14px; width:9px; height:9px; margin-top:-4px; border-radius:50%; background:var(--amber); }
@@ -204,6 +226,7 @@
   <button id="btn-quests">Quests and goals</button>
   <button id="btn-lattice">Workshop: permanent upgrades</button>
   <button id="btn-log">Log a workout</button>
+  <button id="btn-food">Food and nutrients</button>
   <button id="btn-help">How it works</button>
   <button id="btn-notes">Feedback notes</button>
   <button id="btn-settings">Settings</button>
@@ -336,6 +359,7 @@
   <h2>Settings</h2>
   <p id="set-msg"></p>
   <button class="row" id="btn-profile"></button>
+  <button class="row" id="btn-fdckey"></button>
   <button class="row" id="btn-mute"></button>
   <button class="row" id="btn-tips"></button>
   <button class="row" id="btn-tips-reset"><b>Replay the tutorial</b><span>Shows the practice run and every tip card again from your next run.</span></button>
@@ -343,6 +367,29 @@
   <button class="row" id="btn-skin"></button>
   <button class="row" id="btn-spawn"></button>
   <button class="row" id="btn-backup"><b>Backup or restore save</b><span>Your save as text, for moving to a new install.</span></button>
+  <button class="back">Back</button>
+</div></div>
+
+<div id="food" class="screen fit"><div class="col">
+  <div class="tree-head"><h2>Food</h2><div class="fday"><button id="f-prev" aria-label="previous day">‹</button><b id="f-dayname">Today</b><button id="f-next" aria-label="next day">›</button></div></div>
+  <div class="itip" id="it-food" hidden></div>
+  <div id="f-tabs" class="tabs"></div>
+  <div id="f-pages" class="col grow">
+    <div id="f-today" class="col"></div>
+    <div id="f-add" class="col"></div>
+    <div id="f-nut" class="col"></div>
+  </div>
+  <p id="f-msg"></p>
+  <button class="back">Back</button>
+  <div id="f-sheet" class="fsheet" hidden></div>
+</div></div>
+
+<div id="fdckey" class="screen"><div class="col">
+  <h2>Food database key</h2>
+  <p>Food search uses USDA FoodData Central. It works with the shared DEMO_KEY (about 30 searches an hour). A free key of your own lifts that: sign up at api.data.gov/signup, then paste the key here. It stays on this phone.</p>
+  <input id="fk-in" type="text" autocomplete="off" placeholder="Your api.data.gov key">
+  <button class="primary" id="btn-fk-save">Save key</button>
+  <p id="fk-msg"></p>
   <button class="back">Back</button>
 </div></div>
 
@@ -546,7 +593,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s10';
+const BUILD_ID = 'playtest 2026-10-08 s11';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -664,6 +711,9 @@ const QUESTS = {
     { stat: 'units', need: 2, gold: 100, text: 'Build 2 gun drones or scavengers' },
     { stat: 'strikes', need: 3, gold: 90, text: 'Land 3 artillery shells' },
     { stat: 'caches', need: 3, gold: 90, text: 'Collect 3 caches' },
+    { stat: 'meals', need: 3, gold: 120, text: 'Log 3 meals', food: true },
+    { stat: 'proteindays', need: 1, gold: 150, text: 'Hit your protein target', food: true },
+    { stat: 'supps', need: 1, gold: 60, text: 'Log your supplements', food: true },
   ],
   week: [
     { stat: 'workouts', need: 3, gold: 600, text: 'Log 3 workouts', fit: true },
@@ -671,6 +721,7 @@ const QUESTS = {
     { stat: 'zones', need: 3, gold: 600, text: 'Clear 3 zones' },
     { stat: 'kills', need: 2000, gold: 400, text: 'Defeat 2000 enemies' },
     { stat: 'perches', need: 25, gold: 400, text: 'Perch a Drone 25 times' },
+    { stat: 'fooddays', need: 5, gold: 500, text: 'Log food on 5 days', food: true },
   ],
   perDay: 3, perWeek: 2,
 };
@@ -695,14 +746,16 @@ const modVal = (run, k, d) => (run.mod && run.mod[k] != null ? run.mod[k] : d);
 const playerSight = run => PLAYER_VISION * (run.p.area || 1) * modVal(run, 'sight', 1); // Aperture widens it, 'dim' shortens it
 function weekKey(d) { const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return dayKey(m); } // Monday
 function statAdd(k, n, now) { ensureQuests(now); SAVE.stat[k] = (SAVE.stat[k] || 0) + (n || 1); } // deal first: the first event of a new day counts
-function pickQuests(pool, n, seed) { // deterministic from the date; a fitness quest always makes the list
-  const fit = pool.filter(q => q.fit), rest = pool.filter(q => !q.fit).map(q => [hashStr(seed + q.text), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
-  return [...fit, ...rest].slice(0, n);
+function pickQuests(pool, n, seed, food) { // deterministic from the date; a fitness quest always makes the list, and a food one once you log food
+  const mix = qs => qs.map(q => [hashStr(seed + q.text), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const fit = pool.filter(q => q.fit), meal = food ? mix(pool.filter(q => q.food)).slice(0, 1) : [], rest = mix(pool.filter(q => !q.fit && !q.food));
+  return [...fit, ...meal, ...rest].slice(0, n);
 }
 function ensureQuests(now) {
   now = now || new Date(); const st = SAVE.stat || (SAVE.stat = {}), Q = SAVE.quests || (SAVE.quests = {});
-  const deal = (period, key, pool, n) => { if (Q[period] && Q[period].key === key) return; Q[period] = { key, list: pickQuests(pool, n, key).map(q => ({ ...q, base: st[q.stat] || 0, claimed: false })) }; };
-  deal('day', dayKey(now), QUESTS.day, QUESTS.perDay); deal('week', weekKey(now), QUESTS.week, QUESTS.perWeek);
+  const deal = (period, key, pool, n) => { if (Q[period] && Q[period].key === key) return; Q[period] = { key, list: pickQuests(pool, n, key, foodActive(now)).map(q => ({ ...q, base: st[q.stat] || 0, claimed: false })) }; };
+  const fa = foodActive(now) ? 1 : 0; // the food quest is an extra slot, never instead of a game quest
+  deal('day', dayKey(now), QUESTS.day, QUESTS.perDay + fa); deal('week', weekKey(now), QUESTS.week, QUESTS.perWeek + fa);
   return Q;
 }
 const questProg = q => Math.min(q.need, ((SAVE.stat || {})[q.stat] || 0) - q.base);
@@ -810,6 +863,172 @@ function dealGoals(now) { // one goal per week, month and year from what you act
     n++;
   }
   if (n || goals.length !== before) persist(SAVE); return n;
+}
+/* ---------- food, supplements and nutrients (s11; Lance 10-07: "food database, vitamins, a nutrient page"; 10-08: "just
+   pick a good comprehensive data source") ----------
+   USDA FoodData Central: generic foods and ~400k branded foods with UPC barcodes (free api.data.gov key, DEMO_KEY to
+   try, about 30 searches an hour). Open Food Facts: barcodes FDC lacks. NIH Dietary Supplement Label Database:
+   vitamins and supplements. A saved item keeps its nutrients per serving, so the log never needs the network again.
+   dv = FDA Daily Value for adults; protein uses 0.7 g per lb of bodyweight when the profile has one. */
+const NUTRIENTS = [
+  { k: 'kcal', name: 'Calories', unit: 'kcal', dv: 2000, fdc: ['208', '957', '958'], off: 'energy-kcal', g: 'Macros' },
+  { k: 'protein', name: 'Protein', unit: 'g', dv: 50, fdc: ['203'], off: 'proteins', g: 'Macros' },
+  { k: 'carbs', name: 'Carbs', unit: 'g', dv: 275, fdc: ['205'], off: 'carbohydrates', g: 'Macros' },
+  { k: 'fiber', name: 'Fiber', unit: 'g', dv: 28, fdc: ['291'], off: 'fiber', g: 'Macros' },
+  { k: 'sugars', name: 'Sugars', unit: 'g', dv: 50, fdc: ['269'], off: 'sugars', g: 'Macros', limit: true },
+  { k: 'fat', name: 'Fat', unit: 'g', dv: 78, fdc: ['204'], off: 'fat', g: 'Macros' },
+  { k: 'satfat', name: 'Saturated fat', unit: 'g', dv: 20, fdc: ['606'], off: 'saturated-fat', g: 'Macros', limit: true },
+  { k: 'chol', name: 'Cholesterol', unit: 'mg', dv: 300, fdc: ['601'], off: 'cholesterol', g: 'Macros', limit: true },
+  { k: 'sodium', name: 'Sodium', unit: 'mg', dv: 2300, fdc: ['307'], off: 'sodium', g: 'Minerals', limit: true },
+  { k: 'potassium', name: 'Potassium', unit: 'mg', dv: 4700, fdc: ['306'], off: 'potassium', g: 'Minerals' },
+  { k: 'calcium', name: 'Calcium', unit: 'mg', dv: 1300, fdc: ['301'], off: 'calcium', g: 'Minerals' },
+  { k: 'iron', name: 'Iron', unit: 'mg', dv: 18, fdc: ['303'], off: 'iron', g: 'Minerals' },
+  { k: 'magnesium', name: 'Magnesium', unit: 'mg', dv: 420, fdc: ['304'], off: 'magnesium', g: 'Minerals' },
+  { k: 'zinc', name: 'Zinc', unit: 'mg', dv: 11, fdc: ['309'], off: 'zinc', g: 'Minerals' },
+  { k: 'phosphorus', name: 'Phosphorus', unit: 'mg', dv: 1250, fdc: ['305'], off: 'phosphorus', g: 'Minerals' },
+  { k: 'selenium', name: 'Selenium', unit: 'µg', dv: 55, fdc: ['317'], off: 'selenium', g: 'Minerals' },
+  { k: 'vitA', name: 'Vitamin A', unit: 'µg', dv: 900, fdc: ['320'], off: 'vitamin-a', g: 'Vitamins' },
+  { k: 'vitC', name: 'Vitamin C', unit: 'mg', dv: 90, fdc: ['401'], off: 'vitamin-c', g: 'Vitamins' },
+  { k: 'vitD', name: 'Vitamin D', unit: 'µg', dv: 20, fdc: ['328'], iu: ['324', 0.025], off: 'vitamin-d', g: 'Vitamins' },
+  { k: 'vitE', name: 'Vitamin E', unit: 'mg', dv: 15, fdc: ['323'], off: 'vitamin-e', g: 'Vitamins' },
+  { k: 'vitK', name: 'Vitamin K', unit: 'µg', dv: 120, fdc: ['430'], off: 'vitamin-k', g: 'Vitamins' },
+  { k: 'b1', name: 'Thiamin (B1)', unit: 'mg', dv: 1.2, fdc: ['404'], off: 'vitamin-b1', g: 'Vitamins' },
+  { k: 'b2', name: 'Riboflavin (B2)', unit: 'mg', dv: 1.3, fdc: ['405'], off: 'vitamin-b2', g: 'Vitamins' },
+  { k: 'b3', name: 'Niacin (B3)', unit: 'mg', dv: 16, fdc: ['406'], off: 'vitamin-pp', g: 'Vitamins' },
+  { k: 'b6', name: 'Vitamin B6', unit: 'mg', dv: 1.7, fdc: ['415'], off: 'vitamin-b6', g: 'Vitamins' },
+  { k: 'b12', name: 'Vitamin B12', unit: 'µg', dv: 2.4, fdc: ['418'], off: 'vitamin-b12', g: 'Vitamins' },
+  { k: 'folate', name: 'Folate', unit: 'µg', dv: 400, fdc: ['435', '417'], off: 'vitamin-b9', g: 'Vitamins' },
+];
+const NUT = Object.fromEntries(NUTRIENTS.map(n => [n.k, n]));
+const FOOD = {
+  fdc: 'https://api.nal.usda.gov/fdc/v1/', off: 'https://world.openfoodfacts.org/api/v2/product/', dsld: 'https://api.ods.od.nih.gov/dsld/v9/',
+  demoKey: 'DEMO_KEY', timeout: 9000, results: 8, cap: 400, keepDays: 400, proteinPerLb: 0.7,
+  meals: ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Supplements'],
+  // supplement label names to nutrients; IU converts to the nutrient's unit (vitamin D 0.025 µg, A 0.3 µg RAE, E 0.67 mg)
+  supp: [[/vitamin\s*d/i, 'vitD', 0.025], [/vitamin\s*c|ascorbic/i, 'vitC'], [/vitamin\s*a|retinol|beta.?carotene/i, 'vitA', 0.3], [/vitamin\s*e|tocopherol/i, 'vitE', 0.67],
+    [/vitamin\s*k|phylloquinone|menaquinone/i, 'vitK'], [/thiamin|vitamin\s*b-?1\b/i, 'b1'], [/riboflavin|vitamin\s*b-?2\b/i, 'b2'], [/niacin|vitamin\s*b-?3\b/i, 'b3'],
+    [/vitamin\s*b-?6|pyridoxine/i, 'b6'], [/vitamin\s*b-?12|cobalamin/i, 'b12'], [/folate|folic/i, 'folate'], [/calcium/i, 'calcium'], [/iron/i, 'iron'],
+    [/magnesium/i, 'magnesium'], [/zinc/i, 'zinc'], [/potassium/i, 'potassium'], [/sodium/i, 'sodium'], [/selenium/i, 'selenium'], [/phosphorus/i, 'phosphorus'],
+    [/^protein/i, 'protein'], [/^calories$/i, 'kcal'], [/total carbohydrate/i, 'carbs'], [/^total fat/i, 'fat'], [/dietary fiber/i, 'fiber']],
+};
+const UNIT_FROM = { g: 1, mg: 1e-3, mcg: 1e-6, 'µg': 1e-6, ug: 1e-6, kcal: 1 }; // to grams (kcal stays kcal)
+const toUnit = (v, from, to) => (from === to || to === 'kcal' ? v : v * (UNIT_FROM[from] || 1) / (UNIT_FROM[to] || 1));
+const round1 = v => Math.round(v * 10) / 10;
+// USDA FDC search hit: foodNutrients are per 100 g (100 ml); branded foods also carry their label serving
+function parseFdc(f) {
+  const by = {}; for (const x of f.foodNutrients || []) { const num = String(x.nutrientNumber || (x.nutrient && x.nutrient.number) || ''), v = x.value != null ? x.value : x.amount; if (num && isFinite(v)) by[num] = { v: +v, u: String(x.unitName || (x.nutrient && x.nutrient.unitName) || '').toLowerCase() }; }
+  const sz = +f.servingSize, su = String(f.servingSizeUnit || '').toLowerCase(), byLabel = sz > 0 && (su === 'g' || su === 'ml' || su === 'grm' || su === 'mlt');
+  const scale = byLabel ? sz / 100 : 1, per = {};
+  for (const n of NUTRIENTS) {
+    let hit = n.fdc.map(c => by[c]).find(Boolean), v = hit ? hit.v : null;
+    if (v == null && n.iu && by[n.iu[0]]) v = by[n.iu[0]].v * n.iu[1];
+    else if (hit && hit.u && hit.u !== 'kcal' && hit.u !== 'iu' && hit.u !== n.unit && UNIT_FROM[hit.u]) v = toUnit(v, hit.u, n.unit);
+    if (v != null && v > 0) per[n.k] = v * scale;
+  }
+  const name = String(f.description || 'Food').replace(/\s+/g, ' ').trim();
+  return { id: 'fdc:' + f.fdcId, src: 'USDA', kind: 'food', name: name[0] + name.slice(1).toLowerCase(), brand: f.brandName || f.brandOwner || '', upc: f.gtinUpc || '',
+    serving: byLabel ? (f.householdServingFullText ? `${f.householdServingFullText} (${round1(sz)} ${su === 'grm' ? 'g' : su === 'mlt' ? 'ml' : su})` : `${round1(sz)} ${su}`) : '100 g', per };
+}
+// Open Food Facts product: nutriments X_100g are grams (energy in kcal); per serving when the label gives its weight
+function parseOff(prod, code) {
+  const nm = prod.nutriments || {}, q = +prod.serving_quantity, scale = q > 0 ? q / 100 : 1, per = {};
+  for (const n of NUTRIENTS) { const v = nm[n.off + '_100g']; if (v != null && isFinite(v) && +v > 0) per[n.k] = (n.k === 'kcal' ? +v : toUnit(+v, 'g', n.unit)) * scale; }
+  return { id: 'off:' + code, src: 'Open Food Facts', kind: 'food', name: prod.product_name || 'Product ' + code, brand: prod.brands || '', upc: code, serving: q > 0 ? (prod.serving_size || `${q} g`) : '100 g', per };
+}
+// NIH DSLD label: ingredient rows per serving; vitamins and minerals map onto NUTRIENTS, anything else is listed as is
+function parseDsld(lab) {
+  const per = {}, extra = [], rows = [];
+  const counted = r => { const q = (r.quantity || [])[0]; return q && +q.quantity > 0 && FOOD.supp.some(([re]) => re.test(r.name || '')); };
+  const walk = rs => { for (const r of rs || []) { rows.push(r); if (!counted(r)) walk(r.nestedRows); } }; walk(lab.ingredientRows); // a counted nutrient's sub-forms (beta-carotene under vitamin A) are not added again
+  for (const r of rows) {
+    const q = (r.quantity || [])[0]; if (!q || !(+q.quantity > 0)) continue;
+    const amt = +q.quantity, unit = String(q.unit || '').toLowerCase().replace('mcg', 'µg').replace(/\s*(dfe|rae|nfe|\(.*\))/g, '').trim();
+    const m = FOOD.supp.find(([re]) => re.test(r.name || '')), n = m && NUT[m[1]];
+    if (n && (unit === 'iu' ? m[2] : UNIT_FROM[unit] != null || unit === n.unit)) per[n.k] = (per[n.k] || 0) + (unit === 'iu' ? amt * m[2] : toUnit(amt, unit === 'µg' ? 'µg' : unit, n.unit));
+    else extra.push({ name: r.name, amt, unit: q.unit || '' });
+  }
+  const ss = (lab.servingSizes || [])[0];
+  return { id: 'dsld:' + lab.id, src: 'NIH DSLD', kind: 'supp', name: lab.fullName || 'Supplement', brand: lab.brandName || '', upc: lab.upcSku || '', serving: ss ? `${ss.minQuantity || ss.quantity || 1} ${ss.unit || 'serving'}` : '1 serving', per, extra };
+}
+function myFood(name, kind, serving, vals) { // your own item, typed in (works with no network)
+  const per = {}; for (const k in vals) if (NUT[k] && +vals[k] > 0) per[k] = +vals[k];
+  return { id: 'me:' + hashStr(kind + name + serving + JSON.stringify(per)).toString(36), src: 'You', kind, name: String(name).trim() || 'My food', brand: '', serving: serving || '1 serving', per };
+}
+function saveFood(f, now) {
+  const F = SAVE.foods || (SAVE.foods = {}); F[f.id] = Object.assign(F[f.id] || {}, f, { t: (now || new Date()).getTime() });
+  const ids = Object.keys(F); if (ids.length > FOOD.cap) { const used = new Set((SAVE.meals || []).map(m => m.food)); ids.filter(i => !F[i].fav && !used.has(i)).sort((a, b) => F[a].t - F[b].t).slice(0, ids.length - FOOD.cap).forEach(i => delete F[i]); }
+  return F[f.id];
+}
+const dvOf = n => n.k === 'protein' && SAVE.bodyweight > 0 ? Math.round(SAVE.bodyweight * FOOD.proteinPerLb) : n.dv;
+let mealIdx = null; // meals by day, rebuilt when the log changes
+const mealsChanged = () => { mealIdx = null; };
+function mealsOn(day) {
+  if (!mealIdx || mealIdx.src !== SAVE.meals) { mealIdx = new Map(); mealIdx.src = SAVE.meals; for (const m of SAVE.meals || []) { let a = mealIdx.get(m.day); if (!a) mealIdx.set(m.day, a = []); a.push(m); } }
+  return mealIdx.get(day) || [];
+}
+function dayTotals(day) {
+  const t = {}; for (const m of mealsOn(day)) { const f = (SAVE.foods || {})[m.food]; if (!f) continue; for (const k in f.per) t[k] = (t[k] || 0) + f.per[k] * m.n; }
+  return t;
+}
+// what a day counts for the food quests; adding, changing or removing an entry credits (or takes back) the difference
+function foodDayState(day) {
+  const ms = mealsOn(day), F = SAVE.foods || {};
+  return { fooddays: ms.length ? 1 : 0, meals: new Set(ms.filter(m => m.meal !== 'Supplements').map(m => m.meal)).size, supps: ms.filter(m => m.meal === 'Supplements' || (F[m.food] && F[m.food].kind === 'supp')).length,
+    proteindays: (dayTotals(day).protein || 0) >= dvOf(NUT.protein) ? 1 : 0 };
+}
+function creditFood(day, before, now) { // quests count today's eating only: a past day you fill in later changes nothing
+  if (day !== dayKey(now)) return; const after = foodDayState(day);
+  for (const k in after) if (after[k] !== before[k]) statAdd(k, after[k] - before[k], now);
+}
+// log `n` servings to a meal; `at` is the day it belongs to (the day switcher), `now` the clock
+function logFood(foodId, meal, n, now, at) {
+  now = now || new Date(); at = at || now; const day = dayKey(at), f = (SAVE.foods || {})[foodId]; if (!f || !(n > 0) || !FOOD.meals.includes(meal)) return null;
+  if (at.getTime() < now.getTime() - (FOOD.keepDays - 1) * 864e5) return null; // older than the log keeps
+  const before = foodDayState(day);
+  const e = { id: now.getTime().toString(36) + Math.floor(Math.random() * 1e6).toString(36), day, ts: at.getTime(), meal, food: foodId, n: +n };
+  (SAVE.meals || (SAVE.meals = [])).push(e); f.t = now.getTime(); mealsChanged();
+  creditFood(day, before, now);
+  const cut = now.getTime() - FOOD.keepDays * 864e5; if (SAVE.meals.length > 3000 || SAVE.meals.some(m => m.ts < cut)) { SAVE.meals = SAVE.meals.filter(m => m.ts >= cut).slice(-3000); mealsChanged(); }
+  persist(SAVE); return e;
+}
+function setServings(id, n, now) { // 0 removes it
+  const m = (SAVE.meals || []).find(x => x.id === id); if (!m) return false; const before = foodDayState(m.day);
+  if (n > 0) m.n = +n; else { SAVE.meals.splice(SAVE.meals.indexOf(m), 1); mealsChanged(); }
+  creditFood(m.day, before, now || new Date()); persist(SAVE); return true;
+}
+// one nutrient over the last `days` days: daily totals for the days you logged food, oldest first
+function nutrientSeries(k, days, now) {
+  now = now || new Date(); const out = [];
+  for (let i = days - 1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 12), key = dayKey(d); if (mealsOn(key).length) out.push({ t: d.getTime(), day: key, v: dayTotals(key)[k] || 0 }); }
+  return out;
+}
+const foodActive = now => (SAVE.meals || []).some(m => m.ts > (now || new Date()).getTime() - 14 * 864e5); // food quests only once you use the food log
+// network: the APK asks Android directly (CapacitorHttp, no browser cross-site rules); a browser falls back to fetch
+async function getJSON(url) {
+  const C = typeof window !== 'undefined' ? window.Capacitor : null;
+  if (C && C.isNativePlatform && C.isNativePlatform()) {
+    let H = null; try { H = (C.Plugins && C.Plugins.CapacitorHttp) || (C.registerPlugin ? C.registerPlugin('CapacitorHttp') : null); } catch (e) { H = null; }
+    if (H && H.request) { const r = await H.request({ url, method: 'GET', headers: { Accept: 'application/json' }, connectTimeout: FOOD.timeout, readTimeout: FOOD.timeout }); if (r.status >= 400) throw new Error('HTTP ' + r.status); return typeof r.data === 'string' ? JSON.parse(r.data) : r.data; }
+  }
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null, tm = ctl && setTimeout(() => ctl.abort(), FOOD.timeout);
+  try { const r = await fetch(url, ctl ? { signal: ctl.signal, headers: { Accept: 'application/json' } } : {}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { if (tm) clearTimeout(tm); }
+}
+const fdcKey = () => (SAVE.fdcKey || FOOD.demoKey);
+async function searchFoods(q) { // USDA: generic first, then branded
+  const j = await getJSON(`${FOOD.fdc}foods/search?api_key=${encodeURIComponent(fdcKey())}&query=${encodeURIComponent(q)}&pageSize=${FOOD.results * 2}&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
+  return (j.foods || []).map(parseFdc).filter(f => Object.keys(f.per).length).slice(0, FOOD.results);
+}
+async function lookupBarcode(code) { // USDA branded foods by UPC, then Open Food Facts
+  code = String(code).replace(/\D/g, ''); if (code.length < 6) return [];
+  try { const j = await getJSON(`${FOOD.fdc}foods/search?api_key=${encodeURIComponent(fdcKey())}&query=${code}&dataType=Branded&pageSize=5`); const hit = (j.foods || []).filter(f => String(f.gtinUpc || '').replace(/^0+/, '') === code.replace(/^0+/, '')).map(parseFdc); if (hit.length) return hit; } catch (e) { /* try the next source */ }
+  let o; try { o = await getJSON(`${FOOD.off}${code}.json?fields=product_name,brands,serving_size,serving_quantity,nutriments`); } catch (e) { if (/HTTP 404/.test(String(e))) return []; throw e; } // OFF answers an unknown code with 404
+  return o && o.status === 1 && o.product ? [parseOff(o.product, code)] : [];
+}
+async function searchSupps(q) { // NIH DSLD: search, then each label's ingredient rows
+  const j = await getJSON(`${FOOD.dsld}search-filter?q=${encodeURIComponent(q)}&size=${FOOD.results}`);
+  const ids = (j.hits || []).map(h => h._id).filter(Boolean).slice(0, FOOD.results);
+  const labs = await Promise.all(ids.map(id => getJSON(`${FOOD.dsld}label/${id}`).catch(() => null)));
+  return labs.filter(Boolean).map(parseDsld);
 }
 const anyClaimable = () => { const Q = SAVE.quests || {}; return ['day', 'week'].some(k => Q[k] && Q[k].list.some(q => !q.claimed && questProg(q) >= q.need)) || (SAVE.goals || []).some(g => !g.claimed && goalMet(g)); };
 
@@ -1397,6 +1616,7 @@ const TIPS = {
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a 3 to 5 minute survival plus the boss. Later zones add new enemies and hit harder. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
+  food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. Search the USDA food database, type the number under a barcode, find vitamins and supplements in the NIH label database, or make your own. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
   world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look and tougher numbers: more hives, more pressure. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
@@ -2607,7 +2827,7 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile', 'food', 'fdckey'];
   let curScreen = 'menu';
   UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
@@ -2795,6 +3015,135 @@ if (HAS_DOM) {
     if (!(SAVE.goals || []).length) gb.innerHTML = hasProfile() ? '<p>Goals are dealt each week, month and year from what you log. Log a lift, a run of a mile or more, Cindy, BJJ or dance to get your first ones.</p>' : '<p>Goals are dealt from your ratings. Set your profile on the Ratings tab first.</p>';
     el('q-msg').textContent = typeof msg === 'string' ? msg : '';
   };
+  /* Food and nutrients (s11): Today by meal, Add (USDA search, a barcode number, NIH supplements, your own), Nutrients
+     against the daily values with a 30-day trend per nutrient. One screen each, swipe between tabs. */
+  const F_TABS = ['Today', 'Add', 'Nutrients'], ADD_MODES = ['Search', 'Barcode', 'Supplements', 'Your own'];
+  let foodTab = 'Today', foodDay = 0, foodMeal = null, addMode = 'Search', nutGroup = 'Macros', nutScope = 'Day', foodQ = '', foodResults = null, foodBusy = false;
+  const inClaude = () => /claude/i.test(location.hostname); // the claude.ai copy cannot reach outside sites
+  const fday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate() + foodDay, 12); };
+  const fmtN = (v, n) => (n.unit === 'kcal' || v >= 100 ? Math.round(v) : round1(v)) + ' ' + n.unit;
+  const mealNow = () => { const h = new Date().getHours(); return h < 11 ? 'Breakfast' : h < 15 ? 'Lunch' : h < 21 ? 'Dinner' : 'Snacks'; };
+  const recentFoods = kind => Object.values(SAVE.foods || {}).filter(f => !kind || f.kind === kind).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || b.t - a.t);
+  const chipRow = (box, items, cur, on) => { const c = document.createElement('div'); c.className = 'chips'; for (const t of items) { const b = document.createElement('button'); b.className = 'chip' + (t === cur ? ' on' : ''); b.textContent = t; b.onclick = () => on(t); c.appendChild(b); } box.appendChild(c); return c; };
+  const note = (box, text) => { const p = document.createElement('p'); p.className = 'fnote'; p.textContent = text; box.appendChild(p); return p; };
+  function stepper(n, onChange) { // servings in halves; the number can also be typed
+    const w = document.createElement('span'); w.className = 'step';
+    w.innerHTML = '<button aria-label="less">−</button><input type="number" inputmode="decimal" min="0.25" step="0.25"><button aria-label="more">+</button>';
+    const [mi, inp, pl] = [w.children[0], w.children[1], w.children[2]]; inp.value = n;
+    const set = v => { v = Math.max(0.25, Math.round(v * 4) / 4); inp.value = v; onChange(v); };
+    let last = n; const set2 = v => { last = Math.max(0.25, Math.round(v * 4) / 4); set(last); };
+    mi.onclick = () => set2(last - 0.5); pl.onclick = () => set2(last + 0.5); inp.onchange = () => { if (+inp.value > 0) set2(+inp.value); else inp.value = last; }; // a blank or 0 goes back to the last number
+    return w;
+  }
+  function sheet() { const s = el('f-sheet'); s.innerHTML = ''; s.hidden = false; return s; }
+  const closeBtn = s => { const c = document.createElement('button'); c.className = 'back'; c.textContent = 'Close'; c.onclick = () => { s.hidden = true; }; s.appendChild(c); };
+  swipeTabs(el('food'), dir => { foodTab = cycle(F_TABS, foodTab, dir); el('f-sheet').hidden = true; UI.food(); slideIn(el('f-pages'), dir); });
+  const FOOD_BACK = 60; // days the switcher goes back
+  el('f-prev').onclick = () => { if (foodDay > -FOOD_BACK) { foodDay--; UI.food(); } }; el('f-next').onclick = () => { if (foodDay < 0) { foodDay++; UI.food(); } };
+  el('btn-food').onclick = () => { foodDay = 0; foodTab = 'Today'; foodMeal = null; /* the meal follows the time of day again */ el('f-sheet').hidden = true; UI.food(); };
+  UI.food = msg => {
+    UI.go('food'); inlineTip('it-food', 'food');
+    renderTabs(el('f-tabs'), F_TABS, foodTab, t => { foodTab = t; el('f-sheet').hidden = true; UI.food(); });
+    for (const [t, id] of [['Today', 'f-today'], ['Add', 'f-add'], ['Nutrients', 'f-nut']]) el(id).hidden = t !== foodTab;
+    const d = fday(); el('f-dayname').textContent = foodDay === 0 ? 'Today' : foodDay === -1 ? 'Yesterday' : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); el('f-next').disabled = foodDay >= 0; el('f-prev').disabled = foodDay <= -FOOD_BACK;
+    if (typeof msg === 'string') el('f-msg').textContent = msg;
+    if (foodTab === 'Today') foodToday(dayKey(d)); else if (foodTab === 'Add') foodAdd(); else foodNut(dayKey(d));
+  };
+  function foodToday(key) {
+    const box = el('f-today'), t = dayTotals(key), F = SAVE.foods || {}, ms = mealsOn(key), pt = dvOf(NUT.protein); box.innerHTML = '';
+    box.innerHTML = `<div class="ftot"><span><b>${Math.round(t.kcal || 0)}</b> kcal</span><span><b>${Math.round(t.protein || 0)}</b> of ${pt} g protein</span></div><div class="qbar"><i style="width:${Math.min(100, Math.round((t.protein || 0) / pt * 100))}%"></i></div>`;
+    for (const meal of FOOD.meals) {
+      const es = ms.filter(m => m.meal === meal), kc = es.reduce((a, m) => a + ((F[m.food] && F[m.food].per.kcal) || 0) * m.n, 0), b = document.createElement('button'); b.className = 'row fmeal';
+      b.innerHTML = `<b>${meal}</b><em>${es.length ? (meal === 'Supplements' ? es.length + ' taken' : Math.round(kc) + ' kcal') : 'Add'}</em><span>${es.length ? esc(es.map(m => (F[m.food] ? F[m.food].name : 'Removed food') + (m.n !== 1 ? ' x' + m.n : '')).join(', ')) : 'Nothing yet'}</span>`;
+      b.onclick = () => { if (es.length) mealSheet(key, meal); else { foodMeal = meal; foodTab = 'Add'; UI.food(); } };
+      box.appendChild(b);
+    }
+  }
+  function mealSheet(key, meal) {
+    const F = SAVE.foods || {}, s = sheet(); s.innerHTML = `<h3>${meal}</h3>`;
+    for (const m of mealsOn(key).filter(x => x.meal === meal)) {
+      const f = F[m.food], r = document.createElement('div'); r.className = 'fitem';
+      r.innerHTML = `<div><b>${esc(f ? f.name : 'Removed food')}</b><small>${f ? esc(f.serving) + (f.per.kcal ? ' · ' + Math.round(f.per.kcal * m.n) + ' kcal' : '') : ''}</small></div>`;
+      r.appendChild(stepper(m.n, n => { setServings(m.id, n); foodToday(key); const sm = r.querySelector('small'); if (f && f.per.kcal) sm.textContent = `${f.serving} · ${Math.round(f.per.kcal * n)} kcal`; }));
+      const x = document.createElement('button'); x.className = 'fx'; x.textContent = 'Remove'; x.onclick = () => { setServings(m.id, 0); foodToday(key); if (mealsOn(key).some(q => q.meal === meal)) mealSheet(key, meal); else s.hidden = true; }; r.appendChild(x);
+      s.appendChild(r);
+    }
+    const add = document.createElement('button'); add.className = 'primary'; add.textContent = `Add to ${meal}`; add.onclick = () => { s.hidden = true; foodMeal = meal; foodTab = 'Add'; UI.food(); }; s.appendChild(add);
+    closeBtn(s);
+  }
+  function foodAdd() {
+    const box = el('f-add'); foodMeal = foodMeal || mealNow(); box.innerHTML = '';
+    chipRow(box, FOOD.meals, foodMeal, t => { foodMeal = t; foodAdd(); });
+    chipRow(box, ADD_MODES, addMode, t => { addMode = t; foodResults = null; foodQ = ''; el('f-msg').textContent = ''; foodAdd(); }).classList.add('modes');
+    if (addMode === 'Your own') { ownForm(box); return; }
+    const f = document.createElement('form'); f.className = 'fsearch';
+    f.innerHTML = `<input type="text" inputmode="${addMode === 'Barcode' ? 'numeric' : 'search'}" enterkeyhint="search" placeholder="${addMode === 'Barcode' ? 'The number under the barcode' : addMode === 'Supplements' ? 'Vitamin D, creatine, a brand' : 'Chicken breast, oats, a brand'}"><button class="primary">${foodBusy ? '...' : 'Go'}</button>`;
+    f.querySelector('input').value = foodQ; f.onsubmit = ev => { ev.preventDefault(); runSearch(f.querySelector('input').value); }; box.appendChild(f);
+    if (inClaude()) note(box, 'The claude.ai copy cannot reach the food databases. Search works in the app; Your own works everywhere.');
+    const list = foodResults || recentFoods(addMode === 'Supplements' ? 'supp' : addMode === 'Search' ? 'food' : null);
+    if (!foodResults && list.length) note(box, 'Favorites and recent');
+    for (const it of list.slice(0, 6)) {
+      const b = document.createElement('button'); b.className = 'row frow';
+      b.innerHTML = `<b>${esc(it.name)}${it.fav ? ' ★' : ''}</b><em>${it.per.kcal != null ? Math.round(it.per.kcal) + ' kcal' : it.kind === 'supp' ? 'supplement' : ''}</em><span>${esc([it.brand, it.serving, it.src].filter(Boolean).join(' · '))}</span>`;
+      b.onclick = () => foodSheet(it); box.appendChild(b);
+    }
+  }
+  async function runSearch(q) {
+    q = String(q || '').trim(); if (!q || foodBusy) return; foodQ = q; foodBusy = true; el('f-msg').textContent = 'Searching...'; const mode = addMode;
+    try { foodResults = mode === 'Barcode' ? await lookupBarcode(q) : mode === 'Supplements' ? await searchSupps(q) : await searchFoods(q); el('f-msg').textContent = foodResults.length ? '' : 'Nothing found. Try other words, or make your own.'; }
+    catch (e) { foodResults = []; const busy = /HTTP (429|403)/.test(String(e)), usda = mode !== 'Supplements';
+      el('f-msg').textContent = busy && usda && !SAVE.fdcKey ? 'The free demo key is used up for now. Add your own free key in Settings.' : busy ? 'The database is busy. Try again in a minute.' : 'Could not reach the food database' + (inClaude() ? ': the claude.ai copy cannot reach outside sites, use the app.' : '. Check your connection.'); }
+    foodBusy = false; if (addMode !== mode) foodResults = null; if (curScreen === 'food' && foodTab === 'Add') foodAdd();
+  }
+  function foodSheet(f) {
+    let n = 1; const s = sheet();
+    s.innerHTML = `<h3>${esc(f.name)}</h3><p>${esc([f.brand, f.serving, f.src].filter(Boolean).join(' · '))}</p><div class="fmac"${['kcal', 'protein', 'carbs', 'fat'].some(k => f.per[k] != null) ? '' : ' hidden'}></div><p class="fvit"></p>`;
+    const draw = () => {
+      s.querySelector('.fmac').innerHTML = ['kcal', 'protein', 'carbs', 'fat'].map(k => `<span><b>${f.per[k] != null ? (k === 'kcal' ? Math.round(f.per[k] * n) : round1(f.per[k] * n)) : '-'}</b>${k === 'kcal' ? 'kcal' : NUT[k].name.toLowerCase() + ' g'}</span>`).join('');
+      const top = NUTRIENTS.filter(x => f.per[x.k] != null && x.g !== 'Macros').map(x => [x, f.per[x.k] * n / dvOf(x)]).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      s.querySelector('.fvit').textContent = (top.length ? top.map(([x, r]) => `${x.name} ${Math.round(r * 100)}%`).join(', ') + ' of daily value. ' : '') + (f.extra && f.extra.length ? 'Also ' + f.extra.slice(0, 4).map(e => `${e.name} ${round1(e.amt * n)} ${e.unit}`).join(', ') + '.' : '');
+    };
+    const row = document.createElement('div'); row.className = 'fitem'; row.innerHTML = '<div><b>Servings</b></div>'; row.appendChild(stepper(n, v => { n = v; draw(); })); s.appendChild(row);
+    const add = document.createElement('button'); add.className = 'primary fadd'; add.textContent = `Add to ${foodMeal}`;
+    add.onclick = () => { const kept = saveFood(f), e = logFood(kept.id, foodMeal, n, new Date(), foodDay ? fday() : null); s.hidden = true; beep(880, 0.08, 'triangle', 0.05); foodTab = 'Today'; UI.food(e ? `Added ${f.name} to ${foodMeal}.` : ''); };
+    const fav = document.createElement('button'); const isFav = () => !!(SAVE.foods && SAVE.foods[f.id] && SAVE.foods[f.id].fav);
+    fav.textContent = isFav() ? 'Favorite ★' : 'Add to favorites'; fav.onclick = () => { const kept = saveFood(f); kept.fav = !kept.fav; persist(SAVE); fav.textContent = kept.fav ? 'Favorite ★' : 'Add to favorites'; };
+    s.appendChild(add); s.appendChild(fav); closeBtn(s); draw();
+  }
+  function ownForm(box) {
+    const supp = foodMeal === 'Supplements', fields = supp ? [['vitD', 'Vitamin D (µg)'], ['vitC', 'Vitamin C (mg)'], ['magnesium', 'Magnesium (mg)'], ['zinc', 'Zinc (mg)']] : [['kcal', 'Calories'], ['protein', 'Protein (g)'], ['carbs', 'Carbs (g)'], ['fat', 'Fat (g)']];
+    const f = document.createElement('form'); f.className = 'fown';
+    f.innerHTML = `<input class="fo-name" type="text" placeholder="${supp ? 'Supplement name' : 'Food name'}"><input class="fo-serv" type="text" placeholder="Serving, like 1 cup or 2 capsules">`
+      + `<div class="fogrid">${fields.map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any"></label>`).join('')}</div><button class="primary">Save and add to ${foodMeal}</button>`;
+    f.onsubmit = ev => { ev.preventDefault(); const name = f.querySelector('.fo-name').value.trim(); if (!name) { el('f-msg').textContent = 'Give it a name.'; return; }
+      const vals = {}; f.querySelectorAll('[data-k]').forEach(i => { if (+i.value > 0) vals[i.dataset.k] = +i.value; });
+      const kept = saveFood(myFood(name, supp ? 'supp' : 'food', f.querySelector('.fo-serv').value.trim(), vals)); logFood(kept.id, foodMeal, 1, new Date(), foodDay ? fday() : null); foodTab = 'Today'; UI.food(`Saved ${name} and added it to ${foodMeal}.`); };
+    box.appendChild(f);
+  }
+  function foodNut(key) {
+    const box = el('f-nut'); box.innerHTML = '';
+    const cr = chipRow(box, ['Macros', 'Vitamins', 'Minerals'], nutGroup, t => { nutGroup = t; foodNut(key); }); // one row: groups, then a Day / 7 days toggle
+    const sc = document.createElement('button'); sc.className = 'chip on nscope'; sc.textContent = nutScope === 'Day' ? 'Day' : '7 days'; sc.onclick = () => { nutScope = nutScope === 'Day' ? 'Week' : 'Day'; foodNut(key); }; cr.appendChild(sc);
+    let t = {}, days = 1;
+    if (nutScope === 'Day') t = dayTotals(key);
+    else { const d = fday(), ks = []; for (let i = 0; i < 7; i++) { const k = dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - i, 12)); if (mealsOn(k).length) ks.push(k); } days = ks.length; for (const k of ks) { const x = dayTotals(k); for (const q in x) t[q] = (t[q] || 0) + x[q] / days; } }
+    if (!days || (nutScope === 'Day' && !mealsOn(key).length)) note(box, 'Nothing logged ' + (nutScope === 'Day' ? 'on this day.' : 'in these 7 days.'));
+    else if (nutScope !== 'Day') note(box, `Daily average over the ${days} day${days === 1 ? '' : 's'} you logged this week.`);
+    for (const n of NUTRIENTS.filter(x => x.g === nutGroup)) {
+      const v = t[n.k] || 0, dv = dvOf(n), pc = v / dv, r = document.createElement('button'); r.className = 'nrow' + (n.limit && pc > 1 ? ' over' : '');
+      r.innerHTML = `<span>${n.name}</span><small>${fmtN(v, n)} of ${fmtN(dv, n)}</small><div class="qbar"><i style="width:${Math.min(100, Math.round(pc * 100))}%"></i></div>`;
+      r.onclick = () => trendSheet(n); box.appendChild(r);
+    }
+  }
+  function trendSheet(n) {
+    const s = sheet(); s.innerHTML = `<h3>${n.name}, last 30 days</h3><canvas class="fchart" style="position:static;width:100%;height:170px"></canvas><p class="fnote">Dashed line: ${n.limit ? 'the most per day' : n.k === 'protein' && SAVE.bodyweight ? 'your protein target' : 'the daily value'}, ${fmtN(dvOf(n), n)}. Tap the chart to read a day.</p>`;
+    closeBtn(s); const pts = nutrientSeries(n.k, 30, fday()).map(q => ({ t: q.t, v: q.v, l: { ts: q.t } }));
+    drawChart(pts, { name: n.name, fmt: v => fmtN(v, n), ref: dvOf(n) }, s.querySelector('canvas'), 170);
+  }
+  UI.fdckey = msg => {
+    UI.go('fdckey'); el('fk-in').value = SAVE.fdcKey || ''; el('fk-msg').textContent = msg || (SAVE.fdcKey ? 'Using your key.' : 'Using DEMO_KEY for now.');
+  };
+  el('btn-fk-save').onclick = () => { const k = el('fk-in').value.trim(); if (k && !/^[A-Za-z0-9]{20,64}$/.test(k)) { el('fk-msg').textContent = 'That does not look like an api.data.gov key (letters and digits only).'; return; } if (k) SAVE.fdcKey = k; else delete SAVE.fdcKey; persist(SAVE); UI.fdckey(k ? 'Saved on this phone.' : 'Cleared. Back to DEMO_KEY.'); };
   UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
     el('l-gold').textContent = Math.round(SAVE.gold);
@@ -2938,25 +3287,27 @@ if (HAS_DOM) {
     } else el('hist-extra').textContent = `${logs.length} session${logs.length === 1 ? '' : 's'} logged.`;
     recentList(el('hist-list'), logs.slice(0, 30), msg => { UI.hist(histKind, histMetric); if (msg) el('hist-extra').textContent = msg; });
   };
-  function drawChart(pts, m) {
-    const c = el('hist-chart'), W = c.clientWidth || 360, H = 190, dpr = Math.min(3, window.devicePixelRatio || 1);
+  function drawChart(pts, m, c, H) { // m.ref: a dashed line to measure against (a daily value)
+    c = c || el('hist-chart'); H = H || 190; const W = c.clientWidth || 360, dpr = Math.min(3, window.devicePixelRatio || 1);
     c.width = W * dpr; c.height = H * dpr; const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     g.font = '12px Roboto, Arial, sans-serif'; g.fillStyle = '#8b93a3';
     if (pts.length < 2) { g.textAlign = 'center'; g.fillText(pts.length ? 'One entry so far. Log another to see a trend.' : 'No entries with details in the last 30 days.', W / 2, H / 2); c.onclick = null; return; }
     const L = 44, R = 12, T = 22, B = 24, vs = pts.map(q => q.v);
+    if (m.ref) vs.push(m.ref);
     let lo = Math.min(...vs), hi = Math.max(...vs); const pad = (hi - lo) * 0.15 || Math.max(1, hi * 0.1); lo = Math.max(0, lo - pad); hi += pad;
     const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
     const X = t => L + (t1 === t0 ? (W - L - R) / 2 : (t - t0) / (t1 - t0) * (W - L - R)), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
     g.strokeStyle = 'rgba(139,147,163,0.18)'; g.lineWidth = 1; g.textAlign = 'right';
     for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(W - R, y); g.stroke(); g.fillText(m.name === 'Pace' ? fmtPace(v) : (v >= 100 ? Math.round(v) : v.toFixed(1)), L - 6, y + 4); }
     g.textAlign = 'left'; g.fillText(fmtDay(pts[0].l), L, H - 6); g.textAlign = 'right'; g.fillText(fmtDay(pts[pts.length - 1].l), W - R, H - 6);
+    if (m.ref) { g.strokeStyle = 'rgba(255,179,71,0.6)'; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(m.ref)); g.lineTo(W - R, Y(m.ref)); g.stroke(); g.setLineDash([]); }
     g.strokeStyle = '#7ff5ff'; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath(); pts.forEach((q, i) => g[i ? 'lineTo' : 'moveTo'](X(q.t), Y(q.v))); g.stroke();
     for (const q of pts) { g.fillStyle = '#0f1420'; g.beginPath(); g.arc(X(q.t), Y(q.v), 6, 0, 6.283); g.fill(); g.fillStyle = '#7ff5ff'; g.beginPath(); g.arc(X(q.t), Y(q.v), 4, 0, 6.283); g.fill(); }
     // tap anywhere on the chart: read the nearest entry
     c.onclick = ev => {
       const r = c.getBoundingClientRect(), x = ev.clientX - r.left; let best = pts[0];
       for (const q of pts) if (Math.abs(X(q.t) - x) < Math.abs(X(best.t) - x)) best = q;
-      drawChart(pts, m); const g2 = c.getContext('2d'), bx = X(best.t), by = Y(best.v), txt = `${fmtDay(best.l)}: ${m.fmt(best.v)}`;
+      drawChart(pts, m, c, H); const g2 = c.getContext('2d'), bx = X(best.t), by = Y(best.v), txt = `${fmtDay(best.l)}: ${m.fmt(best.v)}`;
       g2.strokeStyle = 'rgba(246,239,224,0.35)'; g2.beginPath(); g2.moveTo(bx, T - 6); g2.lineTo(bx, H - B); g2.stroke();
       g2.font = '13px Roboto, Arial, sans-serif'; const tw = g2.measureText(txt).width + 14, tx = Math.min(W - R - tw, Math.max(L, bx - tw / 2));
       g2.fillStyle = 'rgba(15,20,32,0.95)'; g2.fillRect(tx, 0, tw, 20); g2.strokeStyle = '#2a3447'; g2.strokeRect(tx + 0.5, 0.5, tw - 1, 19);
@@ -3142,7 +3493,7 @@ if (HAS_DOM) {
   };
   el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
-  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', logform: 'log', hist: 'log' };
+  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', logform: 'log', hist: 'log' };
   function goBack() {
     const id = curScreen;
     if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
@@ -3380,6 +3731,7 @@ if (HAS_DOM) {
   UI.settings = msg => {
     UI.go('settings'); el('set-msg').textContent = msg || '';
     setRow('btn-profile', 'Your profile', SAVE.profile && SAVE.profile.sex ? (SAVE.profile.sex === 'female' ? 'Female' : 'Male') : 'Not set', 'Sex for standards, bodyweight and age, for your ratings and dealt goals.');
+    setRow('btn-fdckey', 'Food database key', SAVE.fdcKey ? 'Yours' : 'DEMO_KEY', 'A free USDA key from api.data.gov makes food search work all day. Stored on this phone only.');
     setRow('btn-mute', 'Sound and vibration', SAVE.muted ? 'Off' : 'On', 'Beeps and haptic buzzes.');
     setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
     setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
@@ -3388,6 +3740,7 @@ if (HAS_DOM) {
   };
   el('btn-settings').onclick = () => UI.settings();
   el('btn-profile').onclick = () => UI.profile();
+  el('btn-fdckey').onclick = () => UI.fdckey();
   el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.settings(); };
   el('btn-skin').onclick = () => { if (SAVE.cleared < EMBER_AT) { UI.settings(`Clear Zone ${EMBER_AT} first.`); return; } SAVE.skin = SAVE.skin === 'ember' ? 'static' : 'ember'; persist(SAVE); UI.settings(); };
   el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.settings(); };
@@ -3433,7 +3786,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { SWIPE, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { SWIPE, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
