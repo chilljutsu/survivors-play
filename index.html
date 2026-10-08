@@ -606,7 +606,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s13';
+const BUILD_ID = 'playtest 2026-10-08 s14';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1674,7 +1674,7 @@ const TIPS = {
   perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains while perched (not on the base perch, which charges it). Tap the perch again, or press Recall, to bring it home.' },
   dial:      { group: 'Drones', title: 'Drone positions', body: 'Pause, then Drone positions: a clock around you where 12 is straight ahead. Pick a Drone and tap a spot. The inner ring keeps it close beside you, the outer ring sends it out to scout. Reset puts them back to spreading ahead. Your choice is kept for every run.' },
   intercept: { group: 'Drones', title: 'Intercept', body: 'Your following Drone just shot down an enemy bullet. Set it on the inner ring in Drone positions to keep it beside you as a shield. A block costs it health: at the first level one block knocks it down, and you walk over it to recover it.' },
-  wall:      { group: 'Drones', title: 'Shield wall', body: 'Your Drone just blocked a bullet from farther out. With Shield wall a block costs charge, not health, so it stays up. Under a quarter charge it rests until it recharges beside you to 60%.' },
+  wall2:     { group: 'Drones', title: 'Shield wall', body: 'Your Drone just blocked a bullet heading your way from farther out. With Shield wall each block costs half the health, so it lasts longer, but enough hits still knock it down. It heals while it follows you.' },
   autoshell: { group: 'Drones', title: 'Auto artillery', body: 'A perched Drone just called a shell by itself on what you told Drones to go after (Pause > Drone positions > Drone targets: Jammers, Gunners, groups or the boss). It uses your shells, so keep some in stock, and it waits a few seconds between calls.' },
   artillery: { group: 'Drones', title: 'Artillery', body: 'With a Drone perched you can call artillery. Tap Shell: time slows to 30% and the camera shows the Drone feed (Next feed flips between perched Drones). Tap a spot it can see; the shell lands 1.6 seconds later and hurts you too if you stand in it. The base makes a shell every 20 seconds. There is a perch on the base itself, handy for raids.' },
   jammed:    { group: 'Drones', title: 'Drone jammed', body: 'A Jammer is close to your perched Drone, so it went blind (purple). Kill the Jammer or recall the Drone.' },
@@ -1993,12 +1993,13 @@ function droneSkills(run, dt) {
     if (m.state === 'dimmed' || m.state === 'diving') continue;
     if (sk.dshield && m.state === 'follow' && (m.icd = (m.icd || 0) - dt) <= 0) { // Intercept: shoot down the nearest enemy bullet
       const wall = sk.dwall > 0, ir = wall ? INTERCEPT.wallR : INTERCEPT.r;
-      if (wall) { if (m.bat < m.maxBat * INTERCEPT.wallRest) m.rest = true; else if (m.bat >= m.maxBat * INTERCEPT.wallBack) m.rest = false; } // rests under a quarter, back at 60%
-      let hit = null, bd = ir * ir; if (!wall || !m.rest) for (const b of run.ebullets) { const d = dist2(b.x, b.y, m.x, m.y); if (d < bd && b.t > 0) { bd = d; hit = b; } }
+      let hit = null, bd = ir * ir;
+      for (const b of run.ebullets) { const d = dist2(b.x, b.y, m.x, m.y); if (d < bd && b.t > 0 && (!wall || (run.p.x - b.x) * b.vx + (run.p.y - b.y) * b.vy > 0)) { bd = d; hit = b; } } // Shield wall's longer reach only takes bullets heading your way
       if (hit) {
         hit.t = 0; m.icd = INTERCEPT.every[sk.dshield]; spark(run, hit.x, hit.y, '#7ff5ff'); cue(run, 'block', 0.2, SFX.block); run.intercepts = (run.intercepts || 0) + 1; tip(run, 'intercept', { at: m });
-        if (wall) { m.bat = Math.max(0, m.bat - INTERCEPT.wallBat); run.wallBlocks = (run.wallBlocks || 0) + 1; tip(run, 'wall', { at: m }); } // Shield wall: charge, not health
-        else { m.hp -= INTERCEPT.hpCost[sk.dshield]; if (m.hp <= 0) { dimMote(run, m, 'block'); continue; } }
+        if (wall) run.wallBlocks = (run.wallBlocks || 0) + 1;
+        m.hp -= INTERCEPT.hpCost[sk.dshield] * (wall ? INTERCEPT.wallHp : 1); if (m.hp <= 0) { dimMote(run, m, 'block'); continue; } // Shield wall: half the health per block
+        if (wall) tip(run, 'wall2', { at: m }); // explained while it is still up
       }
     }
     if (emp && !m.jammed) { // EMP: slow (and at 3, burn) enemies near the drone
@@ -2332,11 +2333,11 @@ const DRONE_SKILLS = {
   dmag:    { name: 'Drone magnet',    max: 2, cost: 1, desc: l => l === 0 ? 'Your following Drone pulls in XP from 50% farther' : 'It also collects parts' },
   demp:    { name: 'EMP',             max: 3, cost: 1, desc: l => ['Drones slow enemies within 120px', 'Slow radius 150px', 'Radius 180px, and it burns them for 6 damage a second'][l] },
   dshield: { name: 'Intercept',       max: 3, cost: 1, desc: l => ['A following Drone shoots down an enemy bullet near it every 1.2 s. Each block knocks it down: walk over it to recover', 'Blocks every 0.8 s and survives one block (the second knocks it down)', 'Blocks every 0.5 s and takes three blocks to knock down'][l] },
-  dwall:   { name: 'Shield wall',     max: 1, cost: 1, desc: () => 'Blocks reach 120px and cost charge instead of health, so a block never knocks a Drone down' },
+  dwall:   { name: 'Shield wall',     max: 1, cost: 1, desc: () => 'Blocks bullets heading your way from 120px, for half the health each' },
   dstrike: { name: 'Kamikaze strike', max: 2, cost: 1, desc: l => l === 0 ? 'A Drone over 60% charge dives into a boss within 450px: 250 damage, then it is down until you pick it up' : 'Strike damage 500, and it also dives at Jammers and Gunners, your Drone targets choice first (Pause > Drone positions)' },
 };
 const EMP_R = [0, 120, 150, 180];
-const INTERCEPT = { r: 80, every: [0, 1.2, 0.8, 0.5], hpCost: [0, 100, 50, 34], wallR: 120, wallBat: 12, wallRest: 0.25, wallBack: 0.6 }; // Lance 10-07: drones as a shield
+const INTERCEPT = { r: 80, every: [0, 1.2, 0.8, 0.5], hpCost: [0, 100, 50, 34], wallR: 120, wallHp: 0.5 }; // Lance 10-07: drones as a shield. 10-08: a block can always knock it down (never-downed is for ground bots)
 /* Aim upgrades (Lance 10-08: "an upgrade to shoot where they're going, then eventually a little homing bullet").
    Stored in run.skill like Drone skills, shown in the Weapons sky. Plain Pulse still misses a strafing Gunner. */
 const AIM_SKILLS = {
@@ -2392,7 +2393,7 @@ const SKILL_INFO = {
   'd:dshield': 'A following Drone shoots down an enemy bullet near it. Each block costs it health: at level 1 one block knocks it down (walk over it to recover). Put it on the inner ring in Drone positions to keep it beside you.',
   'a:lead': 'Your shots aim at where the target will be when the bolt arrives, not where it is now. Plain Pulse misses a Gunner that sidesteps; with Lead shot it lands. Works for Pulse, gun drones and turrets.',
   'a:homing': 'Pulse bolts bend toward the enemy they were fired at once they are within 120px, so a late dodge still gets hit. Level 2 bends twice as hard.',
-  'd:dwall': 'Your shielding Drone blocks bullets from 120px instead of 80px, and each block costs it charge instead of health, so it never gets knocked down. Under a quarter charge it stops blocking until it recharges beside you to 60%.',
+  'd:dwall': 'Your shielding Drone blocks bullets from 120px instead of 80px, and it only takes bullets heading your way, and each block costs half the health. Enough hits still knock it down (walk over it to recover).',
   'd:dstrike': 'A charged Drone dives into a boss in reach for heavy damage, then is down until you pick it up. Level 2 hits harder and also dives at Jammers and Gunners, your Drone targets first.',
 };
 function nodeLvl(run, key) {
