@@ -41,7 +41,7 @@
   button.row.evo em { color:var(--amber); }
   button.row em .ck { display:inline-block; width:22px; height:22px; border-radius:50%; background:currentColor; vertical-align:middle; margin-right:8px; position:relative; }
   button.row em .ck::after { content:''; position:absolute; left:8px; top:4px; width:5px; height:10px; border:solid var(--field); border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
-  .zpips { display:flex; gap:9px; margin:7px 0; justify-content:center; }
+  .zpips { display:flex; gap:9px; margin:7px 0; justify-content:center; align-items:center; } .zpips .zw { font-size:12px; font-weight:400; color:var(--dim, #8b93a3); margin-right:2px; }
   .zpips .zp { width:14px; height:14px; transform:rotate(45deg); border:1.5px solid var(--line); }
   .zpips .zp.on { background:var(--cyan); border-color:var(--cyan); }
   .zpips .zp.on.hard { background:var(--red); border-color:var(--red); }
@@ -64,6 +64,7 @@
   .hud-btns.units { bottom:calc(max(16px, env(safe-area-inset-bottom)) + 70px); display:none; flex-wrap:wrap-reverse; justify-content:flex-end; left:12px; pointer-events:none; }
   .hud-btns.units button { pointer-events:auto; } /* the empty part of the row lets touches through to the joystick */
   .tabs.four { grid-template-columns:repeat(4, 1fr); } .tabs.two { grid-template-columns:repeat(2, 1fr); }
+  .tabs.two.five, .tabs.five { grid-template-columns:repeat(5, 1fr); } .tabs.five button { font-size:12px; padding:8px 2px; } /* ten worlds: two rows of five */
   .hud-btns.units.on { display:flex; }
   .hud-btns.units button { padding:8px 10px; font-size:12px; }
   #btn-order { border-color:rgba(127,245,255,0.5); } #btn-order.pick { border-color:var(--red); color:var(--red); }
@@ -487,12 +488,26 @@ const ZONES = [
   { name: 'Zone 10',   dur: 300, rate: 2.25, evo: 0.42, evoMin: 0.08, bossTier: 1, bossAdds: 8,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Ember look for every zone.' },
 ];
 const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Ember', skin: 'ember' } };
+/* Zones 11-50 (Lance 10-08: "go over the whole game to see if it's balanced up to 50 levels ahead"), generated: five
+   zones a world, more enemies (capped at ENEMY_CAP, so from ~Zone 20 Elite forms carry the climb), more evolved and
+   Elite forms, more boss escorts, faster hives. Worlds 3-10 reuse the two looks until the looks packs come.
+   Checked by tools/campaign.js (docs/BALANCE_LOG.md, "Standard checks"). */
+const WORLD_NAMES = { 3: 'Frost', 4: 'Rust', 5: 'Neon', 6: 'Ash', 7: 'Tide', 8: 'Void', 9: 'Storm', 10: 'Core' };
+for (let n = 11; n <= 50; n++) {
+  const k = n - 10, w = 3 + Math.floor((n - 11) / 5), first = (n - 11) % 5 === 0, elite = Math.max(0, 0.03 * (k - 8));
+  if (first) WORLDS[w] = { name: `World ${w}: ${WORLD_NAMES[w]}`, skin: w % 2 ? 'static' : 'ember' };
+  ZONES.push({ name: 'Zone ' + n, dur: 300, rate: +(2.25 + 0.08 * k).toFixed(2), evo: Math.min(0.85, +(0.42 + 0.03 * k).toFixed(2)), evoMin: 0.08,
+    elite: Math.min(0.8, +elite.toFixed(2)), eliteMin: elite > 0 ? 0.03 : 0, bossTier: n >= 20 ? 2 : 1, bossAdds: Math.min(14, 8 + Math.floor(k / 5)),
+    gold: 900 + 110 * k, world: w, hiveRate: +Math.max(0.55, 0.8 - 0.006 * k).toFixed(3), hives: Math.min(8, 6 + Math.floor(k / 10)),
+    desc: n === 19 ? 'Elite forms appear: two rings, far tougher. Hit hives early.' : first ? `World ${w}, ${WORLD_NAMES[w]}. More of everything.` : n >= 20 ? 'More Elite forms and an Apex boss.' : 'More enemies and more evolved forms.' });
+}
 // colours the map is drawn with; a zone uses its world's skin, World 1 uses the skin you picked once Ember is earned
 const THEMES = {
   static: { name: 'Static', bg: '#0f1420', grid: 'rgba(120,170,210,0.16)', wall: '#1c2434', wallDim: '#161c29', edge: 'rgba(160,190,220,0.6)', edgeDim: 'rgba(120,140,170,0.25)', edgeMem: 'rgba(160,190,220,0.5)', fog: 'rgba(6,8,14,0.74)', noise: [0, 3, 9] },
   ember:  { name: 'Ember', bg: '#1a1110', grid: 'rgba(255,150,90,0.14)', wall: '#2f1d17', wallDim: '#241510', edge: 'rgba(255,180,130,0.6)', edgeDim: 'rgba(200,130,90,0.25)', edgeMem: 'rgba(255,180,130,0.5)', fog: 'rgba(16,8,5,0.76)', noise: [12, 2, -6] },
 };
 const WORLD_IDS = [...new Set(ZONES.map(z => z.world || 1))];
+const worldOpen = w => SAVE.playtest || ZONES.findIndex(z => (z.world || 1) === w) <= SAVE.cleared + 5; // open worlds and the next one (a preview of what is coming)
 const EMBER_AT = 10; // clearing this many zones earns the Ember skin
 const chosenSkin = () => (SAVE.skin === 'ember' && SAVE.cleared >= EMBER_AT ? 'ember' : 'static'); // World 1 look
 const skinFor = z => ((z.world || 1) > 1 ? WORLDS[z.world].skin : chosenSkin());
@@ -524,8 +539,18 @@ const EVOLVED = {
   resonator: { name: 'Resonator Prime', hp: 2.4, dmg: 1.3, spd: 1.1,  r: 1.15, reward: 2, ring: 18 },
 };
 const BASE_FORM = { hp: 1, dmg: 1, spd: 1, r: 1, reward: 1 };
-const form = e => (e.tier ? EVOLVED[e.type] : ENEMY[e.type]); // where a form's own numbers live (ring, fan, gap)
-const JAM_R = e => (e.tier ? EVOLVED.null.ring : ENEMY.null.ring); // a Jammer's blinding ring
+const form = e => (e.tier ? FORMS[e.tier][e.type] : ENEMY[e.type]); // where a form's own numbers live (ring, fan, gap)
+/* Elite forms (tier 2, two rings): from Zone 19; a share of evolved spawns comes Elite (zone elite + eliteMin a minute). */
+const ELITE = {
+  static:    { name: 'Iron Swarm',      hp: 6,   dmg: 2,   spd: 1.15, r: 1.4,  reward: 4 },
+  spike:     { name: 'Spear',           hp: 5.5, dmg: 1.8, spd: 1.25, r: 1.25, reward: 4 },
+  harmonic:  { name: 'Siege Gunner',    hp: 6,   dmg: 1.5, spd: 0.9,  r: 1.35, reward: 4, fan: 9, gap: 0.16 },
+  null:      { name: 'Silencer',        hp: 5,   dmg: 1.5, spd: 1,    r: 1.3,  reward: 4, ring: 400 },
+  resonator: { name: 'Resonator Apex',  hp: 5,   dmg: 1.7, spd: 1.15, r: 1.3,  reward: 4, ring: 24 },
+};
+const FORMS = [null, EVOLVED, ELITE];
+const eliteShare = run => (run.tut ? 0 : clamp((run.z.elite || 0) + (run.z.eliteMin || 0) * run.t / 60, 0, 0.8));
+const JAM_R = e => (e.tier ? FORMS[e.tier].null.ring : ENEMY.null.ring); // a Jammer's blinding ring
 const evoShare = run => (run.tut ? 0 : clamp((run.z.evo || 0) + (run.z.evoMin || 0) * run.t / 60, 0, 0.9));
 const WEAPONS = {
   pulse: { name: 'Pulse',  evo: 'Barrage',   desc: 'Bolt at the nearest enemy.',            evoDesc: 'Three-way piercing bolts.' },
@@ -636,7 +661,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s19';
+const BUILD_ID = 'playtest 2026-10-08 s20';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1396,9 +1421,9 @@ function spawnPos(run) {
 }
 function makeEnemy(run, type, x, y, tier) { // stats come from the type and its form only (tier: 0 base, 1 evolved; rolled by the zone if not given)
   const b = ENEMY[type], V = EVOLVED[type];
-  if (tier == null) tier = V && type !== 'resonator' && Math.random() < evoShare(run) ? 1 : 0;
-  const k = (tier && V) || BASE_FORM, hp = b.hp * k.hp;
-  const e = { type, tier: k === BASE_FORM ? 0 : 1, x, y, r: b.r * k.r, hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
+  if (tier == null) tier = V && type !== 'resonator' && Math.random() < evoShare(run) ? (Math.random() < eliteShare(run) ? 2 : 1) : 0;
+  const k = (tier && V && FORMS[tier][type]) || BASE_FORM, hp = b.hp * k.hp;
+  const e = { type, tier: k === BASE_FORM ? 0 : tier, x, y, r: b.r * k.r, hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
     dmg: b.dmg * k.dmg * run.M.dmg, xp: b.xp * k.reward, gold: b.gold * k.reward, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0, mvx: 0, mvy: 0 }; // mvx/mvy: smoothed stride for Lead shot (declared here so every enemy keeps one shape)
   if (type === 'resonator') { e.cd = 3; e.spawnCd = 4; }
   if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1);
@@ -1516,7 +1541,7 @@ function validHiveSpot(run, x, y, from, o) {
 }
 function placeHives(run) {
   run.blocked = buildBlocked(run); run.fields = new Map(); run.hives = [];
-  const n = (HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0);
+  const n = (run.z.hives || HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0); /* a zone's own count wins */
   for (let tries = 0; run.hives.length < n && tries < 3000; tries++) {
     const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
     if (validHiveSpot(run, x, y, cellIdx(run.base.x, run.base.y), { baseDist: HIVE.minBaseDist, gap: HIVE.minGap })) addHive(run, x, y, null); // reachable from your base
@@ -1719,6 +1744,10 @@ const TIPS = {
   camera:    { group: 'Basics', title: 'Camera', body: 'Two cameras, same game. Top-down is the flat map. 2.5D tilts it: things stand up with a shadow, walls have height and fade when they hide you, and you see a little farther up and down. Switch in Settings or from the pause screen.' },
   zoom:      { group: 'Basics', title: 'Zoom', body: 'Pinch with two fingers to zoom between 0.6x and 1.4x. Zoomed out you see more of the map around you (your sight range stays the same). Double tap open ground to reset to 1x. Your zoom is kept for the next run.' },
   // enemies
+  x_static:   { group: 'Enemies', title: 'Iron Swarm (two rings)', body: 'The Elite Swarm: a gold ring outside the white one, about 6 times the HP of a Swarm and twice the bite. From Zone 19.' },
+  x_spike:    { group: 'Enemies', title: 'Spear (two rings)', body: 'The Elite Rusher: faster still, about 5.5 times the HP. Same dash, sidestep it.' },
+  x_harmonic: { group: 'Enemies', title: 'Siege Gunner (two rings)', body: 'The Elite Gunner: a 9-bullet fan and about 6 times the HP. Same rule: it shoots only when it or its hive knows where you are.' },
+  x_null:     { group: 'Enemies', title: 'Silencer (two rings)', body: 'The Elite Jammer: its ring reaches 400 px. Keep Drones well away and kill it first.' },
   v_static:   { group: 'Enemies', title: 'Hardened Swarm (ringed square)', body: 'The evolved Swarm: a white ring round it, about 2.5 times the HP and it hits harder. Harder zones send more evolved forms as the run goes on, never secretly tougher ones.' },
   v_spike:    { group: 'Enemies', title: 'Lancer (ringed triangle)', body: 'The evolved Rusher: faster, about 2.4 times the HP, hits harder. Same dash, so the same sidestep works.' },
   v_harmonic: { group: 'Enemies', title: 'Heavy Gunner (ringed diamond)', body: 'The evolved Gunner: fires 7 bullets instead of 5 and takes about 2.5 times the damage to kill. It follows the same rules: it shoots only when it or its hive knows where you are.' },
@@ -1783,6 +1812,7 @@ const TIPS = {
   food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. Search the USDA food database, type the number under a barcode, find vitamins and supplements in the NIH label database, or make your own. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
+  world3:   { group: 'Between runs', title: 'Worlds 3 to 10', body: 'Every five zones is a new world: more enemies, more evolved forms and faster hives. From Zone 19 Elite forms (two rings, far tougher) join in, and from Zone 20 the boss is the Apex. Enemies never get secretly tougher: what you see is what you fight.' },
   world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look: more enemies, more evolved forms, more hives and an evolved boss. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
@@ -1810,8 +1840,9 @@ function updateTips(run, dt) {
   const p = run.p, vw2 = run.view ? run.view.w / 2 - 40 : 1e9, vh2 = run.view ? run.view.h / 2 - 90 : 1e9;
   const near = (x, y, r) => dist2(x, y, p.x, p.y) < r * r && Math.abs(x - run.cam.x) < vw2 && Math.abs(y - run.cam.y) < vh2;
   if (run.t > 30 && !tipSeen('zoom')) tip(run, 'zoom', { at: p });
-  if ((run.z.world || 1) > 1 && !tipSeen('world2')) tip(run, 'world2', { at: run.base }); // after any tutorial // pinch zoom is invisible until someone says so
-  for (const e of run.enemies) { if (e.type === 'resonator') continue; const k = (e.tier && tipSeen('e_' + e.type) ? 'v_' : 'e_') + e.type; if (TIPS[k] && !tipSeen(k) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, k, { at: e }); }
+  if ((run.z.world || 1) === 2 && !tipSeen('world2')) tip(run, 'world2', { at: run.base });
+  if ((run.z.world || 1) >= 3 && !tipSeen('world3')) tip(run, 'world3', { at: run.base }); // after any tutorial // pinch zoom is invisible until someone says so
+  for (const e of run.enemies) { if (e.type === 'resonator') continue; const k = (e.tier > 1 && tipSeen('v_' + e.type) ? 'x_' : e.tier && tipSeen('e_' + e.type) ? 'v_' : 'e_') + e.type; if (TIPS[k] && !tipSeen(k) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, k, { at: e }); }
   for (const g of run.gems) {
     if (g.part) { if (!tipSeen('part') && near(g.x, g.y, 330)) tip(run, 'part', { at: g }); }
     else if (g.heal) { if (!tipSeen('heal') && near(g.x, g.y, 330)) tip(run, 'heal', { at: g }); }
@@ -1933,7 +1964,7 @@ function update(run, dt) {
     run.phase = 'boss';
     const strong = hivesAlive(run).sort((a, b) => b.stock - a.stock)[0];
     const pos = strong ? { x: strong.x + 60, y: strong.y } : spawnPos(run);
-    run.boss = makeEnemy(run, 'resonator', pos.x, pos.y, run.z.bossTier || 0);
+    run.boss = makeEnemy(run, 'resonator', pos.x, pos.y, run.z.bossTier || 0); /* 1 Prime, 2 Apex */
     run.bossWarn = 3; toast(run, 'Boss. Kill it to clear the zone.'); SFX.boss(); tip(run, 'boss', { at: run.boss });
   }
   if (run.bossWarn > 0) run.bossWarn -= dt;
@@ -2232,7 +2263,7 @@ function killEnemy(run, e, idx) {
   run.gold += e.gold;
   run.gems.push({ x: e.x + rnd(-6, 6), y: e.y + rnd(-6, 6), v: e.xp, t: 0 });
   if (Math.random() < (e.type === 'static' ? 0.02 : 0.08)) run.gems.push({ x: e.x, y: e.y, v: 0, heal: 12, t: 0 });
-  if (Math.random() < ENEMY[e.type].parts * (e.tier ? 2 : 1)) run.gems.push({ x: e.x + rnd(-8, 8), y: e.y + rnd(-8, 8), v: 0, part: e.type === 'resonator' ? 20 : 1, t: 0 });
+  if (Math.random() < ENEMY[e.type].parts * (e.tier ? form(e).reward : 1)) run.gems.push({ x: e.x + rnd(-8, 8), y: e.y + rnd(-8, 8), v: 0, part: e.type === 'resonator' ? 20 : 1, t: 0 });
   for (let i = 0; i < (e.type === 'resonator' ? 40 : 4); i++) spark(run, e.x, e.y, ENEMY_COLOR[e.type]);
   SFX.kill(); if (e.maxhp >= 200 && !e.isCore && e.type !== 'resonator') buzz(18); // a big kill you can feel
   if (e.type === 'resonator') { run.boss = null; SFX.win(); endRun(run, true); }
@@ -2996,6 +3027,7 @@ function drawEnemy(ctx, e, p, now, flat) { // caller has checked it is in sight 
     ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80, 6); ctx.fillStyle = '#ffb347'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80 * Math.max(0, e.hp / e.maxhp), 6);
   }
   if (e.tier) { ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 5, 0, 6.283); ctx.stroke(); } // evolved form
+  if (e.tier > 1) { ctx.strokeStyle = 'rgba(255,209,102,0.85)'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 9, 0, 6.283); ctx.stroke(); } // Elite: a second, gold ring
 }
 function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, JAM_R(e), 0, 6.283); ctx.stroke(); }
 function drawMote(ctx, m, run, now, flat) {
@@ -3328,7 +3360,8 @@ if (HAS_DOM) {
     UI.go('menu');
     el('m-gold').textContent = Math.round(SAVE.gold);
     el('m-streak').textContent = `${SAVE.streak} day streak, ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'}, ${streakMult(SAVE.streak).toFixed(2)}x`;
-    { const pips = (n, c) => ZONES.map((z, i) => `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); // cleared zones as marks, not words (Lance 10-07)
+    { /* the world you are in: its five zones as marks (50 would not fit); Hard has its own row and world */
+      const pips = (n, c) => { const cw = ZONES[Math.min(n, ZONES.length - 1)].world || 1; return `<b class="zw">${c ? 'Hard, ' : ''}${WORLDS[cw].name.replace(/: .*/, '')}</b>` + ZONES.map((z, i) => (z.world || 1) !== cw ? '' : `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); }; // cleared zones as marks, not words (Lance 10-07)
       el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
     el('m-ver').textContent = BUILD_ID;
     { const ov = overallLevel(); el('m-level').hidden = !ov; if (ov) el('m-level').innerHTML = `Athlete level: <b>${ov.name}</b>`; }
@@ -3343,8 +3376,9 @@ if (HAS_DOM) {
     { const md = todayMod(), b = el('btn-mod'); b.classList.toggle('on', !!SAVE.modOn);
       b.innerHTML = `<b>Today's modifier</b><em>${SAVE.modOn ? 'On' : 'Off'}</em><span>${md.name}. Run gold x${md.gold}. Tap to turn ${SAVE.modOn ? 'off' : 'on'}.</span>`;
       b.onclick = () => { SAVE.modOn = !SAVE.modOn; persist(SAVE); UI.zones(); }; }
-    if (!zoneWorld || zoneSeenCleared !== SAVE.cleared) { zoneWorld = ZONES[Math.min(SAVE.cleared, ZONES.length - 1)].world || 1; zoneSeenCleared = SAVE.cleared; } // a newly opened world shows first
-    renderTabs(el('zone-tabs'), WORLD_IDS, zoneWorld, w => { zoneWorld = w; UI.zones(); }, w => WORLDS[w].name.replace(/^World \d+: /, ''), w => WORLDS[w].skin);
+    const worlds = WORLD_IDS.filter(worldOpen); zoneTabs = worlds;
+    if (!zoneWorld || zoneSeenCleared !== SAVE.cleared || !worlds.includes(zoneWorld)) { zoneWorld = ZONES[Math.min(SAVE.cleared, ZONES.length - 1)].world || 1; zoneSeenCleared = SAVE.cleared; } // a newly opened world shows first
+    el('zone-tabs').classList.toggle('five', worlds.length > 4); renderTabs(el('zone-tabs'), worlds, zoneWorld, w => { zoneWorld = w; UI.zones(); }, w => WORLDS[w].name.replace(/^World \d+: /, ''), w => WORLDS[w].skin);
     const box = el('zone-list'); box.innerHTML = '';
     ZONES.forEach((z, i) => {
       if ((z.world || 1) !== zoneWorld) return;
@@ -3357,8 +3391,8 @@ if (HAS_DOM) {
       row.appendChild(bt); box.appendChild(row);
     });
   };
-  let zoneWorld = 0, zoneSeenCleared = -1;
-  swipeTabs(el('zones'), dir => { zoneWorld = cycle(WORLD_IDS, zoneWorld, dir); UI.zones(); slideIn(el('zone-list'), dir); });
+  let zoneWorld = 0, zoneSeenCleared = -1, zoneTabs = [1];
+  swipeTabs(el('zones'), dir => { zoneWorld = cycle(zoneTabs, zoneWorld, dir); UI.zones(); slideIn(el('zone-list'), dir); });
   let latSel = null, latCache = null;
   function latModel() {
     const stars = LATTICE.map(u => { const lvl = lat(u.id), why = latWhy(u.id), maxed = lvl >= u.max; return { key: u.id, name: u.name, lvl, max: u.max, can: !why && !maxed && SAVE.gold >= latticeCost(u, lvl), locked: !!why }; });
@@ -4225,7 +4259,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
