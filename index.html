@@ -56,23 +56,25 @@
   .hud-top b { color:var(--ink); font-weight:500; }
   .hud-top .c { text-align:center; } .hud-top .r { text-align:right; }
   .hud-top .r { padding-right:0; }
+  #hud.light .hud-top, #hud.light #h-motes, #hud.light #toasts { text-shadow:0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7); } #hud.light .hud-top { color:#eef2e8; } /* the Meadow is bright */
   #h-heat { letter-spacing:2px; }
   #toasts { position:absolute; left:0; right:0; top:22%; text-align:center; font-size:14px; color:var(--cyan); text-shadow:0 1px 4px #000; }
   #toasts div { margin:4px 0; }
-  .hud-btns { position:absolute; right:12px; bottom:max(16px, env(safe-area-inset-bottom)); display:flex; gap:8px; pointer-events:auto; }
-  .hud-btns button { width:auto; padding:10px 11px; font-size:13px; background:rgba(15,20,32,0.7); border-color:var(--line); }
-  .hud-btns.units { bottom:calc(max(16px, env(safe-area-inset-bottom)) + 70px); display:none; flex-wrap:wrap-reverse; justify-content:flex-end; left:12px; pointer-events:none; }
-  .hud-btns.units button { pointer-events:auto; } /* the empty part of the row lets touches through to the joystick */
   .tabs.four { grid-template-columns:repeat(4, 1fr); } .tabs.two { grid-template-columns:repeat(2, 1fr); }
   .ord { display:flex; flex-direction:column; gap:4px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; } .ord.dim { opacity:0.55; }
   .ordh { display:flex; justify-content:space-between; align-items:baseline; } .ordh em { font-style:normal; color:var(--cyan); }
   .ord span { font-size:12px; color:var(--dim, #8b93a3); }
   .ord input[type=range] { width:100%; height:32px; accent-color:var(--cyan, #7ff5ff); margin:0; } /* big thumb area for a thumb */
   .tabs.two.five, .tabs.five { grid-template-columns:repeat(5, 1fr); } .tabs.five button { font-size:12px; padding:8px 2px; } /* ten worlds: two rows of five */
-  .hud-btns.units.on { display:flex; }
-  .hud-btns.units button { padding:8px 10px; font-size:12px; }
   #btn-order { border-color:rgba(127,245,255,0.5); } #btn-order.pick { border-color:var(--red); color:var(--red); }
-  #h-motes { position:absolute; left:12px; right:12px; bottom:calc(max(16px, env(safe-area-inset-bottom)) + 48px); font-size:12px; color:var(--cyan); text-align:right; }
+  /* Bottom dock (Lance 10-08: "the little buttons at the bottom are uneven, ugly, wonky, and sometimes cut off"): every
+     button the same width (a quarter of the row), one line each, filled from the bottom right so Pause never moves;
+     the empty part lets touches through to the joystick. --dock-h (set by drawHud) keeps cards and banners above it. */
+  #hud-dock { position:absolute; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(16px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:6px; pointer-events:none; }
+  .hud-grid { display:flex; flex-direction:row-reverse; flex-wrap:wrap-reverse; gap:6px; }
+  .hud-grid button { pointer-events:auto; flex:0 0 calc((100% - 18px) / 4); width:auto; min-width:0; height:40px; padding:0 2px; font-size:min(12px, 3.1vw); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:rgba(15,20,32,0.72); border-color:var(--line); }
+  #hud-units { display:none; } #hud-units.on { display:contents; } /* unit buttons join the same grid, so 12 buttons make 3 full rows */
+  #h-motes { font-size:12px; color:var(--cyan); text-align:right; }
   #h-motes::before { content:"Drones: "; color:var(--dim); }
   .draft-hint { font-size:13px; color:var(--dim); text-align:center; }
   #end-body p { margin-bottom:6px; }
@@ -80,7 +82,7 @@
   #tip { position:fixed; inset:0; display:none; z-index:20; }
   #tip.on { display:block; }
   #tip .card { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 24px); max-width:420px; background:rgba(15,20,32,0.96); border:1px solid var(--cyan); border-radius:10px; padding:14px 16px 10px; box-shadow:0 8px 30px rgba(0,0,0,0.6); }
-  #tip .card.bottom { bottom:calc(max(16px, env(safe-area-inset-bottom)) + 64px); }
+  #tip .card.bottom { bottom:calc(max(16px, env(safe-area-inset-bottom)) + var(--dock-h, 64px) + 8px); }
   #tip .card.top { top:var(--mm-bottom, 170px); }
   #tip-step { font-size:11px; color:var(--cyan); letter-spacing:0.12em; text-transform:uppercase; }
   #tip h3 { margin:4px 0 6px; font-size:19px; font-weight:500; }
@@ -88,9 +90,9 @@
   #tip .btns { display:flex; gap:8px; margin-top:12px; align-items:center; }
   #tip .btns .primary { flex:1; text-align:center; }
   #tip .btns .skip { width:auto; border:none; color:var(--dim); font-size:13px; padding:10px 6px; }
-  #tut { position:fixed; left:12px; right:12px; bottom:calc(max(16px, env(safe-area-inset-bottom)) + 76px); display:none; z-index:15; pointer-events:none; background:rgba(15,20,32,0.88); border:1px solid var(--amber); border-radius:10px; padding:10px 14px 8px; }
+  #tut { position:fixed; left:12px; right:12px; bottom:calc(max(16px, env(safe-area-inset-bottom)) + var(--dock-h, 64px) + 12px); display:none; z-index:15; pointer-events:none; background:rgba(15,20,32,0.88); border:1px solid var(--amber); border-radius:10px; padding:10px 14px 8px; }
   #tut.on { display:block; }
-  #aim { position:fixed; left:12px; right:12px; bottom:calc(max(16px, env(safe-area-inset-bottom)) + 76px); display:none; z-index:16; background:rgba(15,20,32,0.9); border:1px solid var(--amber); border-radius:10px; padding:10px 14px; }
+  #aim { position:fixed; left:12px; right:12px; bottom:calc(max(16px, env(safe-area-inset-bottom)) + var(--dock-h, 64px) + 12px); display:none; z-index:16; background:rgba(15,20,32,0.9); border:1px solid var(--amber); border-radius:10px; padding:10px 14px; }
   #aim.on { display:block; }
   #aim p { color:var(--ink); font-size:15px; margin:0 0 8px; }
   #aim .btns { display:flex; gap:8px; } #aim button { flex:1; text-align:center; padding:10px; }
@@ -218,9 +220,10 @@
   <div class="hud-top" style="margin-top:0"><div><b id="h-ammo">240 ammo</b></div><div class="c"><span id="h-parts">0 parts</span></div><div class="r"><span id="h-shells">4 shells</span></div></div>
   <div class="bar" id="xpbar" style="height:3px"><div id="xp" style="width:0"></div></div>
   <div id="toasts"></div>
-  <div id="h-motes"></div>
-  <div class="hud-btns units" id="hud-units"><button id="btn-gun">Gun drone 20</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-haul">Hauler 15</button><button id="btn-order">Orders: Follow</button></div>
-  <div class="hud-btns"><button id="btn-extractor">Extractor 20</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-shell">Shell 4</button><button id="btn-recall">Recall</button><button id="btn-pause">Pause</button></div>
+  <div id="hud-dock">
+    <div id="h-motes"></div>
+    <div class="hud-grid" id="hud-core"><button id="btn-pause">Pause</button><button id="btn-recall">Recall</button><button id="btn-shell">Shell 4</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-extractor">Extractor 20</button><div class="units" id="hud-units"><button id="btn-gun">Gun drone 20</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-haul">Hauler 15</button><button id="btn-order">Orders: Follow</button></div></div>
+  </div>
 </div>
 
 <div id="menu" class="screen"><div class="col">
@@ -496,41 +499,198 @@ const ZONES = [
   { name: 'Zone 4',    dur: 540, rate: 1.15, evo: 0.06, evoMin: 0.045, bossAdds: 5,  gold: 220, desc: 'More of everything and the first evolved forms. Heat climbs and the base gets hit.' },
   { name: 'Zone 5',    dur: 600, rate: 1.2, evo: 0.08, evoMin: 0.05, bossTier: 1, bossAdds: 6, gold: 320, desc: 'Ten minutes to the boss. Everything you have.' },
   // World 2 (Lance 10-07: after zone 5 the next zones get a new look; beat them and the look is yours in Settings)
-  { name: 'Zone 6',    dur: 180, rate: 1.32, evo: 0.14, evoMin: 0.05, bossTier: 1, bossAdds: 6, gold: 420, world: 2, desc: 'World 2, the Ember fields. Everything from World 1, hotter. More hives.' },
+  { name: 'Zone 6',    dur: 180, rate: 1.32, evo: 0.14, evoMin: 0.05, bossTier: 1, bossAdds: 6, gold: 420, world: 2, desc: 'World 2, the Meadow. Everything from World 1, out in the open. More hives.' },
   { name: 'Zone 7',    dur: 300, rate: 1.42, evo: 0.18, evoMin: 0.055, bossTier: 1, bossAdds: 6, gold: 520, world: 2, hiveRate: 0.8, desc: 'Hives grow faster from here on: hit them early.' },
   { name: 'Zone 8',    dur: 420, rate: 1.52, evo: 0.22, evoMin: 0.06, bossTier: 1, bossAdds: 7, gold: 620, world: 2, hiveRate: 0.8, desc: 'More evolved forms, six hives. Walls are your friends.' },
   { name: 'Zone 9',    dur: 540, rate: 1.62, evo: 0.26, evoMin: 0.065, bossTier: 1, bossAdds: 7,  gold: 740, world: 2, hiveRate: 0.8, desc: 'Long and loud. Bring gun drones.' },
-  { name: 'Zone 10',   dur: 600, rate: 1.72, evo: 0.3, evoMin: 0.07, bossTier: 1, bossAdds: 8,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Ember look for every zone.' },
+  { name: 'Zone 10',   dur: 600, rate: 1.72, evo: 0.3, evoMin: 0.07, bossTier: 1, bossAdds: 8,  gold: 900, world: 2, hiveRate: 0.8, desc: 'Clear it to keep the Meadow look for every zone.' },
 ];
-const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Ember', skin: 'ember' } };
+const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Meadow', skin: 'chibi' } };
 /* Zones 11-50 (Lance 10-08: "go over the whole game to see if it's balanced up to 50 levels ahead"), generated: five
    zones a world, more enemies (capped at ENEMY_CAP, so from ~Zone 20 Elite forms carry the climb), more evolved and
-   Elite forms, more boss escorts, faster hives. Worlds 3-10 reuse the two looks until the looks packs come.
+   Elite forms, more boss escorts, faster hives. Worlds 3-5 have their own looks (s26-s27); 6-10 keep the old colours until s28.
    Checked by tools/campaign.js (docs/BALANCE_LOG.md, "Standard checks"). */
 /* Endurance (Lance 10-08: "have it in endurance mode for sure"): no timer; destroy ENDURANCE.goal hives to win while new
    hives keep growing in and a boss comes every few minutes, tougher over time. Pressure starts at your current zone's
    spec and the pressure clock never stops. Your supply chain and Factory orders carry over as in any run. */
 const ENDURANCE = { goal: 10, hiveEvery: 150, maxHives: 9, bossEvery: 360, gold: 3000, openAt: 3, paceTo: 3, paceAfter: 0.15 }; /* its clock climbs to minute 3, then slowly: new hives and bosses bring the rest */
 const ZONE_DUR = [180, 300, 420, 540, 600]; // by place in a world (Lance 10-08: "the last zone of each world is about 10min, starting from maybe 3 min")
-const WORLD_NAMES = { 3: 'Frost', 4: 'Rust', 5: 'Neon', 6: 'Ash', 7: 'Tide', 8: 'Void', 9: 'Storm', 10: 'Core' };
+const WORLD_LOOK = { 3: 'pnw', 4: 'anime', 5: 'dronewar' }; // generated worlds that have their own look so far
+const WORLD_NAMES = { 3: 'Forest', 4: 'Dusk', 5: 'Frontline', 6: 'Ash', 7: 'Tide', 8: 'Void', 9: 'Storm', 10: 'Core' };
 for (let n = 11; n <= 50; n++) {
   const k = n - 10, w = 3 + Math.floor((n - 11) / 5), first = (n - 11) % 5 === 0, elite = Math.max(0, 0.022 * (k - 8)); /* s21: gentler (s20 campaign walled from Zone 24) */
-  if (first) WORLDS[w] = { name: `World ${w}: ${WORLD_NAMES[w]}`, skin: w % 2 ? 'static' : 'ember' };
+  if (first) WORLDS[w] = { name: `World ${w}: ${WORLD_NAMES[w]}`, skin: WORLD_LOOK[w] || (w % 2 ? 'static' : 'ember') }; /* worlds without their own look yet keep the old colours (s27-s28) */
   ZONES.push({ name: 'Zone ' + n, dur: ZONE_DUR[(n - 1) % 5], rate: +(1.72 + 0.07 * k).toFixed(2), evo: Math.min(0.85, +(0.3 + 0.03 * k).toFixed(2)), evoMin: 0.07, /* s21: eased for 3-10 minute zones */
     elite: Math.min(0.8, +elite.toFixed(2)), eliteMin: elite > 0 ? 0.03 : 0, bossTier: n >= 20 ? 2 : 1, bossAdds: Math.min(14, 8 + Math.floor(k / 5)),
     gold: 900 + 110 * k, world: w, hiveRate: +Math.max(0.55, 0.8 - 0.006 * k).toFixed(3), hives: Math.min(8, 6 + Math.floor(k / 10)),
     desc: n === 19 ? 'Elite forms appear: two rings, far tougher. Hit hives early.' : first ? `World ${w}, ${WORLD_NAMES[w]}. More of everything.` : n >= 20 ? 'More Elite forms and an Apex boss.' : 'More enemies and more evolved forms.' });
 }
-// colours the map is drawn with; a zone uses its world's skin, World 1 uses the skin you picked once Ember is earned
+// colours the map is drawn with (a look's palette; LOOK_DRAW below has its shapes); a zone uses its world's look unless you picked an earned one
 const THEMES = {
   static: { name: 'Static', bg: '#0f1420', grid: 'rgba(120,170,210,0.16)', wall: '#1c2434', wallDim: '#161c29', edge: 'rgba(160,190,220,0.6)', edgeDim: 'rgba(120,140,170,0.25)', edgeMem: 'rgba(160,190,220,0.5)', fog: 'rgba(6,8,14,0.74)', noise: [0, 3, 9] },
   ember:  { name: 'Ember', bg: '#1a1110', grid: 'rgba(255,150,90,0.14)', wall: '#2f1d17', wallDim: '#241510', edge: 'rgba(255,180,130,0.6)', edgeDim: 'rgba(200,130,90,0.25)', edgeMem: 'rgba(255,180,130,0.5)', fog: 'rgba(16,8,5,0.76)', noise: [12, 2, -6] },
 };
+/* ---------- Looks (Lance 10-08: "u made literally none of the worlds we looked at before, you just did color swaps").
+   Each world is drawn in its own look, ported from demos/aesthetics.html: a palette in THEMES (same id) plus LOOK_DRAW,
+   one function per thing, drawn centred on (0, 0) at size r, facing `face` (radians) where that matters. Anything a
+   look leaves out uses the Geometric shapes. HP bars, the evolved and Elite rings, jam marks and the aim chevron are
+   drawn the same in every look, so the fight reads the same whatever it looks like. Hard plays a world at night. */
+Object.assign(THEMES.static, { bolt: '#ffffff', tbolt: '#7ff5ff', shot: ['rgba(255,110,90,0.4)', '#ffc2b8'], accent: '#7ff5ff', night: 'rgba(2,4,12,0.72)' });
+Object.assign(THEMES.ember, { bolt: '#ffffff', tbolt: '#ffcf9a', shot: ['rgba(255,110,90,0.45)', '#ffd8c8'], accent: '#ffb38a', night: 'rgba(10,4,2,0.72)' });
+THEMES.chibi = { name: 'Meadow', style: 'Bright chibi', bg: '#8fd35a', grid: null, wall: '#5aa83a', wallDim: '#4f9433', edge: '#2d5a1b', edgeDim: 'rgba(45,90,27,0.5)', edgeMem: 'rgba(45,90,27,0.8)', fog: 'rgba(30,60,20,0.55)', noise: [-14, 18, -16],
+  bolt: '#ffffff', tbolt: '#4a90e2', shot: ['rgba(214,48,49,0.8)', '#ffffff'], accent: '#2d6fd1', night: 'rgba(6,16,40,0.7)', light: true };
+THEMES.pnw = { name: 'Forest', style: 'PNW mythic', bg: '#1e3329', grid: null, wall: '#2c4a36', wallDim: '#223a2b', edge: '#6b8f7a', edgeDim: 'rgba(107,143,122,0.35)', edgeMem: 'rgba(107,143,122,0.6)', fog: 'rgba(10,20,16,0.78)', noise: [-8, 6, 0],
+  bolt: '#ffe9a8', tbolt: '#e8c46a', shot: ['rgba(217,79,43,0.65)', '#f1e9c9'], accent: '#c9a227', night: 'rgba(2,8,12,0.74)' };
+const LOOK_KINDS = ['player', 'mote', 'static', 'spike', 'null', 'harmonic', 'resonator', 'hive', 'scout', 'gatherer', 'gun', 'scav', 'fix', 'eng', 'haul', 'turret', 'jammer', 'extractor', 'base', 'perch', 'deposit', 'cache', 'xp', 'part', 'heal', 'wallTop', 'cell'];
+const dot = (g, x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill(); };
+const oval = (g, x, y, rx, ry, a) => { g.beginPath(); g.ellipse(x, y, rx, ry, a || 0, 0, 6.283); g.fill(); };
+const ngon = (g, n, r, rot) => { g.beginPath(); for (let i = 0; i < n; i++) { const a = rot + i / n * 6.283; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); };
+const rrect = (g, x, y, w, h, k) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, k); else g.rect(x, y, w, h); g.fill(); };
+const eyes = (g, dx, y, r, col) => { g.fillStyle = '#fff'; dot(g, -dx, y, r); dot(g, dx, y, r); g.fillStyle = col || '#2b2b2b'; dot(g, -dx, y + r * 0.15, r * 0.5); dot(g, dx, y + r * 0.15, r * 0.5); };
+const dots = (g, pts) => { g.beginPath(); for (let i = 0; i < pts.length; i += 3) { g.moveTo(pts[i] + pts[i + 2], pts[i + 1]); g.arc(pts[i], pts[i + 1], pts[i + 2], 0, 6.283); } g.fill(); }; // many circles, one fill
+const haulFrac = o => Math.min(1, (o.load || 0) / (o.cap || 10)); // how full a hauler is, for the looks' load bars
+const hash = i => { let h = (i * 2654435761) >>> 0; h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0; h ^= h >>> 13; return (h >>> 0) / 4294967296; };
+const LOOK_DRAW = {
+  chibi: { // World 2, the Meadow: round friendly characters on a sunny field
+    player(g, r) { g.fillStyle = '#4a90e2'; rrect(g, -r * 0.9, -r * 0.1, r * 1.8, r * 1.5, r * 0.45); g.fillStyle = '#ffd166'; dot(g, 0, -r * 0.65, r * 0.95); g.fillStyle = '#333'; dot(g, -r * 0.32, -r * 0.75, r * 0.15); dot(g, r * 0.32, -r * 0.75, r * 0.15); g.fillStyle = '#e8e8e8'; g.fillRect(r * 0.95, -r * 0.6, r * 0.3, r * 1.9); g.fillStyle = '#8b5a2b'; g.fillRect(r * 0.85, r * 0.25, r * 0.5, r * 0.22); },
+    mote(g, r, o, now) { g.fillStyle = 'rgba(255,255,255,0.75)'; g.save(); g.rotate(now * 18); g.fillRect(-r * 1.6, -r * 0.15, r * 3.2, r * 0.3); g.restore(); g.fillStyle = '#fff'; dot(g, 0, 0, r * 0.8); g.fillStyle = o.jammed ? '#9b59b6' : '#3ad1ff'; dot(g, 0, 0, r * 0.45); },
+    static(g, r) { g.fillStyle = '#e55039'; oval(g, 0, r * 0.15, r * 1.05, r * 0.9); eyes(g, r * 0.35, -r * 0.1, r * 0.22); },
+    spike(g, r) { g.fillStyle = '#ff9f43'; ngon(g, 8, r * 1.2, 0); g.fill(); g.fillStyle = '#ffb877'; dot(g, 0, 0, r * 0.8); g.fillStyle = '#333'; dot(g, -r * 0.3, -r * 0.1, r * 0.13); dot(g, r * 0.3, -r * 0.1, r * 0.13); },
+    null(g, r) { g.fillStyle = '#9b59b6'; rrect(g, -r, -r, r * 2, r * 2, r * 0.35); g.strokeStyle = '#6c3483'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -r); g.lineTo(0, -r * 1.5); g.stroke(); g.fillStyle = '#ffd166'; dot(g, 0, -r * 1.55, r * 0.18); eyes(g, r * 0.38, -r * 0.2, r * 0.22); },
+    harmonic(g, r) { g.fillStyle = '#4a90e2'; g.beginPath(); g.arc(0, 0, r * 1.1, Math.PI, 0); g.fill(); g.fillStyle = '#f5e6c8'; g.fillRect(-r * 0.45, 0, r * 0.9, r * 0.9); g.fillStyle = '#2b2b2b'; g.fillRect(-r * 0.2, r * 0.9, r * 0.4, r * 0.35); eyes(g, r * 0.4, -r * 0.45, r * 0.2); },
+    resonator(g, r, o, now) { const b = 1 + Math.sin(now * 3) * 0.04; g.fillStyle = '#8e44ad'; g.beginPath(); g.ellipse(0, r * 0.2, r * 1.15 * b, r * 0.9 / b, 0, Math.PI, 0); g.lineTo(r * 1.15 * b, r * 0.55); g.lineTo(-r * 1.15 * b, r * 0.55); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.25)'; oval(g, -r * 0.45, -r * 0.25, r * 0.25, r * 0.15, -0.5); eyes(g, r * 0.38, 0, r * 0.2); g.fillStyle = '#ffd166'; g.beginPath(); g.moveTo(-r * 0.5, -r * 0.55); g.lineTo(-r * 0.5, -r * 0.95); g.lineTo(-r * 0.25, -r * 0.72); g.lineTo(0, -r * 1.05); g.lineTo(r * 0.25, -r * 0.72); g.lineTo(r * 0.5, -r * 0.95); g.lineTo(r * 0.5, -r * 0.55); g.closePath(); g.fill(); },
+    hive(g, r) { g.fillStyle = '#c0392b'; oval(g, 0, 0, r * 1.25, r); g.beginPath(); g.moveTo(-r, -r * 0.6); g.lineTo(-r * 1.5, -r * 1.4); g.lineTo(-r * 0.5, -r * 0.9); g.moveTo(r, -r * 0.6); g.lineTo(r * 1.5, -r * 1.4); g.lineTo(r * 0.5, -r * 0.9); g.fill(); g.fillStyle = '#ffe66d'; dot(g, -r * 0.35, -r * 0.15, r * 0.17); dot(g, r * 0.35, -r * 0.15, r * 0.17); g.fillStyle = '#7b241c'; oval(g, 0, r * 0.4, r * 0.4, r * 0.22); },
+    scout(g, r, o, now) { g.fillStyle = 'rgba(255,255,255,0.8)'; const w = Math.sin(now * 40) * 0.3; oval(g, -r * 0.5, -r * 0.8, r * 0.6, r * 0.35, -0.6 + w); oval(g, r * 0.5, -r * 0.8, r * 0.6, r * 0.35, 0.6 - w); g.fillStyle = '#ffd166'; oval(g, 0, 0, r * 1.1, r * 0.85); g.fillStyle = '#333'; g.fillRect(-r * 0.25, -r * 0.8, r * 0.22, r * 1.6); g.fillRect(r * 0.3, -r * 0.7, r * 0.2, r * 1.4); },
+    gatherer(g, r, o) { g.fillStyle = '#9aa0a6'; dot(g, -r * 0.6, -r * 0.7, r * 0.45); dot(g, r * 0.6, -r * 0.7, r * 0.45); dot(g, 0, 0, r); g.fillStyle = '#ffb3c1'; dot(g, 0, r * 0.25, r * 0.18); eyes(g, r * 0.35, -r * 0.2, r * 0.18); if (o.carry) { g.fillStyle = '#c69c6d'; dot(g, r * 0.95, r * 0.4, r * 0.5); } },
+    gun(g, r, o, now) { g.fillStyle = 'rgba(255,255,255,0.7)'; g.save(); g.rotate(now * 20); g.fillRect(-r * 1.4, -r * 0.12, r * 2.8, r * 0.24); g.restore(); g.fillStyle = '#fff'; dot(g, 0, 0, r * 0.75); g.fillStyle = '#4a90e2'; dot(g, 0, 0, r * 0.4); },
+    scav(g, r, o) { g.fillStyle = '#ffd166'; dot(g, 0, 0, r * 0.9); g.fillStyle = '#ff9f43'; g.beginPath(); g.moveTo(r * 0.7, -r * 0.1); g.lineTo(r * 1.2, r * 0.05); g.lineTo(r * 0.7, r * 0.2); g.fill(); g.fillStyle = '#333'; dot(g, r * 0.3, -r * 0.25, r * 0.14); if (o.carry) { g.fillStyle = '#ffd700'; dot(g, -r * 0.7, r * 0.3, r * 0.4); } },
+    fix(g, r) { g.fillStyle = '#fff'; dot(g, 0, 0, r * 0.95); g.fillStyle = '#e55039'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#9aa0a6' : '#ff9f43'; rrect(g, -r, -r * 0.7, r * 2, r * 1.4, r * 0.3); g.fillStyle = '#5b3a1a'; g.fillRect(-r * 1.15, r * 0.45, r * 2.3, r * 0.4); g.fillStyle = '#ffd166'; g.fillRect(r * 0.9, -r * 0.5, r * 0.35, r * 1.1); eyes(g, r * 0.35, -r * 0.25, r * 0.22); },
+    haul(g, r, o) { g.fillStyle = o.jam ? '#8e7aa0' : '#b07a43'; rrect(g, -r, -r * 0.7, r * 2, r * 1.2, r * 0.2); g.fillStyle = '#333'; dot(g, -r * 0.6, r * 0.6, r * 0.28); dot(g, r * 0.6, r * 0.6, r * 0.28); g.fillStyle = '#ffd700'; const k = haulFrac(o); if (k > 0) g.fillRect(-r * 0.8, -r * 0.55 - r * 0.5 * k, r * 1.6, r * 0.5 * k + 0.5); },
+    turret(g, r) { g.fillStyle = '#b07a43'; g.fillRect(-r * 0.6, -r * 0.4, r * 1.2, r * 1.3); g.fillStyle = '#4a90e2'; g.beginPath(); g.moveTo(-r * 0.85, -r * 0.35); g.lineTo(0, -r * 1.1); g.lineTo(r * 0.85, -r * 0.35); g.closePath(); g.fill(); g.fillStyle = '#333'; g.fillRect(-r * 0.2, -r * 0.1, r * 0.4, r * 0.4); },
+    jammer(g, r, o, now) { g.fillStyle = '#9b59b6'; rrect(g, -r * 0.8, -r * 0.6, r * 1.6, r * 1.4, r * 0.3); g.strokeStyle = '#6c3483'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -r * 0.6); g.lineTo(0, -r * 1.3); g.stroke(); g.fillStyle = Math.sin(now * 6) > 0 ? '#ffd166' : '#fff'; dot(g, 0, -r * 1.35, r * 0.2); eyes(g, r * 0.32, -r * 0.05, r * 0.2); },
+    extractor(g, r, o, now) { g.fillStyle = '#b07a43'; g.fillRect(-r * 0.8, -r * 0.3, r * 1.6, r * 1.1); g.fillStyle = '#e55039'; g.beginPath(); g.moveTo(-r, -r * 0.25); g.lineTo(0, -r * 1); g.lineTo(r, -r * 0.25); g.closePath(); g.fill(); g.fillStyle = '#bdc3c7'; g.save(); g.translate(0, r * 0.35); g.rotate(now * 3); ngon(g, 3, r * 0.4, 0); g.fill(); g.restore(); },
+    base(g, s) { g.fillStyle = '#f5e6c8'; g.fillRect(-s / 2, -s * 0.15, s, s * 0.65); g.fillStyle = '#c0392b'; g.beginPath(); g.moveTo(-s * 0.62, -s * 0.12); g.lineTo(0, -s * 0.6); g.lineTo(s * 0.62, -s * 0.12); g.fill(); g.fillStyle = '#8b5a2b'; g.fillRect(-s * 0.1, s * 0.15, s * 0.2, s * 0.35); g.fillStyle = '#6fb7ff'; g.fillRect(-s * 0.36, s * 0.02, s * 0.16, s * 0.14); g.fillRect(s * 0.2, s * 0.02, s * 0.16, s * 0.14); },
+    perch(g, r, o) { g.fillStyle = '#8b5a2b'; g.fillRect(-1.5, -r * 0.2, 3, r * 0.9); g.fillStyle = o.mote ? '#ffd166' : '#4a90e2'; g.beginPath(); g.moveTo(1.5, -r * 0.2); g.lineTo(r * 0.75, -r * 0.05); g.lineTo(1.5, r * 0.15); g.fill(); },
+    deposit(g, r) { g.fillStyle = '#ffd166'; for (const [x, y, s] of [[-r * 0.45, r * 0.2, 0.42], [r * 0.4, r * 0.15, 0.38], [0, -r * 0.3, 0.45]]) { ngon(g, 5, r * s, 0.3); g.fill(); } g.fillStyle = '#fff'; dot(g, -r * 0.1, -r * 0.45, r * 0.08); },
+    cache(g, r) { g.fillStyle = '#8b5a2b'; rrect(g, -r, -r * 0.6, r * 2, r * 1.3, r * 0.2); g.fillStyle = '#ffd166'; g.fillRect(-r, -r * 0.1, r * 2, r * 0.22); g.fillRect(-r * 0.15, -r * 0.6, r * 0.3, r * 1.3); },
+    xp(g, r) { g.fillStyle = '#3ad1ff'; ngon(g, 4, r * 1.2, 0); g.fill(); g.fillStyle = '#fff'; dot(g, -r * 0.25, -r * 0.3, r * 0.25); },
+    part(g, r) { g.fillStyle = '#c9a227'; dot(g, 0, 0, r); g.fillStyle = '#ffd700'; dot(g, 0, 0, r * 0.75); },
+    heal(g, r) { g.fillStyle = '#ff5e5e'; g.beginPath(); g.moveTo(0, r * 0.9); g.bezierCurveTo(-r * 1.4, -r * 0.1, -r * 0.6, -r * 1.2, 0, -r * 0.4); g.bezierCurveTo(r * 0.6, -r * 1.2, r * 1.4, -r * 0.1, 0, r * 0.9); g.fill(); },
+    wallTop(g, x, y, w, h) { const pts = [], step = 16; for (let i = 0; i <= w; i += step) pts.push(x + Math.min(i, w), y + 2, 6, x + Math.min(i, w), y + h - 2, 6); for (let j = step; j < h; j += step) pts.push(x + 2, y + j, 6, x + w - 2, y + j, 6); g.fillStyle = '#6cc046'; dots(g, pts); },
+    cell(g, x, y, S, i) { const a = hash(i), b = hash(i + 7919); g.fillStyle = '#7cc74f'; oval(g, x + a * S, y + b * S, 30, 8); if (a > 0.55) { g.fillStyle = b > 0.5 ? '#fff' : '#ffd166'; dot(g, x + b * S, y + a * S, 3); dot(g, x + b * S + 6, y + a * S + 3, 2.5); } },
+  },
+  pnw: { // World 3, the Forest: moss, low sun, teal shade, forest spirits
+    player(g, r) { g.fillStyle = '#8c3b1b'; g.beginPath(); g.moveTo(-r, r * 1.3); g.lineTo(-r * 0.6, -r * 0.2); g.lineTo(r * 0.6, -r * 0.2); g.lineTo(r, r * 1.3); g.fill(); g.fillStyle = '#c9a227'; dot(g, 0, -r * 0.6, r * 0.75); g.fillStyle = '#5a3d2b'; g.fillRect(r * 0.75, -r * 0.8, r * 0.25, r * 2.1); g.fillStyle = '#9aa5a8'; g.beginPath(); g.moveTo(r * 0.85, -r * 0.8); g.lineTo(r * 1.6, -r * 1.2); g.lineTo(r * 1.5, -r * 0.4); g.fill(); },
+    mote(g, r, o, now) { const f = Math.sin(now * 30) * 0.35; g.fillStyle = 'rgba(232,216,176,0.7)'; oval(g, -r * 0.7, 0, r * 0.8, r * 0.45, -f); oval(g, r * 0.7, 0, r * 0.8, r * 0.45, f); g.fillStyle = '#e8d8b0'; oval(g, 0, 0, r * 0.5, r * 0.9); g.fillStyle = o.jammed ? '#a86bff' : '#8fb3a0'; dot(g, 0, -r * 0.2, r * 0.3); },
+    static(g, r) { g.fillStyle = '#c8d8c0'; dot(g, -r * 0.4, 0, r * 0.65); dot(g, r * 0.4, -r * 0.1, r * 0.7); dot(g, 0, -r * 0.5, r * 0.6); g.fillStyle = '#1e3329'; dot(g, r * 0.05, -r * 0.2, r * 0.13); },
+    spike(g, r, o, now, face) { g.rotate(face); g.fillStyle = '#8c3b1b'; oval(g, 0, 0, r * 1.3, r * 0.8); g.fillStyle = '#e8d8b0'; g.beginPath(); g.moveTo(r * 1.1, 0); g.lineTo(r * 1.7, -r * 0.4); g.lineTo(r * 1.2, r * 0.2); g.fill(); g.fillStyle = '#1e3329'; dot(g, r * 0.7, -r * 0.25, r * 0.12); },
+    null(g, r) { g.fillStyle = '#243b31'; dot(g, 0, 0, r * 1.1); dot(g, -r * 0.8, r * 0.3, r * 0.7); dot(g, r * 0.8, r * 0.3, r * 0.7); g.fillStyle = '#ffe66d'; dot(g, -r * 0.35, -r * 0.2, r * 0.18); dot(g, r * 0.35, -r * 0.2, r * 0.18); },
+    harmonic(g, r) { g.fillStyle = '#6b8f7a'; oval(g, 0, r * 0.1, r * 0.9, r * 1.1); g.fillStyle = '#e8d8b0'; dot(g, -r * 0.35, -r * 0.35, r * 0.28); dot(g, r * 0.35, -r * 0.35, r * 0.28); g.fillStyle = '#1e3329'; dot(g, -r * 0.35, -r * 0.35, r * 0.12); dot(g, r * 0.35, -r * 0.35, r * 0.12); g.fillStyle = '#c9a227'; g.beginPath(); g.moveTo(-r * 0.1, -r * 0.1); g.lineTo(r * 0.1, -r * 0.1); g.lineTo(0, r * 0.15); g.fill(); },
+    resonator(g, r, o, now) { g.strokeStyle = '#d9c9a5'; g.lineWidth = Math.max(2, r * 0.09); g.lineCap = 'round'; g.beginPath(); for (const s of [-1, 1]) { g.moveTo(s * r * 0.35, -r * 0.6); g.lineTo(s * r * 0.8, -r * 1.25); g.moveTo(s * r * 0.6, -r * 0.95); g.lineTo(s * r * 1.05, -r * 0.95); g.moveTo(s * r * 0.75, -r * 1.15); g.lineTo(s * r * 0.6, -r * 1.45); } g.stroke(); g.lineCap = 'butt';
+      g.fillStyle = '#3b2a1e'; oval(g, 0, 0, r * 0.95, r * 0.85); g.fillStyle = '#5a4030'; oval(g, 0, r * 0.35, r * 0.45, r * 0.35); const k = 0.6 + 0.4 * Math.sin(now * 2); g.fillStyle = `rgba(255,230,109,${k})`; dot(g, -r * 0.32, -r * 0.15, r * 0.12); dot(g, r * 0.32, -r * 0.15, r * 0.12); },
+    hive(g, r) { g.fillStyle = '#3b2a1e'; oval(g, 0, 0, r * 1.2, r * 0.95); g.fillStyle = '#120c08'; oval(g, 0, r * 0.1, r * 0.55, r * 0.45); g.fillStyle = '#2c5a3c'; dot(g, -r * 0.7, -r * 0.7, r * 0.4); dot(g, r * 0.6, -r * 0.8, r * 0.35); g.fillStyle = '#ffe66d'; dot(g, -r * 0.15, r * 0.05, r * 0.08); dot(g, r * 0.15, r * 0.05, r * 0.08); },
+    scout(g, r, o, now, face) { g.rotate(face); g.fillStyle = '#1b1b22'; const w = Math.sin(now * 20) * 0.4; oval(g, -r * 0.1, -r * 0.9, r * 0.9, r * 0.35, -0.5 + w); oval(g, -r * 0.1, r * 0.9, r * 0.9, r * 0.35, 0.5 - w); oval(g, 0, 0, r * 1.1, r * 0.6); g.fillStyle = '#c9a227'; g.beginPath(); g.moveTo(r * 1, -r * 0.15); g.lineTo(r * 1.5, 0); g.lineTo(r * 1, r * 0.15); g.fill(); },
+    gatherer(g, r, o) { g.fillStyle = '#7d7f83'; dot(g, 0, 0, r); g.fillStyle = '#2b2b2b'; g.fillRect(-r * 0.8, -r * 0.35, r * 1.6, r * 0.35); g.fillStyle = '#e8d8b0'; dot(g, -r * 0.35, -r * 0.2, r * 0.13); dot(g, r * 0.35, -r * 0.2, r * 0.13); g.fillStyle = '#7d7f83'; dot(g, -r * 0.65, -r * 0.8, r * 0.3); dot(g, r * 0.65, -r * 0.8, r * 0.3); if (o.carry) { g.fillStyle = '#e8a33a'; dot(g, r * 0.9, r * 0.4, r * 0.4); } },
+    gun(g, r, o, now) { const f = Math.sin(now * 34) * 0.4; g.fillStyle = 'rgba(232,216,176,0.65)'; oval(g, -r * 0.6, 0, r * 0.7, r * 0.35, -f); oval(g, r * 0.6, 0, r * 0.7, r * 0.35, f); g.fillStyle = '#d9c9a5'; oval(g, 0, 0, r * 0.45, r * 0.8); g.fillStyle = '#e8a33a'; dot(g, 0, -r * 0.2, r * 0.25); },
+    scav(g, r, o) { g.fillStyle = '#d9772b'; oval(g, 0, 0, r * 1.1, r * 0.75); g.fillStyle = '#f1e9c9'; g.beginPath(); g.moveTo(-r * 1.0, 0); g.lineTo(-r * 1.6, -r * 0.35); g.lineTo(-r * 1.5, r * 0.3); g.fill(); g.fillStyle = '#d9772b'; g.beginPath(); g.moveTo(r * 0.5, -r * 0.6); g.lineTo(r * 0.7, -r * 1.1); g.lineTo(r * 0.9, -r * 0.55); g.fill(); g.fillStyle = '#1e3329'; dot(g, r * 0.65, -r * 0.15, r * 0.12); if (o.carry) { g.fillStyle = '#e8a33a'; dot(g, -r * 0.2, -r * 0.7, r * 0.35); } },
+    fix(g, r) { g.fillStyle = '#e8d8b0'; g.fillRect(-r * 0.25, -r * 0.1, r * 0.5, r * 0.9); g.fillStyle = '#4f9a6a'; g.beginPath(); g.arc(0, -r * 0.05, r, Math.PI, 0); g.fill(); g.fillStyle = '#f1e9c9'; g.fillRect(-r * 0.4, -r * 0.55, r * 0.8, r * 0.2); g.fillRect(-r * 0.1, -r * 0.85, r * 0.2, r * 0.8); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#6b6f73' : '#7a5236'; rrect(g, -r, -r * 0.75, r * 2, r * 1.5, r * 0.5); g.fillStyle = '#4a3020'; oval(g, -r * 1.2, r * 0.3, r * 0.5, r * 0.25, 0.3); g.fillStyle = '#f1e9c9'; g.fillRect(r * 0.75, r * 0.05, r * 0.3, r * 0.3); g.fillStyle = '#1e3329'; dot(g, r * 0.45, -r * 0.3, r * 0.14); },
+    haul(g, r, o) { g.fillStyle = o.jam ? '#5a4a6a' : '#7a5236'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.1); g.strokeStyle = '#4a3020'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-r, -r * 0.05); g.lineTo(r, -r * 0.05); g.stroke(); g.fillStyle = '#3b2a1e'; dot(g, -r * 0.6, r * 0.6, r * 0.3); dot(g, r * 0.6, r * 0.6, r * 0.3); g.fillStyle = '#e8a33a'; const k = haulFrac(o); if (k > 0) g.fillRect(-r * 0.8, -r * 0.6 - r * 0.5 * k, r * 1.6, r * 0.5 * k + 0.5); },
+    turret(g, r) { g.fillStyle = '#7d8a86'; oval(g, 0, r * 0.45, r * 0.95, r * 0.45); oval(g, 0, -r * 0.05, r * 0.75, r * 0.4); oval(g, 0, -r * 0.5, r * 0.5, r * 0.32); g.fillStyle = '#e8a33a'; dot(g, 0, -r * 0.5, r * 0.18); },
+    jammer(g, r, o, now) { g.fillStyle = '#4a3a2a'; g.fillRect(-r * 0.45, -r, r * 0.9, r * 1.9); g.fillStyle = '#2c5a3c'; dot(g, -r * 0.3, -r * 0.95, r * 0.35); dot(g, r * 0.25, -r * 1.05, r * 0.3); const k = 0.6 + 0.4 * Math.sin(now * 4); g.fillStyle = `rgba(168,107,255,${k})`; dot(g, -r * 0.18, -r * 0.3, r * 0.12); dot(g, r * 0.18, -r * 0.3, r * 0.12); g.fillRect(-r * 0.25, r * 0.1, r * 0.5, r * 0.1); },
+    extractor(g, r, o, now) { g.fillStyle = '#5a4030'; g.fillRect(-r * 0.9, -r * 0.2, r * 1.8, r * 0.9); g.strokeStyle = '#d9c9a5'; g.lineWidth = 2; g.save(); g.translate(r * 0.55, -r * 0.35); g.rotate(now * 2); g.beginPath(); for (let i = 0; i < 4; i++) { const a = i * 1.571; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5); } g.stroke(); g.beginPath(); g.arc(0, 0, r * 0.5, 0, 6.283); g.stroke(); g.restore(); g.fillStyle = '#2c5a3c'; g.fillRect(-r * 0.9, -r * 0.35, r * 1.1, r * 0.18); },
+    base(g, s) { g.fillStyle = '#5a4030'; g.fillRect(-s / 2, -s * 0.2, s, s * 0.7); g.fillStyle = '#2c5a3c'; g.beginPath(); g.moveTo(-s * 0.62, -s * 0.15); g.lineTo(0, -s * 0.6); g.lineTo(s * 0.62, -s * 0.15); g.fill(); g.fillStyle = '#ffcf7a'; g.fillRect(-s * 0.12, s * 0.05, s * 0.24, s * 0.2); g.fillStyle = '#4a3020'; g.fillRect(s * 0.2, -s * 0.55, s * 0.1, s * 0.25); },
+    perch(g, r, o) { g.fillStyle = '#6b4a30'; oval(g, 0, r * 0.15, r * 0.6, r * 0.35); g.fillStyle = '#a07850'; oval(g, 0, 0, r * 0.6, r * 0.32); g.strokeStyle = '#6b4a30'; g.lineWidth = 1; g.beginPath(); g.ellipse(0, 0, r * 0.3, r * 0.16, 0, 0, 6.283); g.stroke(); if (o.mote) { g.fillStyle = '#e8a33a'; dot(g, 0, 0, r * 0.12); } },
+    deposit(g, r) { g.fillStyle = '#e8a33a'; for (const [x, y, h, a] of [[-r * 0.4, r * 0.2, 0.8, -0.3], [r * 0.35, r * 0.25, 0.7, 0.3], [0, 0, 1.05, 0]]) { g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.moveTo(0, -r * h); g.lineTo(r * 0.22, 0); g.lineTo(0, r * 0.15); g.lineTo(-r * 0.22, 0); g.closePath(); g.fill(); g.restore(); } g.fillStyle = 'rgba(255,233,168,0.8)'; dot(g, 0, -r * 0.6, r * 0.08); },
+    cache(g, r) { g.fillStyle = '#7a5236'; g.fillRect(-r, -r * 0.7, r * 2, r * 1.4); g.strokeStyle = '#4a3020'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.7, r * 2, r * 1.4); g.beginPath(); g.moveTo(-r, -r * 0.7); g.lineTo(r, r * 0.7); g.stroke(); g.fillStyle = '#4f9a6a'; dot(g, -r * 0.6, -r * 0.7, r * 0.3); dot(g, -r * 0.2, -r * 0.8, r * 0.25); },
+    xp(g, r, o, now) { const k = 0.7 + 0.3 * Math.sin(now * 5 + o.x); g.fillStyle = `rgba(143,179,160,${0.35 * k})`; dot(g, 0, 0, r * 1.8); g.fillStyle = '#c8e8d8'; dot(g, 0, 0, r * 0.8); },
+    part(g, r) { g.fillStyle = '#e8a33a'; ngon(g, 6, r, 0.3); g.fill(); g.fillStyle = 'rgba(255,233,168,0.8)'; dot(g, -r * 0.25, -r * 0.25, r * 0.25); },
+    heal(g, r) { g.fillStyle = '#4f9a6a'; dot(g, 0, 0, r * 1.05); g.fillStyle = '#f1e9c9'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    wallTop(g, x, y, w, h) { const n = Math.max(1, Math.round(w * h / 1400)), A = [], B = [], H = [], s = Math.min(18, Math.max(7, Math.min(w, h) * 0.45));
+      for (let i = 0; i < n; i++) { const cx = x + 6 + hash(x * 31 + y * 17 + i) * (w - 12), cy = y + 6 + hash(x * 13 + y * 29 + i * 7) * (h - 12); (i % 2 ? A : B).push(cx, cy, s); H.push(cx - s * 0.3, cy - s * 0.3, s * 0.45); }
+      g.fillStyle = '#2c5a3c'; dots(g, B); g.fillStyle = '#24503a'; dots(g, A); g.fillStyle = 'rgba(143,179,160,0.35)'; dots(g, H); }, /* tree canopies */
+    cell(g, x, y, S, i) { const a = hash(i), b = hash(i + 7919), c = hash(i + 104729); if (c > 0.82) { g.fillStyle = 'rgba(255,170,90,0.10)'; oval(g, x + S * 0.5, y + S * 0.5, S * 0.7, S * 0.45, 0.6); } else if (c < 0.1) { g.fillStyle = 'rgba(40,110,110,0.14)'; oval(g, x + S * 0.5, y + S * 0.5, S * 0.6, S * 0.4, -0.4); } /* low sun through the trees, teal shade */ g.fillStyle = '#2a4a3a'; oval(g, x + a * S, y + b * S, 36, 14, 0.4); if (c < 0.3) { const cx = x + b * S, cy = y + c * S * 3; g.fillStyle = '#d94f2b'; g.beginPath(); g.arc(cx, cy, 5, Math.PI, 0); g.fill(); g.fillStyle = '#e8d8b0'; g.fillRect(cx - 1.2, cy, 2.4, 4); } else if (c < 0.6) { g.fillStyle = '#9a8a5a'; oval(g, x + c * S, y + a * S, 6, 3, a * 3); } },
+  },
+};
+THEMES.anime = { name: 'Dusk', style: '90s anime OVA', bg: '#241a33', grid: null, wall: '#3a2a4a', wallDim: '#2c203a', edge: '#8a6bb0', edgeDim: 'rgba(138,107,176,0.3)', edgeMem: 'rgba(138,107,176,0.55)', /* walls lilac; gold is yours */ fog: 'rgba(15,10,26,0.8)', noise: [10, -4, 18],
+  bolt: '#f4f4f4', tbolt: '#f4c542', shot: ['rgba(255,60,172,0.75)', '#ffffff'], accent: '#f4c542', night: 'rgba(6,2,14,0.74)' };
+THEMES.dronewar = { name: 'Frontline', style: 'Drone war FPV', bg: '#171b16', grid: '#2a3527', wall: '#243024', wallDim: '#1b241b', edge: '#9dff5a', edgeDim: 'rgba(157,255,90,0.3)', edgeMem: 'rgba(157,255,90,0.5)', fog: 'rgba(6,9,6,0.85)', noise: [-6, 10, -8],
+  bolt: '#d6ffb8', tbolt: '#9dff5a', shot: ['rgba(255,59,59,0.75)', '#ffe0e0'], accent: '#9dff5a', night: 'rgba(0,4,0,0.76)' };
+Object.assign(LOOK_DRAW, {
+  anime: { // World 4, Dusk: purple dusk, hot magenta and gold, hard cel shapes, slanted speed lines
+    player(g, r) { g.fillStyle = '#e63946'; g.fillRect(-r * 0.75, -r * 0.05, r * 1.5, r * 1.6); g.fillStyle = '#ffd7b5'; dot(g, 0, -r * 0.6, r * 0.75); g.fillStyle = '#1a1a2e'; g.beginPath(); g.moveTo(-r * 0.95, -r * 0.55); g.lineTo(0, -r * 1.75); g.lineTo(r * 0.95, -r * 0.55); g.lineTo(r * 0.4, -r * 0.9); g.lineTo(-r * 0.4, -r * 0.9); g.fill(); g.fillStyle = '#f4f4f4'; g.beginPath(); g.moveTo(r * 0.7, r * 0.3); g.lineTo(r * 2.2, -r * 0.55); g.lineTo(r * 2.1, -r * 0.3); g.lineTo(r * 0.8, r * 0.55); g.fill(); },
+    mote(g, r, o) { g.fillStyle = o.jammed ? '#a86bff' : '#f4c542'; ngon(g, 4, r, Math.PI / 4); g.fill(); g.strokeStyle = '#2ec4b6'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, r * 1.5, 0, 6.283); g.stroke(); },
+    static(g, r) { g.fillStyle = '#a42aa8'; dot(g, 0, 0, r); g.fillStyle = '#ff6ac2'; ngon(g, 4, r * 0.75, 0); g.fill(); },
+    spike(g, r, o, now, face) { g.rotate(face + Math.PI / 2); g.fillStyle = '#2ec4b6'; g.beginPath(); g.moveTo(-r, r); g.lineTo(0, -r * 1.5); g.lineTo(r, r); g.fill(); g.fillStyle = '#16867c'; g.beginPath(); g.moveTo(0, -r * 1.5); g.lineTo(r, r); g.lineTo(0, r); g.fill(); },
+    null(g, r) { g.fillStyle = '#0f0a1a'; g.strokeStyle = '#ff3cac'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -r * 1.5); g.bezierCurveTo(r * 1.4, -r, r * 1.4, r, 0, r * 1.5); g.bezierCurveTo(-r * 1.4, r, -r * 1.4, -r, 0, -r * 1.5); g.fill(); g.stroke(); g.fillStyle = '#ff3cac'; dot(g, -r * 0.35, -r * 0.2, r * 0.18); dot(g, r * 0.35, -r * 0.2, r * 0.18); },
+    harmonic(g, r) { g.fillStyle = '#ff3cac'; ngon(g, 4, r * 1.2, 0); g.fill(); g.fillStyle = '#ffe6f3'; ngon(g, 4, r * 0.45, 0); g.fill(); },
+    resonator(g, r, o, now) { g.fillStyle = '#f4c542'; g.beginPath(); g.moveTo(-r * 0.7, -r * 0.5); g.lineTo(-r * 1.2, -r * 1.3); g.lineTo(-r * 0.3, -r * 0.8); g.moveTo(r * 0.7, -r * 0.5); g.lineTo(r * 1.2, -r * 1.3); g.lineTo(r * 0.3, -r * 0.8); g.fill();
+      g.fillStyle = '#1a1226'; dot(g, 0, 0, r); g.strokeStyle = '#ff3cac'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.stroke(); const k = 0.6 + 0.4 * Math.sin(now * 6); g.fillStyle = `rgba(255,60,172,${k})`; g.fillRect(-r * 0.6, -r * 0.2, r * 1.2, r * 0.28); },
+    hive(g, r) { g.fillStyle = '#0f0a1a'; g.strokeStyle = '#ff3cac'; g.lineWidth = 2.5; g.beginPath(); g.ellipse(0, 0, r * 0.9, r * 1.3, 0, 0, 6.283); g.fill(); g.stroke(); g.fillStyle = '#ff3cac'; dot(g, -r * 0.3, -r * 0.3, r * 0.14); dot(g, r * 0.3, -r * 0.3, r * 0.14); g.beginPath(); g.moveTo(-r * 0.9, r * 0.3); g.lineTo(-r * 1.6, r * 0.7); g.moveTo(r * 0.9, r * 0.3); g.lineTo(r * 1.6, r * 0.7); g.stroke(); },
+    scout(g, r, o, now, face) { g.rotate(face); g.fillStyle = '#2ec4b6'; g.beginPath(); g.moveTo(r * 1.4, 0); g.lineTo(-r, -r * 0.7); g.lineTo(-r * 0.4, 0); g.lineTo(-r, r * 0.7); g.closePath(); g.fill(); },
+    gatherer(g, r, o) { g.fillStyle = '#6a0572'; oval(g, 0, 0, r * 1.1, r * 0.9); g.fillStyle = '#ff3cac'; dot(g, -r * 0.3, -r * 0.2, r * 0.15); dot(g, r * 0.3, -r * 0.2, r * 0.15); if (o.carry) { g.fillStyle = '#f4c542'; dot(g, r * 0.9, r * 0.4, r * 0.45); } },
+    gun(g, r) { g.fillStyle = '#f4c542'; ngon(g, 4, r * 0.8, Math.PI / 4); g.fill(); g.strokeStyle = '#2ec4b6'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r * 1.2, 0, 6.283); g.stroke(); },
+    scav(g, r, o) { g.fillStyle = '#2ec4b6'; dot(g, 0, r * 0.1, r * 0.8); g.beginPath(); g.moveTo(-r * 0.7, -r * 0.2); g.lineTo(-r * 0.5, -r * 1); g.lineTo(-r * 0.15, -r * 0.5); g.moveTo(r * 0.7, -r * 0.2); g.lineTo(r * 0.5, -r * 1); g.lineTo(r * 0.15, -r * 0.5); g.fill(); g.fillStyle = '#1a1226'; dot(g, -r * 0.25, 0, r * 0.12); dot(g, r * 0.25, 0, r * 0.12); if (o.carry) { g.fillStyle = '#f4c542'; dot(g, r * 0.8, r * 0.6, r * 0.35); } },
+    fix(g, r) { g.fillStyle = '#ffe6f3'; dot(g, 0, 0, r * 0.95); g.fillStyle = '#2ec4b6'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#5a5f6a' : '#e63946'; g.fillRect(-r, -r * 0.7, r * 2, r * 1.4); g.fillStyle = '#f4c542'; g.fillRect(-r * 0.7, -r * 0.45, r * 1.4, r * 0.3); g.fillStyle = '#1a1226'; g.fillRect(-r * 1.1, r * 0.55, r * 2.2, r * 0.3); },
+    haul(g, r, o) { g.fillStyle = o.jam ? '#5a3f78' : '#3a2a4a'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.strokeStyle = '#f4c542'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.6, r * 2, r * 1.2); const k = haulFrac(o); g.fillStyle = '#f4c542'; if (k > 0) g.fillRect(-r * 0.8, -r * 0.45, r * 1.6 * k, r * 0.9); },
+    turret(g, r) { g.fillStyle = '#f4c542'; g.fillRect(-r * 0.7, -r * 0.6, r * 1.4, r * 1.5); g.fillStyle = '#3a2a4a'; ngon(g, 5, r * 0.45, -Math.PI / 2); g.fill(); g.fillStyle = '#2ec4b6'; g.fillRect(-r * 0.15, -r * 1.05, r * 0.3, r * 0.5); },
+    jammer(g, r, o, now) { g.fillStyle = '#1a1226'; g.strokeStyle = '#2ec4b6'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -r * 1.2); g.lineTo(r * 0.8, r * 0.8); g.lineTo(-r * 0.8, r * 0.8); g.closePath(); g.fill(); g.stroke(); const k = 0.5 + 0.5 * Math.sin(now * 6); g.fillStyle = `rgba(46,196,182,${k})`; dot(g, 0, r * 0.15, r * 0.25); },
+    extractor(g, r, o, now) { g.fillStyle = '#3a2a4a'; g.fillRect(-r * 0.85, -r * 0.4, r * 1.7, r * 1.2); g.strokeStyle = '#f4c542'; g.lineWidth = 2; g.save(); g.translate(0, r * 0.2); g.rotate(now * 3); g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(r * 0.5, 0); g.moveTo(0, -r * 0.5); g.lineTo(0, r * 0.5); g.stroke(); g.restore(); },
+    base(g, s) { g.fillStyle = '#3a2a4a'; g.fillRect(-s / 2, -s / 2, s, s); g.strokeStyle = '#f4c542'; g.lineWidth = 2.5; g.strokeRect(-s / 2, -s / 2, s, s); g.fillStyle = '#f4c542'; ngon(g, 5, s * 0.18, -Math.PI / 2); g.fill(); g.strokeStyle = 'rgba(255,60,172,0.6)'; g.lineWidth = 1.5; g.beginPath(); for (let i = -2; i <= 2; i++) { g.moveTo(-s / 2, i * s * 0.18 + s * 0.08); g.lineTo(s / 2, i * s * 0.18 - s * 0.08); } g.stroke(); },
+    perch(g, r, o) { g.fillStyle = o.mote ? '#f4c542' : '#ff9ad0'; ngon(g, 5, r * 0.4, -Math.PI / 2); g.fill(); },
+    deposit(g, r) { g.fillStyle = '#2ec4b6'; for (const [x, y, h] of [[-r * 0.45, r * 0.2, 0.7], [r * 0.4, r * 0.25, 0.6], [0, 0, 1]]) { g.beginPath(); g.moveTo(x, y - r * h); g.lineTo(x + r * 0.25, y); g.lineTo(x, y + r * 0.2); g.lineTo(x - r * 0.25, y); g.closePath(); g.fill(); } },
+    cache(g, r) { g.fillStyle = '#f4c542'; g.fillRect(-r, -r * 0.7, r * 2, r * 1.4); g.fillStyle = '#ff3cac'; g.fillRect(-r, -r * 0.12, r * 2, r * 0.24); g.fillRect(-r * 0.12, -r * 0.7, r * 0.24, r * 1.4); },
+    xp(g, r) { g.fillStyle = '#f4c542'; ngon(g, 4, r * 1.2, 0); g.fill(); },
+    part(g, r) { g.fillStyle = '#2ec4b6'; ngon(g, 6, r, 0); g.fill(); },
+    heal(g, r) { g.fillStyle = '#ff7ac0'; g.beginPath(); g.moveTo(0, r * 0.9); g.bezierCurveTo(-r * 1.4, -r * 0.1, -r * 0.6, -r * 1.2, 0, -r * 0.4); g.bezierCurveTo(r * 0.6, -r * 1.2, r * 1.4, -r * 0.1, 0, r * 0.9); g.fill(); },
+    wallTop(g, x, y, w, h) { g.strokeStyle = 'rgba(255,60,172,0.35)'; g.lineWidth = 1.5; g.beginPath(); for (let i = 8; i < w + h; i += 14) { const x0 = x + Math.min(i, w), y0 = y + Math.max(0, i - w), x1 = x + Math.max(0, i - h), y1 = y + Math.min(i, h); g.moveTo(x0, y0); g.lineTo(x1, y1); } g.stroke(); }, /* cel hatching */
+    cell(g, x, y, S, i) { const a = hash(i); if (a < 0.45) { g.strokeStyle = 'rgba(244,197,66,0.16)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + a * S * 2); g.lineTo(x + S, y + a * S * 2 - S * 0.35); g.stroke(); } else if (a > 0.9) { g.fillStyle = 'rgba(255,60,172,0.4)'; dot(g, x + hash(i + 3) * S, y + hash(i + 5) * S, 1.6); } }, /* speed lines, a few stars */
+  },
+  dronewar: { // World 5, Frontline: through a drone feed. You and yours in green, every threat in red, boxes and brackets
+    player(g, r) { g.strokeStyle = '#9dff5a'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r * 1.6, 0, 6.283); g.moveTo(0, -r * 2.2); g.lineTo(0, -r * 1.1); g.moveTo(0, r * 1.1); g.lineTo(0, r * 2.2); g.moveTo(-r * 2.2, 0); g.lineTo(-r * 1.1, 0); g.moveTo(r * 1.1, 0); g.lineTo(r * 2.2, 0); g.stroke(); g.fillStyle = '#9dff5a'; dots(g, [-r * 0.5, -r * 0.5, r * 0.32, r * 0.5, -r * 0.5, r * 0.32, -r * 0.5, r * 0.5, r * 0.32, r * 0.5, r * 0.5, r * 0.32]); g.fillRect(-r * 0.25, -r * 0.25, r * 0.5, r * 0.5); },
+    mote(g, r, o) { g.strokeStyle = o.jammed ? '#a86bff' : '#9dff5a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-r, -r); g.lineTo(r, r); g.moveTo(r, -r); g.lineTo(-r, r); g.stroke(); g.fillStyle = g.strokeStyle; dot(g, 0, 0, r * 0.35); },
+    static(g, r) { g.fillStyle = '#ff3b3b'; ngon(g, 3, r, -Math.PI / 2); g.fill(); },
+    spike(g, r, o, now, face) { g.strokeStyle = '#ff3b3b'; g.lineWidth = 1; g.strokeRect(-r * 1.4, -r * 1.4, r * 2.8, r * 2.8); g.rotate(face); g.fillStyle = '#ff3b3b'; ngon(g, 3, r * 1.2, 0); g.fill(); },
+    null(g, r) { g.strokeStyle = '#ff3b3b'; g.lineWidth = 1.5; ngon(g, 6, r * 1.1, 0); g.stroke(); g.fillStyle = 'rgba(255,59,59,0.45)'; ngon(g, 6, r * 0.7, 0); g.fill(); },
+    harmonic(g, r) { g.fillStyle = '#ff3b3b'; ngon(g, 4, r, 0); g.fill(); g.strokeStyle = '#ff3b3b'; g.lineWidth = 1; g.strokeRect(-r * 1.5, -r * 1.5, r * 3, r * 3); },
+    resonator(g, r, o, now) { g.strokeStyle = '#ff3b3b'; g.lineWidth = 2; ngon(g, 6, r, now * 0.5); g.stroke(); g.lineWidth = 1; g.strokeRect(-r * 1.25, -r * 1.25, r * 2.5, r * 2.5); g.fillStyle = 'rgba(255,59,59,0.5)'; ngon(g, 6, r * 0.55, -now * 0.8); g.fill(); g.fillStyle = '#ffae00'; g.fillRect(-r * 1.25, -r * 1.45, r * 0.8, r * 0.14); },
+    hive(g, r) { g.strokeStyle = '#ff3b3b'; g.lineWidth = 1.5; g.strokeRect(-r * 1.3, -r * 0.9, r * 2.6, r * 1.8); g.fillStyle = 'rgba(255,59,59,0.5)'; g.fillRect(-r * 0.8, -r * 0.5, r * 1.6, r); g.beginPath(); g.moveTo(-r * 1.3, -r * 0.9); g.lineTo(-r * 1.7, -r * 1.3); g.stroke(); },
+    scout(g, r, o, now, face) { g.rotate(face); g.strokeStyle = '#ff3b3b'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-r, -r * 0.8); g.lineTo(r, 0); g.lineTo(-r, r * 0.8); g.stroke(); },
+    gatherer(g, r, o) { g.strokeStyle = '#ff3b3b'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.stroke(); g.fillStyle = o.carry ? '#ffae00' : '#ff3b3b'; dot(g, 0, 0, r * 0.35); },
+    gun(g, r) { g.fillStyle = '#9dff5a'; ngon(g, 4, r * 0.7, 0); g.fill(); g.strokeStyle = '#9dff5a'; g.lineWidth = 1; g.strokeRect(-r * 1.1, -r * 1.1, r * 2.2, r * 2.2); },
+    scav(g, r, o) { g.strokeStyle = '#9dff5a'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, r * 0.8, 0, 6.283); g.stroke(); g.fillStyle = o.carry ? '#ffae00' : '#9dff5a'; dot(g, 0, 0, r * 0.3); },
+    fix(g, r) { g.strokeStyle = '#9dff5a'; g.lineWidth = 2; g.beginPath(); g.moveTo(-r * 0.7, 0); g.lineTo(r * 0.7, 0); g.moveTo(0, -r * 0.7); g.lineTo(0, r * 0.7); g.stroke(); },
+    eng(g, r, o) { g.strokeStyle = o.down ? '#5a6a5a' : '#9dff5a'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.7, r * 2, r * 1.4); g.beginPath(); g.moveTo(-r, -r * 0.35); g.lineTo(r, -r * 0.35); g.moveTo(-r, r * 0.35); g.lineTo(r, r * 0.35); g.stroke(); },
+    haul(g, r, o) { g.strokeStyle = o.jam ? '#a86bff' : '#9dff5a'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.6, r * 2, r * 1.2); const k = haulFrac(o); g.fillStyle = '#ffae00'; if (k > 0) g.fillRect(-r * 0.8, -r * 0.4, r * 1.6 * k, r * 0.8); },
+    turret(g, r) { g.strokeStyle = '#9dff5a'; g.lineWidth = 2; g.strokeRect(-r * 0.7, -r * 0.7, r * 1.4, r * 1.4); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -r * 1.2); g.stroke(); g.fillStyle = '#9dff5a'; dot(g, 0, 0, r * 0.25); },
+    jammer(g, r, o, now) { g.strokeStyle = '#9dff5a'; g.lineWidth = 1.5; g.setLineDash([3, 3]); ngon(g, 6, r, now); g.stroke(); g.setLineDash([]); g.fillStyle = 'rgba(157,255,90,0.5)'; dot(g, 0, 0, r * 0.35); },
+    extractor(g, r, o, now) { g.strokeStyle = '#9dff5a'; g.lineWidth = 1.5; g.strokeRect(-r * 0.8, -r * 0.8, r * 1.6, r * 1.6); g.save(); g.rotate(now * 3); g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(r * 0.5, 0); g.stroke(); g.restore(); },
+    base(g, s) { g.strokeStyle = '#9dff5a'; g.lineWidth = 1.5; g.strokeRect(-s / 2, -s / 2, s, s); g.setLineDash([4, 4]); g.strokeRect(-s * 0.35, -s * 0.35, s * 0.7, s * 0.7); g.setLineDash([]); g.fillStyle = '#9dff5a'; g.font = '600 9px monospace'; g.textAlign = 'center'; g.fillText('HOME', 0, s * 0.45); },
+    perch(g, r, o) { g.strokeStyle = o.mote ? '#9dff5a' : 'rgba(157,255,90,0.7)'; g.lineWidth = 1.5; const k = r * 0.45, L = r * 0.2; g.beginPath(); for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { g.moveTo(sx * k, sy * k - sy * L); g.lineTo(sx * k, sy * k); g.lineTo(sx * k - sx * L, sy * k); } g.stroke(); },
+    deposit(g, r) { g.strokeStyle = '#ffae00'; g.lineWidth = 1.5; ngon(g, 4, r * 0.8, 0); g.stroke(); g.fillStyle = 'rgba(255,174,0,0.5)'; ngon(g, 4, r * 0.4, 0); g.fill(); },
+    cache(g, r) { g.strokeStyle = '#ffae00'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.7, r * 2, r * 1.4); g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke(); },
+    xp(g, r) { g.fillStyle = '#9dff5a'; dot(g, 0, 0, r); },
+    part(g, r) { g.fillStyle = '#ffae00'; g.fillRect(-r * 0.8, -r * 0.8, r * 1.6, r * 1.6); },
+    heal(g, r) { g.fillStyle = '#9dff5a'; g.fillRect(-r, -r * 0.3, r * 2, r * 0.6); g.fillRect(-r * 0.3, -r, r * 0.6, r * 2); },
+    wallTop(g, x, y, w, h) { if (w < 12 || h < 12) return; g.strokeStyle = 'rgba(157,255,90,0.25)'; g.lineWidth = 1; g.strokeRect(x + 5, y + 5, w - 10, h - 10); },
+    cell(g, x, y, S, i) { if (hash(i) < 0.5) return; g.strokeStyle = 'rgba(157,255,90,0.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + 4, y); g.moveTo(x, y - 4); g.lineTo(x, y + 4); g.stroke(); }, /* range ticks */
+    screen(g, vw, vh) { const top = MM_Y + MM + 16, bot = Math.round(vh * 0.8); if (bot - top < 160) return; g.fillStyle = 'rgba(157,255,90,0.55)'; const L = 22, T = 3, m = 10; for (const [x, y, sx, sy] of [[m, top, 1, 1], [vw - m, top, -1, 1], [m, bot, 1, -1], [vw - m, bot, -1, -1]]) { g.fillRect(x, y, sx * L, sy * T); g.fillRect(x, y, sx * T, sy * L); } }, /* feed brackets, clear of the HUD */
+  },
+});
+let LK = null, LKT = THEMES.static, LNOW = 0; // the look being drawn this frame (set at the top of render)
+function lookBg(ctx, TH, vw, vh) { ctx.fillStyle = TH.bg; ctx.fillRect(0, 0, vw, vh); } // one flat fill: a full-screen gradient cost 5 ms a frame in software rendering
+function lookOf(run) { return LOOK_DRAW[run.skin] || null; }
 const WORLD_IDS = [...new Set(ZONES.map(z => z.world || 1))];
 const worldOpen = w => SAVE.playtest || ZONES.findIndex(z => (z.world || 1) === w) <= SAVE.cleared + 5; // open worlds and the next one (a preview of what is coming)
-const EMBER_AT = 10; // clearing this many zones earns the Ember skin
-const chosenSkin = () => (SAVE.skin === 'ember' && SAVE.cleared >= EMBER_AT ? 'ember' : 'static'); // World 1 look
-const skinFor = z => ((z.world || 1) > 1 ? WORLDS[z.world].skin : chosenSkin());
+const EMBER_AT = 10; // clearing this many zones earned the old Ember colours (kept for saves that have them)
+const LOOK_WORLD = { chibi: 2, pnw: 3, anime: 4, dronewar: 5 }; // a look is yours for every zone once its world is cleared (Lance 10-07: "once you beat that world's zones you can use that skin from settings")
+const lookEarned = id => id === 'static' || (id === 'ember' ? SAVE.cleared >= EMBER_AT : !!LOOK_WORLD[id] && SAVE.cleared >= LOOK_WORLD[id] * 5);
+const lookChoices = () => ['', 'static', ...Object.keys(LOOK_WORLD), 'ember'].filter(id => !id || lookEarned(id)); // '' = each world's own
+const chosenSkin = () => (SAVE.skin && THEMES[SAVE.skin] && lookEarned(SAVE.skin) ? SAVE.skin : '');
+const skinFor = z => chosenSkin() || WORLDS[z.world || 1].skin;
 
 /* Difficulty. Hard is the original tuning, untouched. Normal scales pressure down; tuned with tests/bal.js,
    numbers in docs/BALANCE_LOG.md. gold multiplies the zone clear bonus. */
@@ -569,6 +729,13 @@ const ELITE = {
   resonator: { name: 'Resonator Apex',  hp: 5,   dmg: 1.7, spd: 1.15, r: 1.3,  reward: 4, ring: 24 },
 };
 const FORMS = [null, EVOLVED, ELITE];
+/* Lance 10-08: "by busy i mostly meant the enemies, especially their bullets, maybe make them a little smaller".
+   Bodies 15% smaller and shots 30% smaller, hit sizes matched to what you see. */
+const ENEMY_SIZE = 0.85, SHOT_R = 3.5;
+/* "make my pulses collide with gunner shots if the collision is direct (they should still be able to slide past each
+   other though if it's close)": a Pulse bolt stops a Gunner or hive-turret shot when their centres pass within
+   SHOT_BLOCK px during the frame (swept, so fast bolts cannot skip through). Boss rings are not blocked. */
+const SHOT_BLOCK = 4;
 const eliteShare = run => (run.tut ? 0 : clamp((run.z.elite || 0) + (run.z.eliteMin || 0) * paceMin(run), 0, 0.8));
 const JAM_R = e => (e.tier ? FORMS[e.tier].null.ring : ENEMY.null.ring); // a Jammer's blinding ring
 /* The pressure clock: minutes count fully for the first 5, then at 35%, so a 10-minute zone climbs instead of doubling.
@@ -688,7 +855,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-08 s24';
+const BUILD_ID = 'playtest 2026-10-09 s27';
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -697,7 +864,9 @@ function loadSave() {
   let s = null;
   try { const raw = localStorage.getItem(SAVE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* sandboxed */ }
   if (!s && memStore) s = memStore;
-  return grandfatherBots(Object.assign(defaultSave(), s || {}));
+  const out = grandfatherBots(Object.assign(defaultSave(), s || {}));
+  if (!out.looksV) { out.looksV = 1; out.skin = ''; } // s26: worlds have their own looks; start on them
+  return out;
 }
 function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once)
   if (!out.botsGrand) { out.botsGrand = 1; if (out.runs > 0) for (const id of ['gun', 'scav', 'fix', 'turret', 'jammer', 'eng']) out.lattice[id] = Math.max(1, out.lattice[id] || 0); }
@@ -1459,7 +1628,7 @@ function makeEnemy(run, type, x, y, tier) { // stats come from the type and its 
   const b = ENEMY[type], V = EVOLVED[type];
   if (tier == null) tier = V && type !== 'resonator' && Math.random() < evoShare(run) ? (Math.random() < eliteShare(run) ? 2 : 1) : 0;
   const k = (tier && V && FORMS[tier][type]) || BASE_FORM, hp = b.hp * k.hp;
-  const e = { type, tier: k === BASE_FORM ? 0 : tier, x, y, r: b.r * k.r, hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
+  const e = { type, tier: k === BASE_FORM ? 0 : tier, x, y, r: b.r * k.r * (type === 'hive' ? 1 : ENEMY_SIZE), hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
     dmg: b.dmg * k.dmg * run.M.dmg, xp: b.xp * k.reward, gold: b.gold * k.reward, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0, mvx: 0, mvy: 0 }; // mvx/mvy: smoothed stride for Lead shot (declared here so every enemy keeps one shape)
   if (type === 'resonator') { e.cd = 3; e.spawnCd = 4; }
   if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1);
@@ -1748,7 +1917,7 @@ function updateHives(run, dt) {
       h.turretT -= dt; const p = run.p;
       if (h.turretT <= 0 && dist2(p.x, p.y, h.x, h.y) < HIVE.turretRange * HIVE.turretRange && losClear(run, h.x, h.y, p.x, p.y)) {
         h.turretT = HIVE.turretEvery; const a = Math.atan2(p.y - h.y, p.x - h.x);
-        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 5, dmg: 8 * run.M.dmg, t: 3 });
+        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: SHOT_R, dmg: 8 * run.M.dmg, t: 3 });
       }
     }
     h.decideT -= dt; if (h.decideT <= 0) { h.decideT = HIVE.decideEvery; hiveDecide(run, h); }
@@ -1822,6 +1991,7 @@ const TIPS = {
   learned_bot: { group: 'Units', title: 'Learned: build it with parts', body: 'Its button is now at the bottom of the screen and it costs parts, which tougher enemies drop. Levelling it in the skill tree makes it stronger. Bots and builds are unlocked for good in the Workshop, then learned each run.' },
   // aim upgrades
   lead:      { group: 'Weapons', title: 'Lead shot', body: 'That Gunner is sidestepping. Your Pulse, gun drones and turrets now aim where it will be when the bolt arrives, so the shot lands instead of passing behind it.' },
+  shot_block: { group: 'Weapons', title: 'Your shots stop theirs', body: 'A Pulse bolt that meets a Gunner shot head on stops it. A near miss slides past, so aim does not have to be perfect, but it has to be close. Boss rings are too thick to stop.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
   // drones
   perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains while perched (not on the base perch, which charges it). Tap the perch again, or press Recall, to bring it home.' },
@@ -1855,7 +2025,7 @@ const TIPS = {
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
   world3:   { group: 'Between runs', title: 'Worlds 3 to 10', body: 'Every five zones is a new world: more enemies, more evolved forms and faster hives. From Zone 19 Elite forms (two rings, far tougher) join in, and from Zone 20 the boss is the Apex. Enemies never get secretly tougher: what you see is what you fight.' },
-  world2:   { group: 'Between runs', title: 'World 2: Ember', body: 'Zones 6 to 10 are a new world with its own look: more enemies, more evolved forms, more hives and an evolved boss. Clear Zone 10 and the Ember look is yours for every zone (Settings > Map look).' },
+  world2:   { group: 'Between runs', title: 'World 2: Meadow', body: 'Zones 6 to 10 are a new world with its own look: more enemies, more evolved forms, more hives and an evolved boss. Clear Zone 10 and the Meadow look is yours for every zone (Settings > Map look). Every world has its own look, and Hard plays it at night.' },
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
   u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Two at level 1; levels in the skill tree allow up to 6 and add damage. Enemies that touch them or shoot them wear them down.' },
@@ -2277,7 +2447,7 @@ function updateEnemies(run, dt) {
         e.cd = 2.6;
         const base = Math.atan2(aim.y - e.y, aim.x - e.x);
         const fan = form(e).fan, gap = form(e).gap; /* a Heavy Gunner fires 7 */
-        for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: 5, dmg: e.dmg, t: 4 }); }
+        for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: SHOT_R, dmg: e.dmg, t: 4 }); }
       }
     } else if (e.type === 'resonator') {
       e.ang += dt * 0.8;
@@ -2285,7 +2455,7 @@ function updateEnemies(run, dt) {
       e.cd -= dt; e.spawnCd -= dt;
       if (e.cd <= 0 && d < 460) {
         e.cd = 3.6; const n = form(e).ring, off = e.ang;
-        for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: 6, dmg: e.dmg, t: 3.5 }); }
+        for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: SHOT_R + 1, dmg: e.dmg, t: 3.5, ring: true }); }
       }
       if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < (run.z.bossAdds || 4) && es.length < ENEMY_CAP; i++) { const s = makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); for (let k = 0; k < 5; k++) spark(run, s.x, s.y, '#ffb347'); } tip(run, 'summon', { at: e }); }
     } else if (e.type === 'null') {
@@ -2394,7 +2564,7 @@ function updateWeapons(run, dt) {
         run.ammo -= 1;
         const tt = ev.pulse ? null : (i === 0 ? t : extra[i - 1] || t);
         const a = tt ? aimAt(run, p.x, p.y, tt, 540, 1.2) : base + (i - (n - 1) / 2) * 0.18;
-        run.bullets.push({ x: p.x, y: p.y, vx: Math.cos(a) * 540, vy: Math.sin(a) * 540, r: 4, dmg, pierce: ev.pulse ? 2 : 0, t: 1.2, hit: new Set(), tgt: run.skill.homing ? (tt || (i === (n - 1) / 2 ? t : null)) : null });
+        run.bullets.push({ x: p.x, y: p.y, vx: Math.cos(a) * 540, vy: Math.sin(a) * 540, r: 4, dmg, own: true, pierce: ev.pulse ? 2 : 0, t: 1.2, hit: new Set(), tgt: run.skill.homing ? (tt || (i === (n - 1) / 2 ? t : null)) : null });
       }
       SFX.shot();
     }
@@ -2457,7 +2627,21 @@ function updateWeapons(run, dt) {
   reapDead(run);
 }
 const HITS = [];
+const SHOTS = []; // this frame's blockable enemy shots (not boss rings), gathered once
+function blockShots(run, b, dt, list) { // true when the bolt is spent on a shot; enemy shots already moved this frame
+  for (const s of list || SHOTS) {
+    if (s.t <= 0 || s.ring || Math.abs(b.x - s.x) > 40 || Math.abs(b.y - s.y) > 40) continue;
+    const dx = (b.x - b.vx * dt) - (s.x - s.vx * dt), dy = (b.y - b.vy * dt) - (s.y - s.vy * dt), ux = b.vx - s.vx, uy = b.vy - s.vy, uu = ux * ux + uy * uy;
+    const k = uu ? clamp(-(dx * ux + dy * uy) / uu, 0, dt) : 0, mx = dx + ux * k, my = dy + uy * k; /* closest the two centres came this frame */
+    if (mx * mx + my * my > SHOT_BLOCK * SHOT_BLOCK) continue;
+    s.t = 0; run.shotsBlocked = (run.shotsBlocked || 0) + 1; for (let i = 0; i < 4; i++) spark(run, s.x, s.y, '#ffd2c8');
+    tip(run, 'shot_block', { at: { x: s.x, y: s.y } }); /* shown once; tip() keeps trying until it can */
+    if (b.pierce-- <= 0) { b.t = 0; run.boltsSpent = (run.boltsSpent || 0) + 1; return true; }
+  }
+  return false;
+}
 function updateProjectiles(run, dt) {
+  SHOTS.length = 0; for (const s of run.ebullets) if (s.t > 0 && !s.ring) SHOTS.push(s);
   const turn = HOMING.turn[Math.min(2, run.skill.homing || 0)] * dt, es = run.enemies;
   enemyGrid(es); // positions after this frame's moves and kills
   for (const b of run.bullets) {
@@ -2487,6 +2671,7 @@ function updateProjectiles(run, dt) {
         if (b.pierce-- <= 0) { b.t = 0; break; }
       }
     }
+    if (b.t > 0 && b.own && SHOTS.length) blockShots(run, b, dt); /* after the enemy test: a bolt reaching a Gunner hits it, not the shot it just fired */
   }
   compact(run.bullets, b => b.t > 0);
   for (const n of run.novas) {
@@ -3099,6 +3284,7 @@ function endRun(run, won) {
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won && !run.endurance) statAdd('zones');
   const earnedEmber = won && !run.endurance && run.zone + 1 === EMBER_AT && SAVE.cleared < EMBER_AT; run.summary.ember = earnedEmber;
+  { const wl = WORLDS[run.z.world || 1].skin; run.summary.look = won && !run.endurance && (run.zone + 1) % 5 === 0 && SAVE.cleared < run.zone + 1 && LOOK_WORLD[wl] ? THEMES[wl].name : null; }
   if (run.endurance) { const b = SAVE.endBest || {}; if ((run.endurance.killed > (b.hives || 0)) || (run.endurance.killed === (b.hives || 0) && (won ? run.t < (b.time || 1e9) : run.t > (b.time || 0)))) SAVE.endBest = { hives: run.endurance.killed, time: Math.round(run.t), won }; } /* Endurance never moves zone progress */
   else {
   if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
@@ -3159,6 +3345,12 @@ const viewT = run => (run && run.cam25 ? VIEW25.T : 1);
 const camName = () => (SAVE.camera === '25d' ? '2.5D' : 'Top-down');
 function toggleCamera() { SAVE.camera = SAVE.camera === '25d' ? 'top' : '25d'; persist(SAVE); if (R) R.cam25 = SAVE.camera === '25d'; }
 function drawBuild(ctx, c, now, flat) {
+  const lf = LK && LK[c.kind];
+  if (lf) { ctx.save(); ctx.translate(c.x, c.y); lf(ctx, 13, c, now, 0); ctx.restore();
+    if (c.kind === 'extractor') { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(c.x - 14, c.y - 24, 28, 4); ctx.fillStyle = '#ffb347'; ctx.fillRect(c.x - 14, c.y - 24, 28 * Math.min(1, c.stock / (c.cap || CHAIN.stock)), 4); }
+    if (c.kind === 'jammer' && flat) jamRing(ctx, c);
+    ctx.fillStyle = '#1b1f2b'; ctx.fillRect(c.x - 14, c.y + 16, 28, 4); ctx.fillStyle = c.kind === 'turret' ? '#ffb347' : c.kind === 'extractor' ? '#5ad1a0' : '#a86bff'; ctx.fillRect(c.x - 14, c.y + 16, 28 * Math.max(0, c.hp / c.maxhp), 4);
+    return; }
   if (c.kind === 'extractor') { // a drill on its deposit, with its stock bar
     ctx.strokeStyle = '#5ad1a0'; ctx.lineWidth = 2; ctx.strokeRect(c.x - 11, c.y - 11, 22, 22); poly(ctx, c.x, c.y, 8, 3, now * 2); ctx.stroke();
     ctx.fillStyle = '#1b1f2b'; ctx.fillRect(c.x - 14, c.y - 20, 28, 4); ctx.fillStyle = '#ffb347'; ctx.fillRect(c.x - 14, c.y - 20, 28 * Math.min(1, c.stock / (c.cap || CHAIN.stock)), 4);
@@ -3172,6 +3364,11 @@ function drawBuild(ctx, c, now, flat) {
 }
 function jamRing(ctx, c) { ctx.strokeStyle = 'rgba(168,107,255,0.25)'; ctx.lineWidth = 2; ctx.setLineDash([4, 8]); ctx.beginPath(); ctx.arc(c.x, c.y, c.ring || 240, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
 function drawUnit(ctx, u) {
+  const lf = LK && LK[u.kind];
+  if (lf) { ctx.save(); ctx.translate(u.x, u.y); lf(ctx, (UNITS[u.kind] || {}).r || 8, u, LNOW, 0); ctx.restore();
+    if (u.kind === 'eng' && u.work) { ctx.strokeStyle = '#ffe37a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(u.x, u.y, 15, -1.571, -1.571 + 6.283 * u.work / (u.workMax || 2)); ctx.stroke(); }
+    if (u.hp < u.maxhp) { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(u.x - 9, u.y + 12, 18, 3); ctx.fillStyle = '#7ff5ff'; ctx.fillRect(u.x - 9, u.y + 12, 18 * Math.max(0, u.hp / u.maxhp), 3); }
+    return; }
   ctx.lineWidth = 2;
   if (u.kind === 'gun') { ctx.fillStyle = '#7ff5ff'; poly(ctx, u.x, u.y, 7, 4, 0); ctx.fill(); }
   else if (u.kind === 'fix') { ctx.strokeStyle = '#7dff9a'; ctx.beginPath(); ctx.moveTo(u.x - 7, u.y); ctx.lineTo(u.x + 7, u.y); ctx.moveTo(u.x, u.y - 7); ctx.lineTo(u.x, u.y + 7); ctx.stroke(); ctx.beginPath(); ctx.arc(u.x, u.y, 8, 0, 6.283); ctx.stroke(); }
@@ -3182,6 +3379,8 @@ function drawUnit(ctx, u) {
   if (u.hp < u.maxhp) { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(u.x - 9, u.y + 10, 18, 3); ctx.fillStyle = '#7ff5ff'; ctx.fillRect(u.x - 9, u.y + 10, 18 * Math.max(0, u.hp / u.maxhp), 3); }
 }
 function drawEnemy(ctx, e, p, now, flat) { // caller has checked it is in sight (or a found hive core)
+  const lf = LK && LK[e.type];
+  if (lf) return drawEnemyLook(ctx, e, p, now, flat, lf);
   const col = e.flash > 0 ? '#ffffff' : ENEMY_COLOR[e.type];
   ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 2;
   if (e.type === 'hive') { // core: ring of hexes, pulsing heart, HP bar, growth pips
@@ -3191,7 +3390,7 @@ function drawEnemy(ctx, e, p, now, flat) { // caller has checked it is in sight 
     for (let i = 0; i < Math.min(5, e.hive.tier); i++) { ctx.beginPath(); ctx.arc(e.x - 12 + i * 6, e.y + e.r + 12, 2, 0, 6.283); ctx.fill(); }
     return;
   }
-  if (e.blind > 0) { ctx.strokeStyle = 'rgba(168,107,255,0.85)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, now * 5, now * 5 + 2.4); ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 2; } // jammed: spinning purple arc
+  if (e.blind > 0) { blindArc(ctx, e, now); ctx.strokeStyle = col; ctx.lineWidth = 2; }
   if (e.type === 'scout') { poly(ctx, e.x, e.y, e.r + 2, 4, Math.atan2(e.y - (e.py || e.y), e.x - (e.px || e.x))); ctx.fill(); e.px = e.x; e.py = e.y; return; }
   if (e.type === 'gatherer') { ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 6.283); ctx.stroke(); if (e.carry) { ctx.fillStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, 6.283); ctx.fill(); } return; }
   if (e.type === 'static') { ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang); ctx.fillRect(-e.r, -e.r, e.r * 2, e.r * 2); ctx.restore(); }
@@ -3202,47 +3401,93 @@ function drawEnemy(ctx, e, p, now, flat) { // caller has checked it is in sight 
     poly(ctx, e.x, e.y, e.r, 7, e.ang); ctx.stroke(); poly(ctx, e.x, e.y, e.r * 0.66, 7, -e.ang * 1.5); ctx.stroke(); poly(ctx, e.x, e.y, e.r * 0.3, 7, e.ang * 2); ctx.fill();
     ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80, 6); ctx.fillStyle = '#ffb347'; ctx.fillRect(e.x - 40, e.y - e.r - 16, 80 * Math.max(0, e.hp / e.maxhp), 6);
   }
-  if (e.tier) { ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 5, 0, 6.283); ctx.stroke(); } // evolved form
-  if (e.tier > 1) { ctx.strokeStyle = 'rgba(255,209,102,0.85)'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 9, 0, 6.283); ctx.stroke(); } // Elite: a second, gold ring
+  formRings(ctx, e);
+}
+function formRings(ctx, e) { // evolved: a white ring; Elite: a second, gold ring (the same in every look)
+  if (e.tier) { ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 5, 0, 6.283); ctx.stroke(); }
+  if (e.tier > 1) { ctx.strokeStyle = 'rgba(255,209,102,0.85)'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 9, 0, 6.283); ctx.stroke(); }
+}
+function blindArc(ctx, e, now) { if (e.blind > 0) { ctx.strokeStyle = 'rgba(168,107,255,0.85)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, now * 5, now * 5 + 2.4); ctx.stroke(); } } // jammed: spinning purple arc
+function drawEnemyLook(ctx, e, p, now, flat, lf) { // a look draws the body; the marks that carry information are the same in every look
+  const face = e.type === 'spike' ? Math.atan2(p.y - e.y, p.x - e.x) : Math.atan2(e.mvy || 0, e.mvx || 0);
+  blindArc(ctx, e, now);
+  ctx.save(); ctx.translate(e.x, e.y); lf(ctx, e.r, e, now, face); ctx.restore();
+  if (e.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 1.05, 0, 6.283); ctx.fill(); }
+  if (e.type === 'hive') {
+    const col = ENEMY_COLOR.hive; ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 34, e.y - e.r - 26, 68, 5); ctx.fillStyle = col; ctx.fillRect(e.x - 34, e.y - e.r - 26, 68 * Math.max(0, e.hp / e.maxhp), 5);
+    for (let i = 0; i < Math.min(5, e.hive.tier); i++) { ctx.beginPath(); ctx.arc(e.x - 12 + i * 6, e.y + e.r + 12, 2, 0, 6.283); ctx.fill(); }
+    return;
+  }
+  if (e.type === 'null' && flat) nullRing(ctx, e);
+  if (e.type === 'resonator') { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 40, e.y - e.r * 1.5 - 12, 80, 6); ctx.fillStyle = '#ffb347'; ctx.fillRect(e.x - 40, e.y - e.r * 1.5 - 12, 80 * Math.max(0, e.hp / e.maxhp), 6); }
+  formRings(ctx, e);
 }
 function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, JAM_R(e), 0, 6.283); ctx.stroke(); }
 function drawMote(ctx, m, run, now, flat) {
   if (m.state === 'dimmed') { ctx.strokeStyle = 'rgba(200,200,220,0.5)'; ctx.lineWidth = 1.5; poly(ctx, m.x, m.y, 7, 5, now); ctx.stroke(); ctx.fillStyle = 'rgba(200,200,220,0.5)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('down', m.x, m.y + 20); return; }
-  ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; poly(ctx, m.x, m.y, 6, 5, now * 2 + m.id); ctx.fill();
+  if (LK && LK.mote) { ctx.save(); ctx.translate(m.x, m.y); LK.mote(ctx, 7, m, now, 0); ctx.restore(); }
+  else { ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; poly(ctx, m.x, m.y, 6, 5, now * 2 + m.id); ctx.fill(); }
   if (flat) empRing(ctx, m, run);
   ctx.fillStyle = '#1b1f2b'; ctx.fillRect(m.x - 12, m.y + 10, 24, 3); ctx.fillStyle = m.bat / m.maxBat < 0.25 ? '#ff5a4a' : '#7ff5ff'; ctx.fillRect(m.x - 12, m.y + 10, 24 * m.bat / m.maxBat, 3);
 }
 function empRing(ctx, m, run) { if (run.skill.demp && !m.jammed && m.state !== 'diving' && m.state !== 'dimmed') { ctx.strokeStyle = 'rgba(127,245,255,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.arc(m.x, m.y, EMP_R[run.skill.demp], 0, 6.283); ctx.stroke(); ctx.setLineDash([]); } } // EMP reach
 function drawPlayer(ctx, p, now, squash) {
+  if (LK && LK.player) { // the look's character stands upright; a chevron shows where you face
+    if (p.inv > 0 && Math.floor(now * 30) % 2) ctx.globalAlpha = 0.45;
+    ctx.save(); ctx.translate(p.x, p.y); LK.player(ctx, 11, p, now, p.ang); ctx.restore(); ctx.globalAlpha = 1;
+    ctx.save(); ctx.translate(p.x, p.y); if (squash) ctx.scale(1, squash); ctx.rotate(p.ang); ctx.fillStyle = LKT.accent || '#f6efe0'; ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(17, -5); ctx.lineTo(17, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+    return;
+  }
   ctx.save(); ctx.translate(p.x, p.y); if (squash) ctx.scale(1, squash); ctx.rotate(p.ang);
   ctx.fillStyle = p.inv > 0 && Math.floor(now * 30) % 2 ? '#ff6b5c' : '#f6efe0';
   ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-10, 9); ctx.lineTo(-5, 0); ctx.lineTo(-10, -9); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-/* the flat things both cameras share: base, border, anchors, caches (then drawEffects) */
+/* the flat things both cameras share: the base pad, border, routes (then drawMarkers, drawEffects) */
 function drawGround(ctx, run, now, mapped) {
-  { const b = run.base, alarm = b.alarm > 0 && Math.floor(now * 8) % 2;
-    ctx.strokeStyle = b.breached ? '#5a3a3a' : alarm ? '#ff5a4a' : '#7ff5ff'; ctx.lineWidth = 3;
+  { const b = run.base, alarm = b.alarm > 0 && Math.floor(now * 8) % 2, ac = LKT.accent || '#7ff5ff';
+    ctx.strokeStyle = b.breached ? '#5a3a3a' : alarm ? '#ff5a4a' : ac; ctx.lineWidth = 3;
     ctx.strokeRect(b.x - BASE_R, b.y - BASE_R, BASE_R * 2, BASE_R * 2);
     ctx.fillStyle = b.breached ? 'rgba(90,58,58,0.15)' : 'rgba(127,245,255,0.06)'; ctx.fillRect(b.x - BASE_R, b.y - BASE_R, BASE_R * 2, BASE_R * 2);
-    ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(b.x - BASE_R, b.y); ctx.lineTo(b.x + BASE_R, b.y); ctx.moveTo(b.x, b.y - BASE_R); ctx.lineTo(b.x, b.y + BASE_R); ctx.stroke();
-    ctx.beginPath(); ctx.arc(b.x, b.y, 14, 0, 6.283); ctx.stroke();
-    ctx.fillStyle = '#1b1f2b'; ctx.fillRect(b.x - BASE_R, b.y - BASE_R - 12, BASE_R * 2, 5); ctx.fillStyle = b.breached ? '#5a3a3a' : '#7ff5ff'; ctx.fillRect(b.x - BASE_R, b.y - BASE_R - 12, BASE_R * 2 * Math.max(0, b.hp / b.maxhp), 5);
+    if (!LK || !LK.base) { ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(b.x - BASE_R, b.y); ctx.lineTo(b.x + BASE_R, b.y); ctx.moveTo(b.x, b.y - BASE_R); ctx.lineTo(b.x, b.y + BASE_R); ctx.stroke();
+      ctx.beginPath(); ctx.arc(b.x, b.y, 14, 0, 6.283); ctx.stroke(); }
   }
   ctx.strokeStyle = '#3a4a66'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, WORLD, WORLD); // world border
+  for (const d of run.deposits || []) if (d.ext && mapped[cellIdx(d.x, d.y)]) { ctx.strokeStyle = 'rgba(90,209,160,0.22)'; ctx.lineWidth = 2; ctx.setLineDash([6, 10]); ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(run.base.x, run.base.y); ctx.stroke(); ctx.setLineDash([]); } /* the route home */
+}
+/* things you tap or pick up: base building and bar, perches, deposits, caches, pickups. place(x, y), given in 2.5D,
+   stands each one up at its ground point so it is not squashed (Lance 10-08: "markers on the ground all appear stretched") */
+function drawMarkers(ctx, run, now, mapped, place) {
+  const ac = LKT.accent || '#7ff5ff', at = (x, y) => { if (place) place(x, y); };
+  { const b = run.base; at(b.x, b.y);
+    if (LK && LK.base) { ctx.save(); ctx.translate(b.x, b.y - (place ? BASE_R * 0.45 : 0)); LK.base(ctx, BASE_R * 1.1, b, now, 0); ctx.restore(); }
+    const by = place ? b.y - BASE_R * 1.25 : b.y - BASE_R - 12; ctx.fillStyle = '#1b1f2b'; ctx.fillRect(b.x - BASE_R, by, BASE_R * 2, 5); ctx.fillStyle = b.breached ? '#5a3a3a' : ac; ctx.fillRect(b.x - BASE_R, by, BASE_R * 2 * Math.max(0, b.hp / b.maxhp), 5); }
   for (const a of run.anchors) {
-    const lit = !!a.mote;
-    ctx.strokeStyle = lit ? '#7ff5ff' : 'rgba(127,245,255,0.55)'; ctx.lineWidth = lit ? 2.5 : 1.5;
+    const lit = !!a.mote; at(a.x, a.y);
+    ctx.strokeStyle = lit ? ac : LKT.light ? 'rgba(255,255,255,0.85)' : 'rgba(127,245,255,0.55)'; ctx.lineWidth = lit ? 2.5 : 1.5;
     ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, 6.283); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(a.x - 8, a.y); ctx.lineTo(a.x + 8, a.y); ctx.moveTo(a.x, a.y - 8); ctx.lineTo(a.x, a.y + 8); ctx.stroke();
-    if (!lit) { ctx.strokeStyle = 'rgba(127,245,255,0.25)'; ctx.beginPath(); ctx.arc(a.x, a.y, 34 + Math.sin(now * 2 + a.id) * 6, 0, 6.283); ctx.stroke(); }
+    if (LK && LK.perch) { ctx.save(); ctx.translate(a.x, a.y); LK.perch(ctx, 16, a, now, 0); ctx.restore(); }
+    else { ctx.beginPath(); ctx.moveTo(a.x - 8, a.y); ctx.lineTo(a.x + 8, a.y); ctx.moveTo(a.x, a.y - 8); ctx.lineTo(a.x, a.y + 8); ctx.stroke(); }
+    if (!lit) { ctx.strokeStyle = LKT.light ? 'rgba(255,255,255,0.4)' : 'rgba(127,245,255,0.25)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(a.x, a.y, 34 + Math.sin(now * 2 + a.id) * 6, 0, 6.283); ctx.stroke(); }
   }
   for (const d of run.deposits || []) if (mapped[cellIdx(d.x, d.y)]) { // ore deposits; a free one pulses
-    ctx.fillStyle = 'rgba(90,209,160,0.85)'; for (let k = 0; k < 3; k++) { poly(ctx, d.x + [-7, 6, 0][k], d.y + [4, 3, -6][k], 5, 4, 0.4 * k); ctx.fill(); }
+    at(d.x, d.y);
+    if (LK && LK.deposit) { ctx.save(); ctx.translate(d.x, d.y); LK.deposit(ctx, 12, d, now, 0); ctx.restore(); }
+    else { ctx.fillStyle = 'rgba(90,209,160,0.85)'; for (let k = 0; k < 3; k++) { poly(ctx, d.x + [-7, 6, 0][k], d.y + [4, 3, -6][k], 5, 4, 0.4 * k); ctx.fill(); } }
     if (!d.ext) { ctx.strokeStyle = 'rgba(90,209,160,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(d.x, d.y, 22 + Math.sin(now * 3 + d.id) * 3, 0, 6.283); ctx.stroke(); }
-    else { ctx.strokeStyle = 'rgba(90,209,160,0.22)'; ctx.lineWidth = 2; ctx.setLineDash([6, 10]); ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(run.base.x, run.base.y); ctx.stroke(); ctx.setLineDash([]); } /* the route home */
   }
-  for (const c of run.caches) if (!c.taken && mapped[cellIdx(c.x, c.y)]) { ctx.strokeStyle = '#ffe37a'; ctx.lineWidth = 2; ctx.strokeRect(c.x - 9, c.y - 9, 18, 18); ctx.beginPath(); ctx.moveTo(c.x - 9, c.y); ctx.lineTo(c.x + 9, c.y); ctx.stroke(); }
+  for (const c of run.caches) if (!c.taken && mapped[cellIdx(c.x, c.y)]) { at(c.x, c.y);
+    if (LK && LK.cache) { ctx.save(); ctx.translate(c.x, c.y); LK.cache(ctx, 10, c, now, 0); ctx.restore(); }
+    else { ctx.strokeStyle = '#ffe37a'; ctx.lineWidth = 2; ctx.strokeRect(c.x - 9, c.y - 9, 18, 18); ctx.beginPath(); ctx.moveTo(c.x - 9, c.y); ctx.lineTo(c.x + 9, c.y); ctx.stroke(); } }
+}
+function drawPickups(ctx, run, now, place) { // XP, parts, health: drawn over builds and units so nothing hides them
+  const at = (x, y) => { if (place) place(x, y); };
+  for (const g of run.gems) { at(g.x, g.y);
+    const lf = LK && (g.part ? LK.part : g.heal ? LK.heal : LK.xp);
+    if (lf) { ctx.save(); ctx.translate(g.x, g.y); lf(ctx, g.part ? 4.5 : g.heal ? 5 : g.big ? 6 : 3.5, g, now, 0); ctx.restore(); continue; }
+    if (g.part) { ctx.fillStyle = '#ffb347'; poly(ctx, g.x, g.y, 4.5, 6, 0); ctx.fill(); continue; }
+    if (g.heal) { ctx.fillStyle = '#7dff9a'; ctx.fillRect(g.x - 4, g.y - 1.5, 8, 3); ctx.fillRect(g.x - 1.5, g.y - 4, 3, 8); continue; }
+    ctx.fillStyle = g.big ? '#ffe37a' : '#7fd7ff'; const s = g.big ? 6 : 3.2; ctx.beginPath(); ctx.moveTo(g.x, g.y - s); ctx.lineTo(g.x + s, g.y); ctx.lineTo(g.x, g.y + s); ctx.lineTo(g.x - s, g.y); ctx.closePath(); ctx.fill(); }
 }
 function drawEffects(ctx, run, beamLift) { // over builds and units in top-down: order ring, strikes, gems, field, novas, beams (raised to ship height in 2.5D)
   const p = run.p;
@@ -3251,7 +3496,6 @@ function drawEffects(ctx, run, beamLift) { // over builds and units in top-down:
     if (!st.hit) { const k = 1 - st.t / 1.6; ctx.strokeStyle = 'rgba(255,179,71,0.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(st.x, st.y, st.r * (0.4 + 0.6 * k), 0, 6.283); ctx.stroke(); ctx.beginPath(); ctx.moveTo(st.x - 12, st.y); ctx.lineTo(st.x + 12, st.y); ctx.moveTo(st.x, st.y - 12); ctx.lineTo(st.x, st.y + 12); ctx.stroke(); }
     else { const k = -st.t / 0.5; ctx.strokeStyle = `rgba(255,179,71,${1 - k})`; ctx.lineWidth = 8 * (1 - k) + 1; ctx.beginPath(); ctx.arc(st.x, st.y, st.r * (0.6 + 0.4 * k), 0, 6.283); ctx.stroke(); }
   }
-  for (const g of run.gems) { if (g.part) { ctx.fillStyle = '#ffb347'; poly(ctx, g.x, g.y, 4.5, 6, 0); ctx.fill(); continue; } if (g.heal) { ctx.fillStyle = '#7dff9a'; ctx.fillRect(g.x - 4, g.y - 1.5, 8, 3); ctx.fillRect(g.x - 1.5, g.y - 4, 3, 8); continue; } ctx.fillStyle = g.big ? '#ffe37a' : '#7fd7ff'; const s = g.big ? 6 : 3.2; ctx.beginPath(); ctx.moveTo(g.x, g.y - s); ctx.lineTo(g.x + s, g.y); ctx.lineTo(g.x, g.y + s); ctx.lineTo(g.x - s, g.y); ctx.closePath(); ctx.fill(); }
   if (run.fieldR) { ctx.fillStyle = p.evolved.field ? 'rgba(255,227,122,0.10)' : 'rgba(127,215,255,0.08)'; ctx.beginPath(); ctx.arc(p.x, p.y, run.fieldR, 0, 6.283); ctx.fill(); ctx.strokeStyle = 'rgba(127,215,255,0.35)'; ctx.lineWidth = 1; ctx.stroke(); }
   for (const n of run.novas) { ctx.strokeStyle = `rgba(255,227,122,${Math.max(0, 1 - n.t / 0.6)})`; ctx.lineWidth = 6 * (1 - n.t / 0.6) + 1; ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.283); ctx.stroke(); }
   for (const b of run.beams) { // a cone: narrow at you, b.w wide at the far end, with a glow around it
@@ -3268,32 +3512,39 @@ function drawMark(ctx, run, m) { // last-known enemy marker: dashed ring in the 
   const rr = Math.min(34, 14 + m.n * 3); ctx.fillStyle = 'rgba(6,8,14,0.7)'; ctx.beginPath(); ctx.arc(m.x, m.y, rr + 3, 0, 6.283); ctx.fill(); // backing so it reads on static
   ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(m.x, m.y, rr, 0, 6.283); ctx.stroke(); if (m.n > 1) ctx.fillText(String(m.n), m.x, m.y + 4);
 }
+function drawFloor(ctx, TH, mapped, r0, r1, c0, c1) { // mapped cells in view: the grid, or the look's ground
+  if (TH.grid) { ctx.strokeStyle = TH.grid; ctx.lineWidth = 1; for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) ctx.strokeRect(c * CELL + 0.5, r * CELL + 0.5, CELL, CELL); }
+  if (LK && LK.cell) for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) LK.cell(ctx, c * CELL, r * CELL, CELL, r * COLS + c);
+}
 function render(ctx, run, vw, vh, now) {
+  LK = lookOf(run); LKT = THEMES[run.skin] || THEMES.static; LNOW = now;
   if (run.cam25) return render25(ctx, run, vw, vh, now);
   const p = run.p, cam = run.cam;
   const shx = run.shake > 0 ? rnd(-4, 4) * run.shake : 0, shy = run.shake > 0 ? rnd(-4, 4) * run.shake : 0;
   const z = run.zoom || 1, hw = vw / 2 / z, hh = vh / 2 / z; // pinch zoom: world units per screen half-width
   const ox = Math.round(vw / 2 - cam.x * z + shx), oy = Math.round(vh / 2 - cam.y * z + shy);
   const TH = THEMES[run.skin] || THEMES.static;
-  ctx.fillStyle = TH.bg; ctx.fillRect(0, 0, vw, vh);
+  lookBg(ctx, TH, vw, vh);
   ctx.save(); ctx.translate(ox, oy); ctx.scale(z, z);
   // fog cells in view
   const c0 = clamp(Math.floor((cam.x - hw) / CELL), 0, COLS - 1), c1 = clamp(Math.floor((cam.x + hw) / CELL), 0, COLS - 1);
   const r0 = clamp(Math.floor((cam.y - hh) / CELL), 0, COLS - 1), r1 = clamp(Math.floor((cam.y + hh) / CELL), 0, COLS - 1);
   const { seen, mapped } = run.fog;
-  ctx.strokeStyle = TH.grid; ctx.lineWidth = 1;
-  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) ctx.strokeRect(c * CELL + 0.5, r * CELL + 0.5, CELL, CELL); // unmapped cells: opaque static after the fog pass
+  drawFloor(ctx, TH, mapped, r0, r1, c0, c1); // unmapped cells: opaque static after the fog pass
   // walls
   for (const o of run.walls) {
     if (o.x + o.w < cam.x - hw - 20 || o.x > cam.x + hw + 20 || o.y + o.h < cam.y - hh - 20 || o.y > cam.y + hh + 20) continue;
     const vis = wallSeen(o, seen);
     ctx.fillStyle = o.barricade ? BARRICADE.fill : vis ? TH.wall : TH.wallDim; ctx.fillRect(o.x, o.y, o.w, o.h);
     ctx.strokeStyle = o.barricade ? BARRICADE.edge : vis ? TH.edge : TH.edgeDim; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
+    if (!o.barricade && LK && LK.wallTop) LK.wallTop(ctx, o.x, o.y, o.w, o.h);
     if (o.barricade) barricadeBar(ctx, o, 0);
   }
-  drawGround(ctx, run, now, mapped);
+  drawGround(ctx, run, now, mapped); drawMarkers(ctx, run, now, mapped, null);
+  if (run.mode === 'hard') { ctx.restore(); drawNight(ctx, run, vw, vh, z, 1, ox, oy); ctx.save(); ctx.translate(ox, oy); ctx.scale(z, z); } /* night darkens the ground layer only */
   for (const c of run.builds) drawBuild(ctx, c, now, true);
   for (const u of run.units) drawUnit(ctx, u);
+  drawPickups(ctx, run, now, null);
   drawEffects(ctx, run, 0);
   for (const e of run.enemies) {
     if (!e.isCore && !e.vis) { e.px = e.x; e.py = e.y; continue; } // out of sight: not drawn (fog memory leaves a marker instead)
@@ -3301,8 +3552,9 @@ function render(ctx, run, vw, vh, now) {
     drawEnemy(ctx, e, p, now, true);
   }
   ctx.globalAlpha = 1;
-  ctx.fillStyle = '#ff8a7a'; for (const b of run.ebullets) { if (!isSeen(run, b.x, b.y)) continue; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283); ctx.fill(); }
-  for (const b of run.bullets) { ctx.fillStyle = b.turret ? '#7ff5ff' : '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283); ctx.fill(); }
+  const sh = TH.shot || THEMES.static.shot;
+  for (const b of run.ebullets) { if (b.t <= 0 || !isSeen(run, b.x, b.y)) continue; ctx.fillStyle = sh[0]; ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 1.5, 0, 6.283); ctx.fill(); ctx.fillStyle = sh[1]; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.7, 0, 6.283); ctx.fill(); }
+  for (const b of run.bullets) { ctx.fillStyle = b.turret ? TH.tbolt || '#7ff5ff' : TH.bolt || '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283); ctx.fill(); }
   ctx.fillStyle = p.evolved.orbit ? '#ffe37a' : '#bfe9ff'; for (const s of run.shards) if (s.x !== undefined) { poly(ctx, s.x, s.y, 8, 3, run.t * 6); ctx.fill(); }
   for (const q of run.particles) { ctx.fillStyle = q.col; ctx.globalAlpha = Math.min(1, q.t * 3); ctx.fillRect(q.x - 2, q.y - 2, 4, 4); } ctx.globalAlpha = 1;
   for (const m of run.motes) drawMote(ctx, m, run, now, true);
@@ -3322,6 +3574,7 @@ function render(ctx, run, vw, vh, now) {
       if (o.x + o.w < cam.x - hw - 20 || o.x > cam.x + hw + 20 || o.y + o.h < cam.y - hh - 20 || o.y > cam.y + hh + 20) continue;
       if (!wallKnown(o, mapped)) continue;
       ctx.fillStyle = o.barricade ? BARRICADE.fill : TH.wall; ctx.fillRect(o.x, o.y, o.w, o.h); ctx.strokeStyle = o.barricade ? BARRICADE.edge : TH.edgeMem; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
+      if (!o.barricade && LK && LK.wallTop) LK.wallTop(ctx, o.x, o.y, o.w, o.h);
     }
     ctx.setLineDash([5, 4]); ctx.lineWidth = 2.5; ctx.textAlign = 'center'; ctx.font = 'bold 12px Roboto, Arial, sans-serif';
     for (const m of run.marks) drawMark(ctx, run, m);
@@ -3330,6 +3583,25 @@ function render(ctx, run, vw, vh, now) {
   }
   drawOverlays(ctx, run, vw, vh, z, 1);
 }
+/* Night for Hard (Lance 10-08: "night versions for hard mode"): the ground, walls and markers go dark except around
+   you, your Drones, the base, turrets and shells landing. Drawn under creatures, shots and pickups, so it changes the
+   look, not what you can see to fight. One light sprite, stamped per light. */
+let nightCv = null, nightCtx = null, nightSpr = null;
+function drawNight(ctx, run, vw, vh, z, T, ox, oy) {
+  if (run.mode !== 'hard' || !HAS_DOM || run.tut) return;
+  if (!nightCv) { nightCv = document.createElement('canvas'); nightCtx = nightCv.getContext('2d');
+    nightSpr = document.createElement('canvas'); nightSpr.width = nightSpr.height = 128; const x = nightSpr.getContext('2d'), g = x.createRadialGradient(64, 64, 22, 64, 64, 64); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); }
+  const d = fogDpr; if (nightCv.width !== Math.round(vw * d) || nightCv.height !== Math.round(vh * d)) { nightCv.width = Math.round(vw * d); nightCv.height = Math.round(vh * d); }
+  const f = nightCtx; f.setTransform(d, 0, 0, d, 0, 0); f.globalCompositeOperation = 'source-over'; f.clearRect(0, 0, vw, vh); f.fillStyle = LKT.night || 'rgba(2,4,12,0.72)'; f.fillRect(0, 0, vw, vh);
+  f.globalCompositeOperation = 'destination-out';
+  const hole = (x, y, r) => { const X = ox + x * z, Y = oy + y * z * T, R = r * z; if (X < -R || Y < -R || X > vw + R || Y > vh + R) return; f.drawImage(nightSpr, X - R, Y - R, R * 2, R * 2); };
+  hole(run.p.x, run.p.y, NIGHT.you); if (!run.base.breached) hole(run.base.x, run.base.y, NIGHT.base);
+  for (const m of run.motes) if (m.state !== 'dimmed') hole(m.x, m.y, m.state === 'perched' ? NIGHT.perched : NIGHT.drone);
+  for (const c of run.builds) if (c.kind === 'turret') hole(c.x, c.y, NIGHT.turret);
+  for (const st of run.strikes) hole(st.x, st.y, NIGHT.strike);
+  f.globalCompositeOperation = 'source-over'; ctx.drawImage(nightCv, 0, 0, vw, vh);
+}
+const NIGHT = { you: 250, base: 230, perched: 210, drone: 90, turret: 80, strike: 140 }; // light radius, world px
 function fogCut(ctx, run, vw, vh, TH, z, T, ox, oy) { // darken the screen except the vision polygons (projected on the ground)
   if (fogCv.width !== Math.round(vw * fogDpr) || fogCv.height !== Math.round(vh * fogDpr)) { fogCv.width = Math.round(vw * fogDpr); fogCv.height = Math.round(vh * fogDpr); }
   const f = fogCtx; f.setTransform(fogDpr, 0, 0, fogDpr, 0, 0);
@@ -3344,6 +3616,7 @@ function drawStatic(ctx, run, now, mapped, r0, r1, c0, c1) {
 }
 function drawOverlays(ctx, run, vw, vh, z, T) { // screen space: minimap, base and boss arrows, joystick
   const cam = run.cam;
+  if (LK && LK.screen) LK.screen(ctx, vw, vh, LNOW); // a look's screen touches (cheap ones only), under the minimap
   drawMinimap(ctx, run, vw, vh);
   { const b = run.base, dx = (b.x - cam.x) * z, dy = (b.y - cam.y) * z * T;
     if (Math.abs(dx) > vw / 2 - 30 || Math.abs(dy) > vh / 2 - 30) {
@@ -3373,14 +3646,15 @@ function render25(ctx, run, vw, vh, now) {
   const up = (x, y, lift) => ctx.setTransform(A, 0, 0, A, d * ox, d * (oy + y * z * (T - 1) - lift * z)); // (x, y) lands on its ground point, raised by lift
   const scr = () => ctx.setTransform(d, 0, 0, d, 0, 0);
   const TH = THEMES[run.skin] || THEMES.static;
-  scr(); ctx.fillStyle = TH.bg; ctx.fillRect(0, 0, vw, vh);
+  scr(); lookBg(ctx, TH, vw, vh);
   const c0 = clamp(Math.floor((cam.x - hw) / CELL), 0, COLS - 1), c1 = clamp(Math.floor((cam.x + hw) / CELL), 0, COLS - 1);
   const r0 = clamp(Math.floor((cam.y - hh) / CELL), 0, COLS - 1), r1 = clamp(Math.floor((cam.y + hh) / CELL), 0, COLS - 1);
   const { seen, mapped } = run.fog;
   ground();
-  ctx.strokeStyle = TH.grid; ctx.lineWidth = 1;
-  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) ctx.strokeRect(c * CELL + 0.5, r * CELL + 0.5, CELL, CELL);
-  drawGround(ctx, run, now, mapped); drawEffects(ctx, run, LIFT.player / T);
+  drawFloor(ctx, TH, mapped, r0, r1, c0, c1);
+  drawGround(ctx, run, now, mapped); drawMarkers(ctx, run, now, mapped, (x, y) => up(x, y, 0));
+  if (run.mode === 'hard') { scr(); drawNight(ctx, run, vw, vh, z, T, ox, oy); }
+  drawPickups(ctx, run, now, (x, y) => up(x, y, 0)); ground(); drawEffects(ctx, run, LIFT.player / T);
   for (const c of run.builds) if (c.kind === 'jammer') jamRing(ctx, c);
   for (const m of run.motes) empRing(ctx, m, run);
   for (const e of run.enemies) if (e.type === 'null' && e.vis) nullRing(ctx, e);
@@ -3425,6 +3699,7 @@ function render25(ctx, run, vw, vh, now) {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(o.x, o.y + o.h - hl, o.w, hl);
       ctx.fillStyle = face; ctx.fillRect(o.x, o.y - hl, o.w, o.h);
       ctx.strokeStyle = o.barricade ? BARRICADE.edge : vis ? TH.edge : TH.edgeMem; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y - hl, o.w, o.h);
+      if (!o.barricade && LK && LK.wallTop) LK.wallTop(ctx, o.x, o.y - hl, o.w, o.h);
       if (o.barricade) barricadeBar(ctx, o, hl);
       ctx.globalAlpha = 1;
     } else if (t === 1) { up(o.x, o.y, LIFT.build); if (run.vis && !isSeen(run, o.x, o.y)) ctx.globalAlpha = VIEW25.dimA; drawBuild(ctx, o, now, false); ctx.globalAlpha = 1; }
@@ -3437,8 +3712,9 @@ function render25(ctx, run, vw, vh, now) {
   // bullets, shards, particles: small, drawn last at a fixed height (screen space, no per-item transform)
   scr();
   const sx = x => ox + x * z, sy = (y, l) => oy + y * z * T - l * z;
-  ctx.fillStyle = '#ff8a7a'; for (const b of run.ebullets) { if (!isSeen(run, b.x, b.y)) continue; ctx.beginPath(); ctx.arc(sx(b.x), sy(b.y, 12), b.r * z, 0, 6.283); ctx.fill(); }
-  for (const b of run.bullets) { ctx.fillStyle = b.turret ? '#7ff5ff' : '#ffffff'; ctx.beginPath(); ctx.arc(sx(b.x), sy(b.y, 12), b.r * z, 0, 6.283); ctx.fill(); }
+  const sh = TH.shot || THEMES.static.shot;
+  for (const b of run.ebullets) { if (b.t <= 0 || !isSeen(run, b.x, b.y)) continue; const X = sx(b.x), Y = sy(b.y, 12); ctx.fillStyle = sh[0]; ctx.beginPath(); ctx.arc(X, Y, (b.r + 1.5) * z, 0, 6.283); ctx.fill(); ctx.fillStyle = sh[1]; ctx.beginPath(); ctx.arc(X, Y, b.r * 0.7 * z, 0, 6.283); ctx.fill(); }
+  for (const b of run.bullets) { ctx.fillStyle = b.turret ? TH.tbolt || '#7ff5ff' : TH.bolt || '#ffffff'; ctx.beginPath(); ctx.arc(sx(b.x), sy(b.y, 12), b.r * z, 0, 6.283); ctx.fill(); }
   ctx.fillStyle = p.evolved.orbit ? '#ffe37a' : '#bfe9ff'; for (const s of run.shards) if (s.x !== undefined) { poly(ctx, sx(s.x), sy(s.y, LIFT.player), 8 * z, 3, run.t * 6); ctx.fill(); }
   for (const q of run.particles) { ctx.fillStyle = q.col; ctx.globalAlpha = Math.min(1, q.t * 3); ctx.fillRect(sx(q.x) - 2 * z, sy(q.y, 10) - 2 * z, 4 * z, 4 * z); } ctx.globalAlpha = 1;
   if (run.vis && fogCv && run.marks.length) {
@@ -4129,7 +4405,7 @@ if (HAS_DOM) {
     el('end-title').textContent = s.won ? `${run.z.name} cleared (${run.M.name})` : 'You died';
     el('end-body').innerHTML = [
       s.endurance ? `Endurance: ${s.endurance.killed} of ${s.endurance.goal} hives in ${fmtT(s.time)}. ` + (s.won ? `Bonus +${s.zoneBonus}.` : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`) : s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
-      s.ember ? '<b>Ember look earned.</b> Pick it in Settings > Map look.' : '',
+      s.look || s.ember ? `<b>${[s.look, s.ember && 'Ember'].filter(Boolean).join(' and ')} look${s.look && s.ember ? 's' : ''} earned.</b> Pick ${s.look && s.ember ? 'one' : 'it'} in Settings > Map look to use it in every zone.` : '',
       `${s.kills} kills in ${fmtT(s.time)}, level ${s.level}.`,
       `${Math.round(s.coverage * 100)}% of the map explored.`,
       `<b>+${s.kept} gold</b> (${Math.round(SAVE.gold)} banked).`,
@@ -4410,22 +4686,25 @@ if (HAS_DOM) {
     setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
     setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
     setRow('btn-camera', 'Camera', camName(), 'Top-down is the flat map. 2.5D tilts it: things stand up with a shadow and walls have height. Same game either way.');
-    setRow('btn-skin', 'Map look', THEMES[chosenSkin()].name, SAVE.cleared >= EMBER_AT ? 'Ember is yours: World 1 can use it too.' : `Clear Zone ${EMBER_AT} to use the Ember look from World 2 everywhere.`);
+    { const mine = lookChoices().filter(Boolean).map(id => THEMES[id].name); setRow('btn-skin', 'Map look', chosenSkin() ? THEMES[chosenSkin()].name : "Each world's own", mine.length > 1 ? `Yours: ${mine.join(', ')}. Tap to use one in every zone.` : 'Every world has its own look. Clear a world to use its look in every zone.'); }
     setRow('btn-spawn', 'Enemy spawns', SAVE.spawnAnywhere ? 'Anywhere off screen' : 'Only unwatched', 'Normally enemies only appear where neither you nor a Drone can see, so scouting matters. The other option spawns them anywhere outside your view.');
   };
   el('btn-settings').onclick = () => UI.settings();
   el('btn-profile').onclick = () => UI.profile();
   el('btn-fdckey').onclick = () => UI.fdckey();
   el('btn-mute').onclick = () => { SAVE.muted = !SAVE.muted; persist(SAVE); UI.settings(); };
-  el('btn-skin').onclick = () => { if (SAVE.cleared < EMBER_AT) { UI.settings(`Clear Zone ${EMBER_AT} first.`); return; } SAVE.skin = SAVE.skin === 'ember' ? 'static' : 'ember'; persist(SAVE); UI.settings(); };
+  el('btn-skin').onclick = () => { const ch = lookChoices(); if (ch.length < 3) { UI.settings('Clear World 2 (Zone 10) to earn its look.'); return; } SAVE.skin = ch[(ch.indexOf(chosenSkin()) + 1) % ch.length]; persist(SAVE); UI.settings(); };
   el('btn-spawn').onclick = () => { SAVE.spawnAnywhere = !SAVE.spawnAnywhere; persist(SAVE); UI.settings(); };
   el('btn-tips').onclick = () => { SAVE.tipsOff = !SAVE.tipsOff; persist(SAVE); UI.settings(); };
   el('btn-tips-reset').onclick = () => { SAVE.seenTips = {}; SAVE.tipsOff = false; persist(SAVE); UI.settings('Tutorial reset. It replays on your next run.'); };
 
   /* HUD */
+  { const d = el('hud-dock'), set = () => { const h = d.offsetHeight; if (h) document.documentElement.style.setProperty('--dock-h', h + 'px'); }; /* cards and banners sit just above the bottom dock */
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(set).observe(d); else setInterval(set, 250); }
   const hud = { shells: el('h-shells'), ammo: el('h-ammo'), parts: el('h-parts'), hp: el('hp'), xp: el('xp'), lvl: el('h-lvl'), time: el('h-time'), gold: el('h-gold'), heat: el('h-heat'), motes: el('h-motes'), toast: el('toasts'), kills: el('h-kills') };
   function drawHud(run) {
     const p = run.p;
+    if (run.hudLook !== run.skin) { run.hudLook = run.skin; el('hud').classList.toggle('light', !!(THEMES[run.skin] || {}).light); } /* bright looks: HUD text gets a dark edge */
     hud.hp.style.width = Math.max(0, p.hp / p.maxhp * 100) + '%'; hud.xp.style.width = Math.min(100, p.xp / p.next * 100) + '%';
     hud.lvl.textContent = 'Lv ' + p.level; hud.kills.textContent = run.kills + ' kills';
     { const hl = hivesAlive(run).length, ht = run.hives && run.hives.length ? ` \u00b7 ${hl} hive${hl === 1 ? '' : 's'}` : ''; hud.time.textContent = run.endurance ? `${fmtT(run.t)} \u00b7 ${run.endurance.killed}/${run.endurance.goal} hives` : (run.phase === 'boss' ? 'Boss' : fmtT(Math.max(0, run.z.dur - run.t))) + ht; }
@@ -4464,7 +4743,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
