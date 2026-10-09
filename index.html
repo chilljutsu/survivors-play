@@ -143,7 +143,7 @@
   .fitem .fx { width:auto; padding:7px 9px; font-size:12px; color:var(--dim); }
   .step { display:inline-flex; align-items:center; gap:4px; } .step button { width:34px; padding:6px 0; text-align:center; } .step input { width:56px; padding:6px; text-align:center; }
   .fmac { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; font-size:12px; color:var(--dim); } .fmac b { display:block; font-size:18px; color:var(--ink); font-weight:500; }
-  .fvit { font-size:12px; }
+  .fvit { font-size:12px; } .funk { font-size:11px; color:var(--dim); margin:2px 0; } .fport { margin:6px 0; }
   .fogrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .fogrid label, .fown label { font-size:12px; color:var(--dim); display:flex; flex-direction:column; gap:4px; } .fown { display:flex; flex-direction:column; gap:8px; }
   .nrow { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:2px 2px 4px; border:none; border-radius:0; } .nrow span { font-size:14px; } .nrow small { color:var(--dim); font-size:12px; text-align:right; }
   #f-nut { gap:6px; } .nscope { margin-left:auto; }
@@ -431,6 +431,12 @@
   <input id="fk-in" type="text" autocomplete="off" placeholder="Your api.data.gov key">
   <button class="primary" id="btn-fk-save">Save key</button>
   <p id="fk-msg"></p>
+  <h2>Restaurant database</h2>
+  <p>Chick-fil-A is built in. For other chains, a Nutritionix account (nutritionix.com, Developer API) gives an app ID and an app key; paste both here. They stay on this phone.</p>
+  <input id="nk-id" type="text" autocomplete="off" placeholder="Nutritionix app ID">
+  <input id="nk-key" type="text" autocomplete="off" placeholder="Nutritionix app key">
+  <button class="primary" id="btn-nk-save">Save restaurant key</button>
+  <p id="nk-msg"></p>
   <button class="back">Back</button>
 </div></div>
 
@@ -862,7 +868,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-09 s28';
+const BUILD_ID = 'playtest 2026-10-09 s29';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -880,8 +886,9 @@ const WHATS_NEW = [
   { s: 26, items: ['Worlds have their own looks: World 2 Meadow from Zone 6, World 3 Forest from Zone 11.', 'Hard plays every world at night.', 'Clear a world to use its look everywhere (Settings, Map look).'] },
   { s: 27, items: ['World 4 Dusk from Zone 16 and World 5 Frontline from Zone 21.'] },
   { s: 28, items: ['The game downloads new builds itself and tells you when one is ready.', 'The zones screen shows what each world looks like.'] },
+  { s: 29, items: ['Food search finds Chick-fil-A as the restaurant serves it: sandwiches, nuggets, fries and every sauce.', 'Search also looks in Open Food Facts, and in most restaurant chains with a Nutritionix key (Settings).', 'USDA foods offer their real portions, like 1 sandwich, not just 100 g.'] },
 ];
-const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-4); };
+const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -1197,7 +1204,8 @@ const NUTRIENTS = [
 const NUT = Object.fromEntries(NUTRIENTS.map(n => [n.k, n]));
 const FOOD = {
   fdc: 'https://api.nal.usda.gov/fdc/v1/', off: 'https://world.openfoodfacts.org/api/v2/product/', dsld: 'https://api.ods.od.nih.gov/dsld/v9/',
-  demoKey: 'DEMO_KEY', timeout: 9000, results: 8, cap: 400, keepDays: 400, proteinPerLb: 0.7,
+  offSearch: 'https://world.openfoodfacts.org/cgi/search.pl', nix: 'https://trackapi.nutritionix.com/v2/',
+  demoKey: 'DEMO_KEY', timeout: 9000, results: 8, shown: 6, cap: 400, keepDays: 400, proteinPerLb: 0.7,
   meals: ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Supplements'],
   // supplement label names to nutrients; IU converts to the nutrient's unit (vitamin D 0.025 µg, A 0.3 µg RAE, E 0.67 mg)
   supp: [[/vitamin\s*d/i, 'vitD', 0.025], [/vitamin\s*c|ascorbic/i, 'vitC'], [/vitamin\s*a|retinol|beta.?carotene/i, 'vitA', 0.3], [/vitamin\s*e|tocopherol/i, 'vitE', 0.67],
@@ -1248,6 +1256,75 @@ function parseDsld(lab) {
 function myFood(name, kind, serving, vals) { // your own item, typed in (works with no network)
   const per = {}; for (const k in vals) if (NUT[k] && +vals[k] > 0) per[k] = +vals[k];
   return { id: 'me:' + hashStr(kind + name + serving + JSON.stringify(per)).toString(36), src: 'You', kind, name: String(name).trim() || 'My food', brand: '', serving: serving || '1 serving', per };
+}
+/* Restaurant menus built in (s29), searched first and offline. Numbers are the chain's own published values only: a
+   value we could not confirm is null and the food sheet says so; it is never guessed (Lance 10-09). */
+// [name, serving, kcal, fat, satfat, chol, sodium, carbs, fiber, sugars, protein]
+const REST_COLS = ['kcal', 'fat', 'satfat', 'chol', 'sodium', 'carbs', 'fiber', 'sugars', 'protein'], REST_MAIN = ['kcal', 'protein', 'carbs', 'fat', 'sodium'];
+const RESTAURANTS = [
+  { chain: 'Chick-fil-A', id: 'cfa', aka: 'chick fil a chickfila cfa', src: 'chick-fil-a.com, checked 2026-10-09', items: [
+    ['Chick-fil-A Chicken Sandwich', '1 sandwich (183 g)', 420, 16, 3.5, 70, 1470, 41, 1, 6, 29],
+    ['Spicy Chicken Sandwich', '1 sandwich (188 g)', 450, 18, 4, 65, 1740, 44, 1, 6, 28],
+    ['Chick-fil-A Deluxe Sandwich', '1 sandwich', 490, 21, 6, 85, 1710, null, null, 7, 32],
+    ['Grilled Chicken Sandwich', '1 sandwich', 390, 11, 2.5, 75, 765, 45, 3, 11, 28],
+    ['Chick-fil-A Nuggets, 8 count', '8 nuggets (113 g)', 250, 11, null, null, 1210, 11, null, null, 27],
+    ['Waffle Potato Fries, medium', '1 medium (125 g)', 420, 24, 4, null, 240, 45, 5, 1, 5],
+    ['Mac and Cheese, medium', '1 medium (227 g)', 450, 29, 16, null, 1190, 28, 3, 3, 20],
+    ['Chick-fil-A Sauce', '1 container (28 g)', 140, 13, null, null, 170, null, null, null, null],
+    ['Polynesian Sauce', '1 container (28 g)', 110, 6, null, null, 210, 14, 0, 13, 0],
+    ['Barbeque Sauce', '1 container (28 g)', 45, 0, null, null, 200, 11, 0, 9, 0],
+    ['Honey Mustard Sauce', '1 container (28 g)', 50, 0, null, null, 160, 11, 0, 10, 0],
+    ['Sweet and Spicy Sriracha Sauce', '1 container (28 g)', 45, 0, null, null, 380, 11, 0, 10, 0],
+    ['Garden Herb Ranch Sauce', '1 container (21 g)', 100, 11, null, null, 170, 1, null, 0, 0],
+    ['Zesty Buffalo Sauce', '1 container', 25, 2.5, null, null, null, 1, null, null, 0],
+  ] },
+];
+const restFood = (r, it) => {
+  const per = {}; REST_COLS.forEach((k, i) => { if (it[i + 2] != null) per[k] = it[i + 2]; });
+  return { id: `${r.id}:${it[0].toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, src: r.chain + ' menu', kind: 'food', name: it[0], brand: r.chain, serving: it[1], per,
+    unknown: REST_MAIN.filter(k => per[k] == null), note: r.src, aka: r.aka };
+};
+// search words: lower case, punctuation as spaces, so "chick fil a" and "CHICK-FIL-A" read the same
+const foodWords = t => String(t || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+function wordsMatched(q, hay) { // query words that start a word in hay (one letter: the whole word); "chickfila" also runs across "chick fil a"
+  const hw = foodWords(hay), runs = hw.map((_, i) => hw.slice(i).join(''));
+  return foodWords(q).filter(w => (w.length === 1 ? hw.includes(w) : hw.some(h => h.startsWith(w))) || (w.length > 4 && runs.some(r => r.startsWith(w)))).length;
+}
+function searchRestaurants(q) {
+  const n = foodWords(q).length; if (!n) return [];
+  return RESTAURANTS.flatMap(r => r.items.map(it => [restFood(r, it), wordsMatched(q, `${r.aka} ${r.chain} ${it[0]}`)])).filter(x => x[1] === n).map(x => x[0]);
+}
+// merged results: every word matched first, restaurant items on top, then the sources' own order; the same food once
+function rankFoods(q, lists) {
+  const n = foodWords(q).length, seen = new Set(), out = [];
+  lists.flat().filter(f => Object.keys(f.per).length).forEach((f, i) => { const key = f.id, nk = foodWords(f.brand + ' ' + f.name + ' ' + f.serving).join(' '); if (seen.has(key) || seen.has(nk)) return; seen.add(key); seen.add(nk);
+    const brand = `${f.brand} ${f.aka || ''}`, m = wordsMatched(q, `${brand} ${f.name}`); out.push({ f, i, full: m >= n, m, rest: (/ menu$/.test(f.src) || !!f.restaurant) && !!f.brand && wordsMatched(q, brand) > 0 }); }); // a chain on top when you name it
+  const any = out.some(x => x.m > 0); // a hit that shares no word with what you typed is noise once anything does
+  return out.filter(x => x.m > 0 || !any).sort((a, b) => (b.full - a.full) || (b.rest - a.rest) || (b.m - a.m) || (a.i - b.i)).map(x => x.f);
+}
+// Nutritionix (restaurant and branded foods): nutrients by USDA number in full_nutrients, the serving the chain uses
+function parseNix(x) {
+  const by = {}; for (const r of x.full_nutrients || []) by[String(r.attr_id)] = +r.value;
+  const nf = { kcal: x.nf_calories, protein: x.nf_protein, carbs: x.nf_total_carbohydrate, fat: x.nf_total_fat, satfat: x.nf_saturated_fat, chol: x.nf_cholesterol, sodium: x.nf_sodium, fiber: x.nf_dietary_fiber, sugars: x.nf_sugars, potassium: x.nf_potassium };
+  const per = {}; for (const n of NUTRIENTS) { const v = nf[n.k] != null ? +nf[n.k] : n.fdc.map(c => by[c]).find(v => v != null); if (v != null && isFinite(v) && v >= 0) per[n.k] = v; }
+  const g = +x.serving_weight_grams, qty = +x.serving_qty || 1, unit = x.serving_unit || 'serving';
+  return { id: 'nix:' + (x.nix_item_id || hashStr(x.food_name + x.brand_name).toString(36)), src: 'Nutritionix', kind: 'food', name: x.food_name || 'Food', brand: x.brand_name || '',
+    serving: `${round1(qty)} ${unit}${g > 0 ? ` (${round1(g)} g)` : ''}`, per, restaurant: x.brand_type === 1 };
+}
+// USDA food details: its household portions ("1 sandwich", "1 cup") with their weights; nutrients stay per 100 g
+function fdcPortions(d) {
+  const out = [];
+  for (const p of d.foodPortions || []) {
+    const g = +p.gramWeight; if (!(g > 0)) continue;
+    let label = p.portionDescription && !/not specified/i.test(p.portionDescription) ? p.portionDescription : [p.amount > 0 ? round1(+p.amount) : '', p.measureUnit && !/undetermined/i.test(p.measureUnit.name || '') ? p.measureUnit.name : '', p.modifier || ''].join(' ');
+    label = label.replace(/\s+/g, ' ').trim(); if (label && !out.some(o => o.label === label)) out.push({ label, g });
+  }
+  return out;
+}
+function atPortion(f, p) { // the food at one portion: its own id (id@portion) so meals keep their {food, n} shape
+  if (!p || p.label === '100 g') return f;
+  const k = p.g / 100, per = {}; for (const x in f.per) per[x] = f.per[x] * k;
+  return Object.assign({}, f, { id: `${f.id}@${p.label}`, serving: `${p.label} (${round1(p.g)} g)`, per, portions: undefined });
 }
 function saveFood(f, now) {
   const F = SAVE.foods || (SAVE.foods = {}); F[f.id] = Object.assign(F[f.id] || {}, f, { t: (now || new Date()).getTime() });
@@ -1336,19 +1413,37 @@ function weeklyAverage(now) { // workouts a week over the last 4 finished weeks,
 }
 const foodActive = now => (SAVE.meals || []).some(m => m.ts > (now || new Date()).getTime() - 14 * 864e5); // food quests only once you use the food log
 // network: the APK asks Android directly (CapacitorHttp, no browser cross-site rules); a browser falls back to fetch
-async function getJSON(url) {
+async function getJSON(url, headers) {
   const C = typeof window !== 'undefined' ? window.Capacitor : null;
   if (C && C.isNativePlatform && C.isNativePlatform()) {
     let H = null; try { H = (C.Plugins && C.Plugins.CapacitorHttp) || (C.registerPlugin ? C.registerPlugin('CapacitorHttp') : null); } catch (e) { H = null; }
-    if (H && H.request) { const r = await H.request({ url, method: 'GET', headers: { Accept: 'application/json' }, connectTimeout: FOOD.timeout, readTimeout: FOOD.timeout }); if (r.status >= 400) throw new Error('HTTP ' + r.status); return typeof r.data === 'string' ? JSON.parse(r.data) : r.data; }
+    if (H && H.request) { const r = await H.request({ url, method: 'GET', headers: Object.assign({ Accept: 'application/json' }, headers), connectTimeout: FOOD.timeout, readTimeout: FOOD.timeout }); if (r.status >= 400) throw new Error('HTTP ' + r.status); return typeof r.data === 'string' ? JSON.parse(r.data) : r.data; }
   }
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null, tm = ctl && setTimeout(() => ctl.abort(), FOOD.timeout);
-  try { const r = await fetch(url, ctl ? { signal: ctl.signal, headers: { Accept: 'application/json' } } : {}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { if (tm) clearTimeout(tm); }
+  try { const r = await fetch(url, ctl ? { signal: ctl.signal, headers: Object.assign({ Accept: 'application/json' }, headers) } : { headers }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { if (tm) clearTimeout(tm); }
 }
 const fdcKey = () => (SAVE.fdcKey || FOOD.demoKey);
-async function searchFoods(q) { // USDA: generic first, then branded
-  const j = await getJSON(`${FOOD.fdc}foods/search?api_key=${encodeURIComponent(fdcKey())}&query=${encodeURIComponent(q)}&pageSize=${FOOD.results * 2}&dataType=Foundation,SR%20Legacy,Survey%20(FNDDS),Branded`);
-  return (j.foods || []).map(parseFdc).filter(f => Object.keys(f.per).length).slice(0, FOOD.results);
+const hasNix = () => !!(SAVE.nixId && SAVE.nixKey);
+async function searchNix(q) { // instant search, then each item's details (the full nutrients)
+  const H = { 'x-app-id': SAVE.nixId, 'x-app-key': SAVE.nixKey };
+  const j = await getJSON(`${FOOD.nix}search/instant?query=${encodeURIComponent(q)}&branded=true&common=false`, H);
+  const ids = (j.branded || []).map(b => b.nix_item_id).filter(Boolean).slice(0, 4); // 5 calls a search on the free tier
+  const got = await Promise.all(ids.map(id => getJSON(`${FOOD.nix}search/item?nix_item_id=${encodeURIComponent(id)}`, H).catch(() => null)));
+  return got.flatMap(g => (g && g.foods) || []).map(parseNix);
+}
+async function searchFoods(q) { // built-in menus, then USDA generic, Nutritionix, USDA branded and Open Food Facts at once, merged
+  const key = encodeURIComponent(fdcKey()), qq = encodeURIComponent(q), usda = types => getJSON(`${FOOD.fdc}foods/search?api_key=${key}&query=${qq}&pageSize=10&dataType=${types}`).then(j => (j.foods || []).map(parseFdc));
+  const jobs = [usda('Foundation,SR%20Legacy,Survey%20(FNDDS)'), hasNix() ? searchNix(q) : Promise.resolve([]), usda('Branded'),
+    getJSON(`${FOOD.offSearch}?search_terms=${qq}&search_simple=1&action=process&json=1&page_size=10&fields=code,product_name,brands,serving_size,serving_quantity,nutriments`).then(j => (j.products || []).filter(p => p.code && p.product_name).map(p => parseOff(p, p.code)))];
+  const got = await Promise.allSettled(jobs), local = searchRestaurants(q);
+  if (!local.length && got.every((g, i) => g.status === 'rejected' || (i === 1 && !hasNix()))) throw got[0].reason; // nothing to show: the UI explains the first source's error
+  const lists = got.map(g => (g.status === 'fulfilled' ? g.value : [])), all = rankFoods(q, [lists[0], local, ...lists.slice(1)]).slice(0, FOOD.shown);
+  all.failed = got.map((g, i) => (g.status === 'rejected' ? ['USDA', 'Nutritionix', 'USDA', 'Open Food Facts'][i] : null)).filter(Boolean);
+  all.usdaBusy = [got[0], got[2]].some(g => g.status === 'rejected' && /HTTP (429|403)/.test(String(g.reason))); return all;
+}
+async function fdcDetails(f) { // portions for a USDA generic food (per 100 g in search)
+  const id = String(f.id).replace(/^fdc:/, ''); const d = await getJSON(`${FOOD.fdc}food/${encodeURIComponent(id)}?api_key=${encodeURIComponent(fdcKey())}`);
+  return fdcPortions(d);
 }
 async function lookupBarcode(code) { // USDA branded foods by UPC, then Open Food Facts
   code = String(code).replace(/\D/g, ''); if (code.length < 6) return [];
@@ -4057,7 +4152,7 @@ if (HAS_DOM) {
     if (inClaude()) note(box, 'The claude.ai copy cannot reach the food databases. Search works in the app; Your own works everywhere.');
     const list = foodResults || recentFoods(addMode === 'Supplements' ? 'supp' : addMode === 'Search' ? 'food' : null);
     if (!foodResults && list.length) note(box, 'Favorites and recent');
-    for (const it of list.slice(0, 6)) {
+    for (const it of list.slice(0, FOOD.shown)) {
       const b = document.createElement('button'); b.className = 'row frow';
       b.innerHTML = `<b>${esc(it.name)}${it.fav ? ' ★' : ''}</b><em>${it.per.kcal != null ? Math.round(it.per.kcal) + ' kcal' : it.kind === 'supp' ? 'supplement' : ''}</em><span>${esc([it.brand, it.serving, it.src].filter(Boolean).join(' · '))}</span>`;
       b.onclick = () => foodSheet(it); box.appendChild(b);
@@ -4065,14 +4160,27 @@ if (HAS_DOM) {
   }
   async function runSearch(q) {
     q = String(q || '').trim(); if (!q || foodBusy) return; foodQ = q; foodBusy = true; el('f-msg').textContent = 'Searching...'; const mode = addMode;
-    try { foodResults = mode === 'Barcode' ? await lookupBarcode(q) : mode === 'Supplements' ? await searchSupps(q) : await searchFoods(q); el('f-msg').textContent = foodResults.length ? '' : 'Nothing found. Try other words, or make your own.'; }
+    try { foodResults = mode === 'Barcode' ? await lookupBarcode(q) : mode === 'Supplements' ? await searchSupps(q) : await searchFoods(q);
+      const off = [...new Set(foodResults.failed || [])];
+      const demo = foodResults.usdaBusy && !SAVE.fdcKey ? 'The free USDA demo key is used up for now; add your own free key in Settings.' : '';
+      el('f-msg').textContent = !foodResults.length ? (demo || 'Nothing found. Try other words, or make your own.') : demo ? demo + ' Showing the rest.' : off.length && !inClaude() ? `${off.join(' and ')} did not answer${off.includes('Nutritionix') ? ' (check the key in Settings)' : ''}; showing the rest.` : ''; }
     catch (e) { foodResults = []; const busy = /HTTP (429|403)/.test(String(e)), usda = mode !== 'Supplements';
       el('f-msg').textContent = busy && usda && !SAVE.fdcKey ? 'The free demo key is used up for now. Add your own free key in Settings.' : busy ? 'The database is busy. Try again in a minute.' : 'Could not reach the food database' + (inClaude() ? ': the claude.ai copy cannot reach outside sites, use the app.' : '. Check your connection.'); }
     foodBusy = false; if (addMode !== mode) foodResults = null; if (curScreen === 'food' && foodTab === 'Add') foodAdd();
   }
-  function foodSheet(f) {
-    let n = 1; const s = sheet();
-    s.innerHTML = `<h3>${esc(f.name)}</h3><p>${esc([f.brand, f.serving, f.src].filter(Boolean).join(' · '))}</p><div class="fmac"${['kcal', 'protein', 'carbs', 'fat'].some(k => f.per[k] != null) ? '' : ' hidden'}></div><p class="fvit"></p>`;
+  function foodSheet(base) {
+    let n = 1, f = base, fav = null; const s = sheet(), tok = s.dataset.tok = String(Math.random()); // the sheet element is reused: a late reply for another food is dropped
+    s.innerHTML = `<h3>${esc(f.name)}</h3><p class="fserv">${esc([f.brand, f.serving, f.src].filter(Boolean).join(' · '))}</p><div class="chips fport" hidden></div><div class="fmac"${['kcal', 'protein', 'carbs', 'fat'].some(k => f.per[k] != null) ? '' : ' hidden'}></div><p class="fvit"></p>`
+      + (f.unknown && f.unknown.length ? `<p class="funk">Not published by ${esc(f.brand || 'the source')}: ${f.unknown.map(k => NUT[k].name.toLowerCase()).join(', ')}. Not counted.</p>` : '') + (f.note ? `<p class="funk">Source: ${esc(f.note)}</p>` : '');
+    // a USDA generic food comes per 100 g; its details carry the real portions ("1 sandwich", "1 cup")
+    const ports = box => { const pr = s.querySelector('.fport'); if (s.dataset.tok !== tok || !pr || !box || !box.length) return; const all = [...box.filter(p => p.label !== '100 g').slice(0, 5), { label: '100 g', g: 100 }];
+      const pick = p => { f = atPortion(base, p); s.querySelector('.fserv').textContent = [f.brand, f.serving, f.src].filter(Boolean).join(' · '); pr.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.textContent === p.label)); if (fav) fav.textContent = isFav() ? 'Favorite ★' : 'Add to favorites'; draw(); };
+      pr.innerHTML = ''; for (const p of all) { const c = document.createElement('button'); c.className = 'chip'; c.textContent = p.label; c.onclick = () => pick(p); pr.appendChild(c); }
+      pr.hidden = false; pick(all[0]); };
+    if (/^fdc:\d+$/.test(base.id) && base.serving === '100 g') {
+      if (base.portions) setTimeout(() => ports(base.portions));
+      else fdcDetails(base).then(p => { base.portions = p; if (!s.hidden) ports(p); }).catch(() => { /* no portions: 100 g it is */ });
+    }
     const draw = () => {
       s.querySelector('.fmac').innerHTML = ['kcal', 'protein', 'carbs', 'fat'].map(k => `<span><b>${f.per[k] != null ? (k === 'kcal' ? Math.round(f.per[k] * n) : round1(f.per[k] * n)) : '-'}</b>${k === 'kcal' ? 'kcal' : NUT[k].name.toLowerCase() + ' g'}</span>`).join('');
       const top = NUTRIENTS.filter(x => f.per[x.k] != null && x.g !== 'Macros').map(x => [x, f.per[x.k] * n / dvOf(x)]).sort((a, b) => b[1] - a[1]).slice(0, 4);
@@ -4081,8 +4189,8 @@ if (HAS_DOM) {
     const row = document.createElement('div'); row.className = 'fitem'; row.innerHTML = '<div><b>Servings</b></div>'; row.appendChild(stepper(n, v => { n = v; draw(); })); s.appendChild(row);
     const add = document.createElement('button'); add.className = 'primary fadd'; add.textContent = `Add to ${foodMeal}`;
     add.onclick = () => { const kept = saveFood(f), e = logFood(kept.id, foodMeal, n, new Date(), foodDay ? fday() : null); s.hidden = true; beep(880, 0.08, 'triangle', 0.05); foodTab = 'Today'; UI.food(e ? `Added ${f.name} to ${foodMeal}.` : ''); };
-    const fav = document.createElement('button'); const isFav = () => !!(SAVE.foods && SAVE.foods[f.id] && SAVE.foods[f.id].fav);
-    fav.textContent = isFav() ? 'Favorite ★' : 'Add to favorites'; fav.onclick = () => { const kept = saveFood(f); kept.fav = !kept.fav; persist(SAVE); fav.textContent = kept.fav ? 'Favorite ★' : 'Add to favorites'; };
+    fav = document.createElement('button'); const isFav = () => !!(SAVE.foods && SAVE.foods[f.id] && SAVE.foods[f.id].fav);
+    fav.textContent = isFav() ? 'Favorite ★' : 'Add to favorites'; fav.onclick = () => { const kept = saveFood(f); kept.fav = !kept.fav; persist(SAVE); fav.textContent = kept.fav ? 'Favorite ★' : 'Add to favorites'; }; // the portion showing is the one kept
     s.appendChild(add); s.appendChild(fav); closeBtn(s); draw();
   }
   function ownForm(box) {
@@ -4129,9 +4237,13 @@ if (HAS_DOM) {
     drawChart(pts, { name: M.name, fmt: M.fmt, axis: M.axis, ticks: M.ticks, ref: M.ref ? M.ref() : 0, empty: 'Nothing logged in these 12 weeks yet.' }, c, H);
   };
   el('btn-fitness').onclick = () => UI.fitness();
-  UI.fdckey = msg => {
+  UI.fdckey = (msg, nmsg) => {
     UI.go('fdckey'); el('fk-in').value = SAVE.fdcKey || ''; el('fk-msg').textContent = msg || (SAVE.fdcKey ? 'Using your key.' : 'Using DEMO_KEY for now.');
+    el('nk-id').value = SAVE.nixId || ''; el('nk-key').value = SAVE.nixKey || ''; el('nk-msg').textContent = nmsg || (hasNix() ? 'Restaurant search is on.' : 'Off. Chick-fil-A is built in either way.');
   };
+  el('btn-nk-save').onclick = () => { const id = el('nk-id').value.trim(), k = el('nk-key').value.trim();
+    if ((id || k) && !(/^[A-Za-z0-9]{6,40}$/.test(id) && /^[A-Za-z0-9]{16,64}$/.test(k))) { el('nk-msg').textContent = 'Paste both: the app ID and the app key from your Nutritionix account (letters and digits).'; return; }
+    if (id) { SAVE.nixId = id; SAVE.nixKey = k; } else { delete SAVE.nixId; delete SAVE.nixKey; } persist(SAVE); UI.fdckey(null, id ? 'Saved on this phone.' : 'Cleared.'); };
   el('btn-fk-save').onclick = () => { const k = el('fk-in').value.trim(); if (k && !/^[A-Za-z0-9]{20,64}$/.test(k)) { el('fk-msg').textContent = 'That does not look like an api.data.gov key (letters and digits only).'; return; } if (k) SAVE.fdcKey = k; else delete SAVE.fdcKey; persist(SAVE); UI.fdckey(k ? 'Saved on this phone.' : 'Cleared. Back to DEMO_KEY.'); };
   UI.lattice = msg => {
     UI.go('lattice'); { const tl = lat('tier'), live = el('it-lattice').dataset.live; inlineTip('it-lattice', tl && (!tipSeen('tier' + tl) || live === 'tier' + tl) ? 'tier' + tl : 'workshop'); }
@@ -4704,7 +4816,7 @@ if (HAS_DOM) {
   /* backup / restore: the save as one line of text, for moving between installs */
   UI.backup = msg => {
     UI.go('backup');
-    el('bk-out').value = 'SURVIVORS1:' + btoa(unescape(encodeURIComponent(JSON.stringify(SAVE))));
+    el('bk-out').value = 'SURVIVORS1:' + btoa(unescape(encodeURIComponent(JSON.stringify(Object.assign({}, SAVE, { fdcKey: undefined, nixId: undefined, nixKey: undefined }))))); // API keys stay on this phone
     el('bk-in').value = ''; el('bk-msg').textContent = msg || `${Math.round(SAVE.gold)} gold, ${SAVE.cleared} zones cleared, ${SAVE.logs.length} workouts logged.`;
     el('btn-bk-restore').textContent = 'Restore from pasted text'; el('btn-bk-restore').dataset.arm = '';
   };
@@ -4719,7 +4831,7 @@ if (HAS_DOM) {
     try { data = JSON.parse(decodeURIComponent(escape(atob(raw.replace(/^SURVIVORS1:/, ''))))); } catch (e) { data = null; }
     if (!data || typeof data !== 'object' || !('gold' in data)) { el('bk-msg').textContent = 'That text is not a save backup.'; return; }
     if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = `Tap again: replace this save with ${Math.round(data.gold)} gold, ${data.cleared || 0} zones cleared`; return; }
-    SAVE = grandfatherBots(Object.assign(defaultSave(), data)); persist(SAVE); UI.backup('Save restored.');
+    const keys = { fdcKey: SAVE.fdcKey, nixId: SAVE.nixId, nixKey: SAVE.nixKey }; SAVE = grandfatherBots(Object.assign(defaultSave(), data, keys)); for (const k in keys) if (SAVE[k] === undefined) delete SAVE[k]; persist(SAVE); UI.backup('Save restored.');
   };
   el('btn-notes-new').onclick = () => UI.note('notes');
   el('btn-notes-copy').onclick = () => {
@@ -4744,7 +4856,7 @@ if (HAS_DOM) {
   UI.settings = msg => {
     UI.go('settings'); el('set-msg').textContent = msg || '';
     setRow('btn-profile', 'Your profile', SAVE.profile && SAVE.profile.sex ? (SAVE.profile.sex === 'female' ? 'Female' : 'Male') : 'Not set', 'Sex for standards, bodyweight and age, for your ratings and dealt goals.');
-    setRow('btn-fdckey', 'Food database key', SAVE.fdcKey ? 'Yours' : 'DEMO_KEY', 'A free USDA key from api.data.gov makes food search work all day. Stored on this phone only.');
+    setRow('btn-fdckey', 'Food database keys', (SAVE.fdcKey ? 'Your USDA key' : 'DEMO_KEY') + (hasNix() ? ', restaurants' : ''), 'A free USDA key makes food search work all day; a Nutritionix key adds most restaurant chains. Stored on this phone only.');
     setRow('btn-mute', 'Sound and vibration', SAVE.muted ? 'Off' : 'On', 'Beeps and haptic buzzes.');
     setRow('btn-tips', 'Tutorial tips', SAVE.tipsOff ? 'Off' : 'On', 'A card explains each new thing the first time it shows up.');
     setRow('btn-playtest', 'Playtest mode', SAVE.playtest ? 'On' : 'Off', 'Unlocks every zone and its Hard mode. Turning it on the first time also gives 500 gold.');
@@ -4806,7 +4918,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
