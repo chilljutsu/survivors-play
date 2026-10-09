@@ -868,7 +868,7 @@ const BUILD_ID = 'playtest 2026-10-09 s28';
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
 const PLAY_URL = 'https://chilljutsu.github.io/survivors-play/index.html', LAUNCHER_KEY = 'launcher_game_html';
 const buildNo = id => { const m = /(\d{4})-(\d{2})-(\d{2})\D+s(\d+)/.exec(id || ''); return m ? +(m[1] + m[2] + m[3]) * 1000 + +m[4] : 0; };
-const buildOf = html => { if (typeof html !== 'string' || html.length < 50000 || !html.includes('id="hud"')) return null; const m = /const BUILD_ID = '([^']+)'/.exec(html); return m ? m[1] : null; }; // never an error page
+const buildOf = html => { if (typeof html !== 'string' || html.length < 50000 || !html.includes('id="hud"')) return null; const m = /const BUILD_ID = ['](.+?)[']/.exec(html); /* ['] so deploy.sh's grep for the declaration never matches this line */ return m ? m[1] : null; }; // never an error page
 function takeUpdate(html, store) { // a newer real build: stored for the launcher, its id returned
   const id = buildOf(html); if (!id || buildNo(id) <= buildNo(BUILD_ID)) return null;
   try { store(html); } catch (e) { return null; } /* storage full: say nothing rather than promise a restart that will not help */
