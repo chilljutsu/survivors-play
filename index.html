@@ -106,6 +106,10 @@
   .itip { border:1px solid var(--cyan); border-radius:8px; padding:10px 12px; background:rgba(127,245,255,0.06); }
   .itip b { display:block; color:var(--cyan); font-weight:500; margin-bottom:3px; }
   .itip p { color:var(--ink); }
+  #m-new ul { margin:4px 0 8px; padding-left:18px; color:var(--ink); font-size:14px; line-height:1.4; } #m-new li { margin:2px 0; } #m-new button { width:auto; padding:8px 14px; }
+  .zhead { position:relative; border-radius:10px; overflow:hidden; padding:10px 12px; flex:none; } /* the selected world's look behind the title (no extra height) */
+  #zone-preview { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+  .zhead h2, .zhead p { position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.8); } .zhead p { color:#e8ecf2; }
   #tree { background:rgba(9,12,22,0.99); }
   #tree .col { gap:8px; }
   .tree-head { display:flex; align-items:baseline; justify-content:space-between; }
@@ -228,6 +232,8 @@
 
 <div id="menu" class="screen"><div class="col">
   <h1>SURVIVORS<small>working build. The name is yours to pick.</small></h1>
+  <button id="m-update" class="row primary" hidden></button>
+  <div class="itip" id="m-new" hidden><b>New since you last played</b><ul id="m-new-list"></ul><button id="m-new-ok">Got it</button></div>
   <div class="stat"><b id="m-gold">0</b> gold banked</div>
   <div class="stat" id="m-streak"></div>
   <div class="stat" id="m-level" hidden></div>
@@ -245,8 +251,8 @@
 </div></div>
 
 <div id="zones" class="screen fit"><div class="col">
-  <h2>Zones</h2>
-  <p>Destroy every hive, or survive to the boss and kill it.</p>
+  <div class="zhead"><canvas id="zone-preview" role="img" aria-label="This world's look"></canvas><h2>Zones</h2>
+  <p>Destroy every hive, or survive to the boss and kill it.</p></div>
   <div class="itip" id="it-mod" hidden></div>
   <button id="btn-endurance" class="row"></button>
   <button id="btn-mod" class="row mod"></button>
@@ -347,6 +353,7 @@
   <button id="btn-pause-note">Write a feedback note</button>
   <p id="pause-msg"></p>
   <button id="btn-quit">Abandon run (salvage applies)</button>
+  <p class="stat" id="p-ver"></p>
 </div></div>
 
 <div id="end" class="screen"><div class="col">
@@ -855,7 +862,26 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-09 s27';
+const BUILD_ID = 'playtest 2026-10-09 s28';
+/* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
+   network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
+   where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
+const PLAY_URL = 'https://chilljutsu.github.io/survivors-play/index.html', LAUNCHER_KEY = 'launcher_game_html';
+const buildNo = id => { const m = /(\d{4})-(\d{2})-(\d{2})\D+s(\d+)/.exec(id || ''); return m ? +(m[1] + m[2] + m[3]) * 1000 + +m[4] : 0; };
+const buildOf = html => { if (typeof html !== 'string' || html.length < 50000 || !html.includes('id="hud"')) return null; const m = /const BUILD_ID = '([^']+)'/.exec(html); return m ? m[1] : null; }; // never an error page
+function takeUpdate(html, store) { // a newer real build: stored for the launcher, its id returned
+  const id = buildOf(html); if (!id || buildNo(id) <= buildNo(BUILD_ID)) return null;
+  try { store(html); } catch (e) { return null; } /* storage full: say nothing rather than promise a restart that will not help */
+  return id;
+}
+/* New in this build: shown once on the menu, everything since the build you last opened. */
+const WHATS_NEW = [
+  { s: 25, items: ['Enemies are smaller, and so are their shots.', 'A Pulse bolt that hits a Gunner shot head on stops it.', 'The buttons at the bottom are one even grid.'] },
+  { s: 26, items: ['Worlds have their own looks: World 2 Meadow from Zone 6, World 3 Forest from Zone 11.', 'Hard plays every world at night.', 'Clear a world to use its look everywhere (Settings, Map look).'] },
+  { s: 27, items: ['World 4 Dusk from Zone 16 and World 5 Frontline from Zone 21.'] },
+  { s: 28, items: ['The game downloads new builds itself and tells you when one is ready.', 'The zones screen shows what each world looks like.'] },
+];
+const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-4); };
 let memStore = null;
 function defaultSave() {
   return { gold: 0, lattice: {}, cleared: 0, streak: 0, freezes: 2, lastLog: null, logs: [], muted: false, runs: 0, bestKills: 0, seenTips: {}, tipsOff: false, playtest: false, notes: [] };
@@ -3512,6 +3538,21 @@ function drawMark(ctx, run, m) { // last-known enemy marker: dashed ring in the 
   const rr = Math.min(34, 14 + m.n * 3); ctx.fillStyle = 'rgba(6,8,14,0.7)'; ctx.beginPath(); ctx.arc(m.x, m.y, rr + 3, 0, 6.283); ctx.fill(); // backing so it reads on static
   ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(m.x, m.y, rr, 0, 6.283); ctx.stroke(); if (m.n > 1) ctx.fillText(String(m.n), m.x, m.y + 4);
 }
+/* A strip of a world's look for the zones screen (Lance 10-09: worlds should be visible, not described): its ground,
+   a wall, the base, you, and its enemies, drawn by the same functions as a run. */
+function drawWorldPreview(ctx, skin, W, H, now) {
+  const keep = [LK, LKT, LNOW]; LK = LOOK_DRAW[skin] || null; LKT = THEMES[skin] || THEMES.static; LNOW = now || 0;
+  const TH = LKT, k = H / 150, VW = W / k; lookBg(ctx, TH, W, H); ctx.save(); ctx.scale(k, k);
+  try { // a look that throws must not leave the globals on the preview skin
+  for (let c = 0; c * 100 < VW; c++) for (let r = 0; r < 2; r++) { if (TH.grid) { ctx.strokeStyle = TH.grid; ctx.lineWidth = 1; ctx.strokeRect(c * 100 + 0.5, r * 100 - 25.5, 100, 100); } if (LK && LK.cell) LK.cell(ctx, c * 100, r * 100 - 25, 100, c * 7 + r * 131 + 17); }
+  const wl = { x: VW * 0.5, y: 18, w: 26, h: 96 }; ctx.fillStyle = TH.wall; ctx.fillRect(wl.x, wl.y, wl.w, wl.h); ctx.strokeStyle = TH.edge; ctx.lineWidth = 2; ctx.strokeRect(wl.x, wl.y, wl.w, wl.h); if (LK && LK.wallTop) LK.wallTop(ctx, wl.x, wl.y, wl.w, wl.h);
+  const bx = 62, by = 78, ac = TH.accent || '#7ff5ff'; ctx.strokeStyle = ac; ctx.lineWidth = 3; ctx.strokeRect(bx - 48, by - 48, 96, 96);
+  if (LK && LK.base) { ctx.save(); ctx.translate(bx, by); LK.base(ctx, 72, {}, now, 0); ctx.restore(); } else { ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx - 48, by); ctx.lineTo(bx + 48, by); ctx.moveTo(bx, by - 48); ctx.lineTo(bx, by + 48); ctx.stroke(); ctx.beginPath(); ctx.arc(bx, by, 12, 0, 6.283); ctx.stroke(); }
+  const p = { x: 158, y: 80, ang: 0.3, inv: 0, r: 11 }; drawPlayer(ctx, p, now, 0);
+  const fx = VW * 0.5 + 60, foes = [['static', 0, 40], ['static', 22, 70], ['static', 4, 104], ['spike', 70, 56], ['harmonic', 120, 96], ['null', 170, 46], ['resonator', 250, 78]];
+  for (const [t, dx, y] of foes) { if (fx + dx > VW - 20) continue; const e = { type: t, x: fx + dx, y, r: ENEMY[t].r * (t === 'resonator' ? 0.7 : ENEMY_SIZE), tier: 0, flash: 0, blind: 0, ang: 0.5, mvx: -1, mvy: 0, hp: 1, maxhp: 1 }; drawEnemy(ctx, e, p, now, false); }
+  } finally { ctx.restore(); [LK, LKT, LNOW] = keep; }
+}
 function drawFloor(ctx, TH, mapped, r0, r1, c0, c1) { // mapped cells in view: the grid, or the look's ground
   if (TH.grid) { ctx.strokeStyle = TH.grid; ctx.lineWidth = 1; for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) ctx.strokeRect(c * CELL + 0.5, r * CELL + 0.5, CELL, CELL); }
   if (LK && LK.cell) for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) LK.cell(ctx, c * CELL, r * CELL, CELL, r * COLS + c);
@@ -3813,8 +3854,27 @@ if (HAS_DOM) {
   function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; el('btn-pause-cam').textContent = `Camera: ${camName()}`; inlineTip('it-pause', 'dial'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
 
   /* menus */
+  let updateTo = null, updateBusy = false, updateAt = -Infinity; // a newer build waiting in the launcher's cache
+  const showUpdate = () => { const b = el('m-update'); b.hidden = !updateTo; if (updateTo) b.innerHTML = `<b>A new build is ready</b><em>${esc(updateTo.replace(/^playtest\s*/, ''))}</em><span>Tap to restart into it. You are on ${esc(BUILD_ID.replace(/^playtest\s*/, ''))}.</span>`; };
+  async function checkForUpdate() {
+    if (updateBusy || updateTo || performance.now() - updateAt < 600000 || !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return; // only inside the phone app; the web link is always current
+    updateBusy = true; updateAt = performance.now(); // at most one 450 KB download per 10 minutes
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 60000); // no hurry, but a stalled download gives up
+    try {
+      const r = await fetch(PLAY_URL + '?t=' + Date.now(), { cache: 'no-store', signal: ctl.signal });
+      if (r.ok) { const id = takeUpdate(await r.text(), h => localStorage.setItem(LAUNCHER_KEY, h)); if (id) { updateTo = id; if (curScreen === 'menu') showUpdate(); } }
+    } catch (e) { /* offline: try again on a later menu visit */ } finally { clearTimeout(tm); updateBusy = false; }
+  }
+  el('m-update').onclick = () => location.reload(); // the launcher starts the cached newer build
+  el('m-new-ok').onclick = () => { SAVE.lastBuild = BUILD_ID; persist(SAVE); el('m-new').hidden = true; };
+  el('p-ver').textContent = BUILD_ID;
   UI.menu = () => {
     UI.go('menu');
+    showUpdate();
+    if (SAVE.lastBuild !== BUILD_ID) { const list = SAVE.runs > 0 ? newSince(SAVE.lastBuild) : [];
+      if (!list.length) { SAVE.lastBuild = BUILD_ID; persist(SAVE); el('m-new').hidden = true; }
+      else { el('m-new-list').innerHTML = list.map(w => w.items.map(t => `<li>${esc(t)}</li>`).join('')).join(''); el('m-new').hidden = false; } }
+    checkForUpdate();
     el('m-gold').textContent = Math.round(SAVE.gold);
     el('m-streak').textContent = `${SAVE.streak} day streak, ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'}, ${streakMult(SAVE.streak).toFixed(2)}x`;
     { /* the world you are in: its five zones as marks (50 would not fit); Hard has its own row and world */
@@ -3838,6 +3898,8 @@ if (HAS_DOM) {
       b.onclick = () => { SAVE.modOn = !SAVE.modOn; persist(SAVE); UI.zones(); }; }
     const worlds = WORLD_IDS.filter(worldOpen); zoneTabs = worlds;
     if (!zoneWorld || zoneSeenCleared !== SAVE.cleared || !worlds.includes(zoneWorld)) { zoneWorld = ZONES[Math.min(SAVE.cleared, ZONES.length - 1)].world || 1; zoneSeenCleared = SAVE.cleared; } // a newly opened world shows first
+    { const cv = el('zone-preview'), w = cv.clientWidth || 380, h = cv.clientHeight || 64, d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); drawWorldPreview(c, WORLDS[zoneWorld].skin, w, h, 1.2); cv.setAttribute('aria-label', `${WORLDS[zoneWorld].name}, drawn in its look`); } /* what this world looks like */
     el('zone-tabs').classList.toggle('five', worlds.length > 4); renderTabs(el('zone-tabs'), worlds, zoneWorld, w => { zoneWorld = w; UI.zones(); }, w => WORLDS[w].name.replace(/^World \d+: /, ''), w => WORLDS[w].skin);
     const box = el('zone-list'); box.innerHTML = '';
     ZONES.forEach((z, i) => {
@@ -4247,8 +4309,9 @@ if (HAS_DOM) {
     };
   }
   // after a hold completes the screen redraws under the finger; swallow the lift's click so it can't hit what slid in
-  let swallowClicksUntil = 0;
-  document.addEventListener('click', ev => { if (performance.now() < swallowClicksUntil) { ev.stopPropagation(); ev.preventDefault(); } }, true);
+  let swallowClicksUntil = 0; // up to 5 s while the finger is still down, then 300 ms after it lifts; one click only, so a quick real tap still works
+  for (const evn of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) document.addEventListener(evn, () => { if (swallowClicksUntil > performance.now() + 300) swallowClicksUntil = performance.now() + 300; }, true);
+  document.addEventListener('click', ev => { if (performance.now() < swallowClicksUntil) { swallowClicksUntil = 0; ev.stopPropagation(); ev.preventDefault(); } }, true);
   // press-and-hold control: fills over 1 s, a tap or early release does nothing
   function holdSell(label, onSell) { // press and hold 1 s; lifting, sliding off or scrolling cancels (Lance 10-08)
     const hs = document.createElement('div'); hs.className = 'holdsell';
@@ -4256,7 +4319,7 @@ if (HAS_DOM) {
     let t0 = 0, raf = 0, pid = null, x0 = 0, y0 = 0;
     const bar = () => hs.querySelector('i');
     const stop = () => { t0 = 0; pid = null; cancelAnimationFrame(raf); bar().style.width = '0'; };
-    const tick = () => { if (!t0) return; const k = Math.min(1, (performance.now() - t0) / 1000); bar().style.width = (k * 100) + '%'; if (k >= 1) { stop(); swallowClicksUntil = performance.now() + 600; onSell(); return; } raf = requestAnimationFrame(tick); };
+    const tick = () => { if (!t0) return; const k = Math.min(1, (performance.now() - t0) / 1000); bar().style.width = (k * 100) + '%'; if (k >= 1) { stop(); swallowClicksUntil = performance.now() + 5000; onSell(); return; } raf = requestAnimationFrame(tick); };
     hs.addEventListener('contextmenu', ev => ev.preventDefault()); // Android long-press would otherwise cancel the hold
     hs.addEventListener('pointerdown', ev => { if (t0 || ev.button !== 0) return; pid = ev.pointerId; x0 = ev.clientX; y0 = ev.clientY; t0 = performance.now(); raf = requestAnimationFrame(tick); }); // primary press only
     hs.addEventListener('pointermove', ev => { // the finger must stay on the button: off its edge or a 12 px drag cancels
@@ -4743,7 +4806,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
