@@ -76,6 +76,7 @@
   #hud-units { display:none; } #hud-units.on { display:contents; } /* unit buttons join the same grid, so 12 buttons make 3 full rows */
   #h-motes { font-size:12px; color:var(--cyan); text-align:right; }
   #h-motes::before { content:"Drones: "; color:var(--dim); }
+  #h-motes .pip { letter-spacing:-1px; } #h-motes .pip.low { color:#ff8a7a; } /* s35: battery pips */
   .draft-hint { font-size:13px; color:var(--dim); text-align:center; }
   #end-body p { margin-bottom:6px; }
   #end-body .rep { border-left:2px solid var(--cyan); padding:2px 0 2px 10px; margin-top:8px; font-size:14px; } #end-body .rep b { display:block; margin-bottom:4px; font-weight:500; }
@@ -107,9 +108,10 @@
   .itip { border:1px solid var(--cyan); border-radius:8px; padding:10px 12px; background:rgba(127,245,255,0.06); }
   .itip b { display:block; color:var(--cyan); font-weight:500; margin-bottom:3px; }
   .itip p { color:var(--ink); }
-  #m-new ul { margin:4px 0 8px; padding-left:18px; color:var(--ink); font-size:14px; line-height:1.4; } #m-new li { margin:2px 0; } #m-new button { width:auto; padding:8px 14px; }
+  #m-refund ul, #m-new ul { margin:4px 0 8px; padding-left:18px; color:var(--ink); font-size:14px; line-height:1.4; } #m-new li { margin:2px 0; } #m-new button { width:auto; padding:8px 14px; }
   .zhead { position:relative; border-radius:10px; overflow:hidden; padding:10px 12px; flex:none; } /* the selected world's look behind the title (no extra height) */
   #zone-preview { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+  .zhead #z-rule { position:relative; z-index:2; float:right; width:auto; display:inline-block; margin:2px 0 0 8px; line-height:1.3; text-align:center; background:rgba(0,0,0,0.35); font-family:inherit; min-height:0; font-size:13px; font-weight:600; color:#ffd98a; border:1px solid rgba(255,217,138,0.6); border-radius:12px; padding:2px 9px; margin-top:2px; cursor:pointer; } /* the world rule: tap for the full text */
   .zhead h2, .zhead p { position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.8); } .zhead p { color:#e8ecf2; }
   #tree { background:rgba(9,12,22,0.99); }
   #tree .col { gap:8px; }
@@ -234,6 +236,7 @@
 <div id="menu" class="screen"><div class="col">
   <h1>SURVIVORS<small>working build. The name is yours to pick.</small></h1>
   <button id="m-update" class="row primary" hidden></button>
+  <div class="itip" id="m-refund" hidden><b>The Workshop now opens world by world</b><p>New things now open one world at a time, so every world brings something new. What you owned ahead of your progress was refunded in full and opens again in its world:</p><ul id="m-refund-list"></ul><button id="m-refund-ok">Got it</button></div>
   <div class="itip" id="m-new" hidden><b>New since you last played</b><ul id="m-new-list"></ul><button id="m-new-ok">Got it</button></div>
   <div class="stat"><b id="m-gold">0</b> gold banked</div>
   <div class="stat" id="m-streak"></div>
@@ -252,8 +255,8 @@
 </div></div>
 
 <div id="zones" class="screen fit"><div class="col">
-  <div class="zhead"><canvas id="zone-preview" role="img" aria-label="This world's look"></canvas><h2>Zones</h2>
-  <p>Destroy every hive, or survive to the boss and kill it.</p></div>
+  <div class="zhead"><canvas id="zone-preview" role="img" aria-label="This world's look"></canvas><button id="z-rule" type="button" hidden></button><h2>Zones</h2>
+  <p id="z-goal">Destroy every hive, or survive to the boss and kill it.</p><p id="z-opens" hidden></p></div>
   <div class="itip" id="it-mod" hidden></div>
   <button id="btn-endurance" class="row"></button>
   <button id="btn-mod" class="row mod"></button>
@@ -334,7 +337,10 @@
   <p>A clock around you: 12 is straight ahead. Pick a Drone, then tap a spot. Inner ring: close beside you. Outer ring: out scouting.</p>
   <div id="dial-drones" class="tabs"></div>
   <canvas id="dial-sky" class="sky"></canvas>
-  <button id="btn-dial-reset">Reset: all Drones spread ahead</button>
+  <button id="btn-dial-reset">Reset: Drones follow the formation</button>
+  <h3 class="hgroup">Formation</h3>
+  <p>Tight keeps Drones close round you. Loose sends them ahead to scout. Auto perch (Drone autonomy) lets idle Drones perch near you by themselves.</p>
+  <div id="dial-form" class="tabs"></div>
   <h3 class="hgroup">Drone targets</h3>
   <p>What your Drones go after first: Auto artillery (Workshop), Kamikaze strike level 2 and gun drones.</p>
   <div id="dial-targets" class="tabs four"></div>
@@ -954,7 +960,7 @@ const ENEMY_SIZE = 0.85, SHOT_R = 3.5;
    SHOT_BLOCK px during the frame (swept, so fast bolts cannot skip through). Boss rings are not blocked. */
 const SHOT_BLOCK = 4;
 const eliteShare = run => (run.tut ? 0 : clamp((run.z.elite || 0) + (run.z.eliteMin || 0) * paceMin(run), 0, 0.8));
-const JAM_R = e => (e.tier ? FORMS[e.tier].null.ring : ENEMY.null.ring); // a Jammer's blinding ring
+const JAM_R = (e, run) => (e.tier ? FORMS[e.tier].null.ring : ENEMY.null.ring) * (ruleOf(run).jamR || 1); // a Jammer's blinding ring (Frontline: wider)
 /* The pressure clock: minutes count fully for the first 5, then at 35%, so a 10-minute zone climbs instead of doubling.
    Spawn rate, evolved share and Elite share all run on it. Endurance runs a gentler clock (ENDURANCE.paceTo, paceAfter). */
 const paceMin = run => { const m = run.t / 60, E = run.endurance; return E ? Math.min(m, ENDURANCE.paceTo) + ENDURANCE.paceAfter * Math.max(0, m - ENDURANCE.paceTo) : Math.min(m, 5) + 0.35 * Math.max(0, m - 5); };
@@ -975,6 +981,7 @@ const PASSIVES = {
   magnet:    { name: 'Magnet',    desc: '+12% pickup range' },
 };
 const MAX_WEAPONS = 4, MAX_PASSIVES = 4, MAX_LVL = 5;
+const maxPassives = () => MAX_PASSIVES + (SAVE.lattice.pslot || 0); // s36: the Workshop opens slots 5 and 6
 
 /* Lattice: permanent upgrades. cost = base * 1.35^lvl, soft-capped by maxLvl. */
 const LATTICE = [
@@ -986,6 +993,7 @@ const LATTICE = [
   { id: 'motes',     name: 'Drone bay', base: 600, max: 2,  per: 1,    fmt: v => `${1 + v} Drones` },
   { id: 'battery',   name: 'Battery',   base: 200, max: 10, per: 0.2,  fmt: v => `+${Math.round(v * 100)}% Drone battery` },
   { id: 'salvage',   name: 'Salvage',   base: 150, max: 7,  per: 0.08, fmt: v => `${Math.round((0.4 + v) * 100)}% gold kept on defeat` },
+  { id: 'pslot',     name: 'Passive slots', base: 2500, max: 2, per: 1, fmt: v => `${MAX_PASSIVES + v} passives in the skill tree (was ${MAX_PASSIVES})` }, /* s36 (Lance 22:44: "why is there a 4 passive max?"): slots 5 and 6, Worlds 9 and 10 */
   { id: 'rerolls',   name: 'Head start', base: 250, max: 3, per: 1,    fmt: v => `${v} skill point${v === 1 ? '' : 's'} at the start of each run` }, // id kept so old saves carry their levels
 ];
 /* Drone autonomy ladder, after the ARES project: each tier adds to the starting buddy drone (tiers stack). */
@@ -1029,6 +1037,7 @@ const LATTICE_INFO = {
   haul:      ['Supply', 'Every run starts with one Hauler. This unlocks more in the skill tree (Base): 15 parts each; levels carry more and drive faster.'],
   fortify:   ['Base', 'The base fights harder: its turret hits harder and reaches farther, and the base takes more before it is breached. Pairs with the Engineer, who walls the base in.'],
   autoshell: ['Drones', 'Needs Drone autonomy 1 (GPS). A perched Drone that sees what you picked in Pause > Drone positions (Jammers, Gunners, groups of 5 or more, or the boss) calls a shell on it by itself. It spends your shells, and only when the base is not breached.'],
+  pslot:     ['Runs', 'More passives in the skill tree: slot 5 opens in World 9, slot 6 in World 10.'],
   rerolls:   ['Runs', 'Skill points ready to spend in the skill tree the moment a run starts.'],
 };
 const DIAL = { nearR: 55, farR: 160 }; // follower Drone distances for the clock slots
@@ -1044,12 +1053,36 @@ const LAT_SKY = {
   ext: [0.32, 0.51], haul: [0.52, 0.51], factory: [0.72, 0.51],
   gun: [0.12, 0.91], scav: [0.32, 0.91], fix: [0.52, 0.91],
   motes: [0.29, 0.71], battery: [0.48, 0.71], tier: [0.68, 0.71], autoshell: [0.7, 0.91],
-  rerolls: [0.925, 0.71], salvage: [0.92, 0.91], /* Runs: the right column of rows 4-5 */
+  pslot: [0.925, 0.51], rerolls: [0.925, 0.71], salvage: [0.92, 0.91], /* Runs: the right column of rows 3-5 */
 };
-const LAT_GROUPS = [['Combat', 0.03, -0.01, 'left'], ['Survival', 0.97, -0.01, 'right'], ['Base', 0.03, 0.31, 'left'], ['Supply', 0.03, 0.51, 'left'], ['Drones', 0.03, 0.71, 'left'], ['Runs', 0.97, 0.6, 'right']];
+const LAT_GROUPS = [['Combat', 0.03, -0.01, 'left'], ['Survival', 0.97, -0.01, 'right'], ['Base', 0.03, 0.31, 'left'], ['Supply', 0.03, 0.51, 'left'], ['Drones', 0.03, 0.71, 'left'], ['Runs', 0.97, 0.425, 'right']];
 const latName = id => LATTICE.find(u => u.id === id).name;
-const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id] && !u.unlock).reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
+const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id] && !u.unlock && u.id !== 'pslot') /* passive slots open by world, and do not count toward Head start */.reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
+/* s33 (Lance 10-08: "I shouldn't have everything unlocked like this by world 3, but it should just barely be possible by
+   world 10 to have a system that can basically bootstrap and build itself"): Workshop items open world by world. A number
+   is the world its first level opens in; an array gives each level's world. Anything not listed is open from World 1. */
+const LAT_WORLD = { gun: 2, battery: 2, motes: 3, fix: 3, ext: 3, haul: 4, scav: 4, fortify: 4, jammer: 5, tier: [5, 6, 8], eng: 6, factory: 7, autoshell: 8, pslot: [9, 10] };
+const CHAIN_WORLD = 3; // the free Extractor and Hauler at run start
+const worldOf = cleared => Math.min(10, 1 + Math.floor((cleared || 0) / 5));
+const worldReached = () => (SAVE.playtest ? 10 : worldOf(SAVE.cleared)); // zones cleared (Hard clears count too; playtest wins past your progress do not)
+const latWorld = (id, lvl) => { const w = LAT_WORLD[id]; return !w ? 1 : Array.isArray(w) ? w[Math.min(lvl, w.length) - 1] || 1 : lvl === 1 ? w : 1; }; // the world level `lvl` opens in
+const latOpen = (id, lvl) => latWorld(id, lvl || 1) <= worldReached();
+const worldOpens = w => LATTICE.filter(u => [...Array(u.max).keys()].some(i => latWorld(u.id, i + 1) === w && (i === 0 || Array.isArray(LAT_WORLD[u.id])))).map(u => Array.isArray(LAT_WORLD[u.id]) ? `${u.name} ${LAT_WORLD[u.id].indexOf(w) + 1}` : u.name);
+function relockSave(out) { // s33: what a save owns ahead of its progress is refunded in full and opens again in its world.
+  // Runs on every load and when playtest is turned off; once nothing is ahead it does nothing. Items whose Workshop link or
+  // branch tier no longer holds after that are refunded too. (Bots handed out free in s19 are refunded like bought ones.)
+  if (out.playtest) return null;
+  const L = out.lattice || (out.lattice = {}), reached = worldOf(out.cleared), back = [];
+  const give = (u, from, to, why) => { let g = 0; for (let l = from; l < to; l++) g += latticeCost(u, l); L[u.id] = from; out.gold = (out.gold || 0) + g; back.push({ name: u.name, levels: to - from, gold: g, world: why }); };
+  for (const u of LATTICE) { const have = L[u.id] || 0; let ok = 0; while (ok < have && latWorld(u.id, ok + 1) <= reached) ok++; if (have > ok) give(u, ok, have, latWorld(u.id, ok + 1)); }
+  const cluster = br => LATTICE.filter(u => LATTICE_INFO[u.id][0] === br && !LAT_TIER[u.id] && !LAT_LINKS[u.id] && !u.unlock).reduce((a, u) => a + (L[u.id] || 0), 0);
+  for (let changed = true; changed;) { changed = false;
+    for (const u of LATTICE) { const have = L[u.id] || 0, T = LAT_TIER[u.id]; if (!have) continue;
+      if ((LAT_LINKS[u.id] || []).some(([k, l]) => (L[k] || 0) < l) || (T && cluster(T[0]) < T[1])) { give(u, 0, have, Math.max(reached, latWorld(u.id, 1))); changed = true; } } }
+  return back.length ? back : null;
+}
 function latWhy(id) {
+  { const next = lat(id) + 1, w = latWorld(id, next); if (!latOpen(id, next) && next <= (LATTICE.find(u => u.id === id) || { max: 0 }).max) return `Opens in World ${w}. Clear Zone ${(w - 1) * 5} to get there.`; }
   if (lat(id) > 0) return '';
   const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); if (miss.length) return 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ');
   const T = LAT_TIER[id]; if (T) { const have = latClusterLevels(T[0]); if (have < T[1]) return `Opens after ${T[1]} levels of tier 1 ${T[0]} upgrades. You have ${have}.`; }
@@ -1072,7 +1105,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-10 s32';
+const BUILD_ID = 'playtest 2026-10-10 s36';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1094,6 +1127,10 @@ const WHATS_NEW = [
   { s: 30, items: ['Worlds 6-8 have their own looks: Abyss from Zone 26, Ink from Zone 31, Ruins from Zone 36.'] },
   { s: 31, items: ['Worlds 9 and 10: Frost and Glass.', `Endurance is a journey: every ${ENDURANCE.perWorld} hives takes you to the next world, with gold banked at once. Past World ${ENDURANCE.worlds}, Cosmos never ends.`, 'Reaching a world in Endurance earns its look; Cosmos is earned only there.'] },
   { s: 32, items: ['After a run, a run report says what hurt you most, what killed you, how long you had no ammo, and what the base took. A feedback note written after a run includes it.'] },
+  { s: 33, items: ['The Workshop opens world by world: each world brings one or two new things (the zones screen says which). Anything you owned ahead of your progress was refunded in full.', 'Hard is hands-on: no Factory orders and no auto artillery.', 'Gunners fire fewer shots in Worlds 1 and 2.'] },
+  { s: 34, items: ['Every world from World 2 has its own rule: more hives, dense trees, fast Rushers, wide Jammers, currents, hidden hives, sandstorms, cold, and shafts of light. Tap Rule on the zones screen to read it.', 'Endurance uses the rule of the world you are in.'] },
+  { s: 35, items: ['A perched Drone now drains slowly and flying costs more. Battery pips show each Drone on the Drones row.', 'With Drone autonomy (World 5), idle Drones perch near you on their own. A Drone you send or recall yourself is left alone. Not on Hard.', 'Tap yourself to perch a Drone on you: it watches all round you.', 'Tight or Loose formation, and Auto perch on or off, under Pause, Drone positions.', 'Every Drone glides in and settles the same way when it lands.'] },
+  { s: 36, items: ['Pulse now fires at enemies a perched Drone sees, out to 620 px, as long as nothing blocks the shot.', 'Barrage aims each bolt at its own target, and Lead shot and Homing work on every bolt.', 'A new Turret level adds its health to turrets already standing, even worn ones.', 'Scavengers also fetch XP and health, which come straight to you. Run over a Scavenger to take its load.', 'Passive slots 5 and 6 can be bought in the Workshop from World 9 and World 10.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1108,8 +1145,9 @@ function loadSave() {
   if (!out.looksV) { out.looksV = 1; out.skin = ''; } // s26: worlds have their own looks; start on them
   return out;
 }
-function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once)
+function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once); s33: then anything ahead of progress is refunded and re-locked
   if (!out.botsGrand) { out.botsGrand = 1; if (out.runs > 0) for (const id of ['gun', 'scav', 'fix', 'turret', 'jammer', 'eng']) out.lattice[id] = Math.max(1, out.lattice[id] || 0); }
+  { const back = relockSave(out); if (back) out.refundNote = (out.refundNote || []).concat(back); }
   return out;
 }
 function persist(s) {
@@ -1250,8 +1288,28 @@ const MODS = [ // one per calendar day, opt in on the zone screen
 ];
 const hashStr = t => { let h = 2166136261; for (const c of t) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const todayMod = d => MODS[hashStr('mod' + dayKey(d || new Date())) % MODS.length];
+/* s34 world rules (Lance 10-08: "each world [should] have slightly different behaviors and mechanics and limitations that
+   make certain builds more viable than others"). One per world from World 2; Endurance stages carry their world's rule. */
+const WORLD_RULES = {
+  2: { name: 'Open fields', text: 'One more hive in every zone.', hives: 1 },
+  3: { name: 'Dense trees', text: 'Your sight is 15% shorter; perched Drones see 15% farther.', sight: 0.85, moteSight: 1.15 },
+  4: { name: 'Dusk', text: 'Rushers are 25% faster.', spikeSpd: 1.25 },
+  5: { name: 'Frontline', text: 'Jammers jam 20% farther, and Drone batteries drain 30% faster.', jamR: 1.2, drain: 1.3 },
+  6: { name: 'Currents', text: 'A slow current pushes you and every enemy sideways; Drones see 20% farther.', current: 22, moteSight: 1.2 },
+  7: { name: 'Ink mist', text: 'A hive stays hidden until you or a Drone has watched it for 3 seconds.', mist: 3 },
+  8: { name: 'Sandstorms', storm: [120, 20, 0.6] }, /* text below, from the numbers */
+  9: { name: 'Cold', text: 'You move 25% slower when you are far from your base and every turret.', cold: [420, 0.75] },
+  10: { name: 'Light shafts', text: 'You deal 30% more damage while you stand in a shaft of light.', light: 1.3 },
+};
+WORLD_RULES[8].text = (([e, l, k]) => `Every ${e / 60} minutes a sandstorm cuts your sight by ${Math.round((1 - k) * 100)}% for ${l} seconds.`)(WORLD_RULES[8].storm);
+const ruleOf = run => (run && run.z && WORLD_RULES[run.z.world || 1]) || {};
+let DRAW_RUN = null; // the run being drawn, for draw helpers that do not get it
+const inLight = (x, y) => ((x + y * 0.6) % 700 + 700) % 700 < 200; // Glass: diagonal shafts of light across the map
+const coldFactor = run => { const R = ruleOf(run).cold; if (!R) return 1; const p = run.p, r2 = R[0] * R[0];
+  return dist2(p.x, p.y, run.base.x, run.base.y) < r2 || run.builds.some(b => b.kind === 'turret' && dist2(p.x, p.y, b.x, b.y) < r2) ? 1 : R[1]; };
+const moteVis = run => run.moteVision * (ruleOf(run).moteSight || 1);
 const modVal = (run, k, d) => (run.mod && run.mod[k] != null ? run.mod[k] : d);
-const playerSight = run => PLAYER_VISION * (run.p.area || 1) * modVal(run, 'sight', 1); // Aperture widens it, 'dim' shortens it
+const playerSight = run => PLAYER_VISION * (run.p.area || 1) * modVal(run, 'sight', 1) * (ruleOf(run).sight || 1) * (run.stormOn ? ruleOf(run).storm[2] : 1); // Aperture widens it, 'dim' shortens it
 function weekKey(d) { const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return dayKey(m); } // Monday
 function statAdd(k, n, now) { ensureQuests(now); SAVE.stat[k] = (SAVE.stat[k] || 0) + (n || 1); } // deal first: the first event of a new day counts
 function pickQuests(pool, n, seed, food) { // deterministic from the date; a fitness quest always makes the list, and a food one once you log food
@@ -1729,7 +1787,7 @@ function newRun(zoneIdx, mode) {
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
-    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], rep: newReport(), mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], bots: {}, order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
+    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], rep: newReport(), chainInit: worldReached() < CHAIN_WORLD, /* s33: no free chain before World 3 */ mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], bots: {}, order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800 * (1 + FORTIFY.hp * lat('fortify')), maxhp: 800 * (1 + FORTIFY.hp * lat('fortify')), alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
@@ -1878,7 +1936,7 @@ function computeVision(run) {
   const pool = run.visPool || (run.visPool = []), v = run.vis || (run.vis = []); v.length = 0;
   const add = (x, y, r, perched) => { const q = visionPoly(run, x, y, r, pool[v.length]); pool[v.length] = q; q.perched = perched; v.push(q); };
   add(run.p.x, run.p.y, playerSight(run), false); // Aperture widens your sight too
-  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) add(m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1), true); else if (m.state === 'follow' && m.bat > 10) add(m.x, m.y, 150, false); }
+  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) add(m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1), true); else if (m.state === 'follow' && m.bat > 10) add(m.x, m.y, 150, false); }
 }
 
 function visibleTo(run, x, y, perchedOnly) {
@@ -1917,7 +1975,7 @@ function revealCircle(run, cx, cy, rad) {
 function updateFog(run) {
   run.fog.seen.fill(0);
   revealCircle(run, run.p.x, run.p.y, playerSight(run));
-  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) revealCircle(run, m.x, m.y, run.moteVision * (m.jammed ? 0.5 : 1)); else if (m.state === 'follow' && m.bat > 10) revealCircle(run, m.x, m.y, 150); }
+  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) revealCircle(run, m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1)); else if (m.state === 'follow' && m.bat > 10) revealCircle(run, m.x, m.y, 150); }
 }
 function isSeen(run, x, y) { return run.fog.seen[cellIdx(x, y)] === 1; }
 // Fog memory (DECISIONS 24): enemies out of sight are not drawn; a group that slips out of sight leaves a dashed
@@ -1959,7 +2017,7 @@ function makeEnemy(run, type, x, y, tier) { // stats come from the type and its 
   const e = { type, tier: k === BASE_FORM ? 0 : tier, x, y, r: b.r * k.r * (type === 'hive' ? 1 : ENEMY_SIZE), hp, maxhp: hp, spd: b.spd * k.spd * (type === 'resonator' ? 1 : rnd(0.85, 1.15)),
     dmg: b.dmg * k.dmg * run.M.dmg, xp: b.xp * k.reward, gold: b.gold * k.reward, heatv: b.heat, hitT: 0, ang: rnd(0, 6.28), cd: rnd(0.5, 2.5), dash: 0, flash: 0, slow: 0, vx: 0, vy: 0, mvx: 0, mvy: 0 }; // mvx/mvy: smoothed stride for Lead shot (declared here so every enemy keeps one shape)
   if (type === 'resonator') { e.cd = 3; e.spawnCd = 4; }
-  if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1);
+  if (type === 'spike') e.spd *= modVal(run, 'spikeSpd', 1) * (ruleOf(run).spikeSpd || 1);
   run.enemies.push(e);
   return e;
 }
@@ -2074,7 +2132,7 @@ function validHiveSpot(run, x, y, from, o) {
 }
 function placeHives(run) {
   run.blocked = buildBlocked(run); run.fields = new Map(); run.hives = [];
-  const n = (run.z.hives || HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0); /* a zone's own count wins */
+  const n = (run.z.hives || HIVE.count[run.zone] || 3) + modVal(run, 'hives', 0) + (ruleOf(run).hives || 0); /* a zone's own count wins */
   for (let tries = 0; run.hives.length < n && tries < 3000; tries++) {
     const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
     if (validHiveSpot(run, x, y, cellIdx(run.base.x, run.base.y), { baseDist: HIVE.minBaseDist, gap: HIVE.minGap })) addHive(run, x, y, null); // reachable from your base
@@ -2239,7 +2297,7 @@ function hiveDestroyed(run, h) {
 }
 function updateHives(run, dt) {
   if (!run.hives) return;
-  for (const h of run.hives) if (!h.dead && !h.found && isSeen(run, h.x, h.y)) { h.found = true; toast(run, 'Hive found'); }
+  { const mist = ruleOf(run).mist; for (const h of run.hives) if (!h.dead && !h.found && isSeen(run, h.x, h.y) && (!mist || (h.watch = (h.watch || 0) + dt) >= mist)) { h.found = true; toast(run, 'Hive found'); } } /* Ink mist: watched for a while first */
   if (run.tut) return;
   for (const h of run.hives) {
     if (h.dead) continue;
@@ -2326,7 +2384,9 @@ const TIPS = {
   shot_block: { group: 'Weapons', title: 'Your shots stop theirs', body: 'A Pulse bolt that meets a Gunner shot head on stops it. A near miss slides past, so aim does not have to be perfect, but it has to be close. Boss rings are too thick to stop.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
   // drones
-  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains while perched (not on the base perch, which charges it). Tap the perch again, or press Recall, to bring it home.' },
+  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains slowly while perched (flying drains it faster; the base perch charges it). Tap the perch again, or press Recall, to bring it home. Tap yourself to perch a Drone on you.' },
+  autoperch: { group: 'Drones', title: 'Drones perch on their own', body: 'With Drone autonomy, idle Drones fly to a good perch near you and come away when you leave it far behind. With two or more, one always stays with you. A Drone you send or recall yourself is left alone. Turn it off, or pick Tight or Loose, under Pause, Drone positions. Not on Hard.' },
+  perchme:   { group: 'Drones', title: 'A Drone on you', body: 'It hovers over you and watches all round you as far as a perched Drone sees, and drains slowly like one. Enemies do not knock it down. Tap yourself again to send it back to following.' },
   dial:      { group: 'Drones', title: 'Drone positions', body: 'Pause, then Drone positions: a clock around you where 12 is straight ahead. Pick a Drone and tap a spot. The inner ring keeps it close beside you, the outer ring sends it out to scout. Reset puts them back to spreading ahead. Your choice is kept for every run.' },
   intercept: { group: 'Drones', title: 'Intercept', body: 'Your following Drone just shot down an enemy bullet. Set it on the inner ring in Drone positions to keep it beside you as a shield. A block costs it health: at the first level one block knocks it down, and you walk over it to recover it.' },
   wall2:     { group: 'Drones', title: 'Shield wall', body: 'Your Drone just blocked a bullet heading your way from farther out. With Shield wall each block costs half the health, so it lasts longer, but enough hits still knock it down. It heals while it follows you.' },
@@ -2348,7 +2408,7 @@ const TIPS = {
   // between runs
   win:      { group: 'Between runs', title: 'Zone cleared', body: 'You keep all the run gold, plus a zone bonus if the base was not breached, and the next zone is unlocked. Spend gold in the Workshop.' },
   lose:     { group: 'Between runs', title: 'Run over', body: 'You keep 40% of this run\'s gold. Spend it in the Workshop on permanent upgrades, then go again. The Salvage upgrade raises how much you keep.' },
-  hard:     { group: 'Between runs', title: 'Hard mode unlocked', body: 'You cleared a zone, so its Hard mode is open: the original tuning, about twice the enemies and harder hits. The zone bonus pays 1.5x on Hard.' },
+  hard:     { group: 'Between runs', title: 'Hard mode unlocked', body: 'You cleared a zone, so its Hard mode is open: the original tuning, about twice the enemies and harder hits, at night. Hard is hands-on: no Factory orders and no auto artillery. The zone bonus pays 1.5x on Hard.' },
   workshop_death: { group: 'Between runs', title: 'Stuck on a zone?', body: 'Run gold buys permanent upgrades in the Workshop, and they stack across every run. A few levels of Signal (damage) and Capacitor (health) make the next zone much easier. Tap the Workshop button below.' },
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a survival plus the boss: 3 minutes for a world\'s first zone, up to 10 for its last. Later zones send more enemies and more evolved forms. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
@@ -2361,7 +2421,8 @@ const TIPS = {
   workshop: { group: 'Between runs', title: 'Workshop', body: 'Permanent upgrades bought with gold, laid out like the skill tree: tap a star, then Buy. A few open after levels in their group (Gain after 2 Combat levels, for example), and Auto artillery needs Drone autonomy (GPS). Upgrades apply to every future run and cost 35% more per level. To sell, hold Sell for 1 second: you get half back.' },
   ledger:   { group: 'Between runs', title: 'Workout ledger', body: 'Log real workouts for gold, honor system. Logging on back to back days builds a streak that multiplies payouts up to 1.5x. Missed days spend a freeze first, and a long gap halves the streak instead of zeroing it.' },
   u_gun:     { group: 'Units', title: 'Gun drone', body: 'A small armed drone that shoots the nearest enemy it can see, hives included. The Orders button tells all gun drones what to do: Follow (circle you), Hold (guard where you stood), Attack (tap the map or minimap where to go). Two at level 1; levels in the skill tree allow up to 6 and add damage. Enemies that touch them or shoot them wear them down.' },
-  u_scav:    { group: 'Units', title: 'Scavenger', body: 'It flies to caches and parts piles you have already seen and carries them home to your base: a cache gives ammo, parts and shells. It runs home from any enemy near it and has little health. Level 2 in the skill tree allows a second.' },
+  u_scav:    { group: 'Units', title: 'Scavenger', body: 'It flies to caches, parts, XP and health you have already seen. Caches and parts go home to your base (a cache gives ammo, parts and shells); XP and health come to you, health first when you are hurt. Run over a Scavenger to take whatever it carries. It runs home from any enemy near it and has little health. Level 2 in the skill tree allows a second.' },
+  scav_load: { group: 'Units', title: 'Scavenger loads', body: 'Scavengers now bring XP and health straight to you. Run over one to take its load at once, whatever it carries.' },
   chain:     { group: 'Units', title: 'Your supply chain', body: 'The green drill is an Extractor on an ore deposit: it mines parts into its stock (amber bar). Your Hauler drives that stock home along the dashed route. Enemies will go after both, so guard the route. Build more on other deposits once you learn them.' },
   chain_steal: { group: 'Units', title: 'Stolen stock', body: 'A hive gatherer is carrying parts out of your extractor to grow its hive. Kill gatherers on your routes, or guard extractors with turrets (Factory orders).' },
   haul_jam:  { group: 'Units', title: 'Hauler jammed', body: 'Inside a Jammer\'s ring a hauler crawls at a third of its speed (it turns purple). Kill the Jammer or route around it.' },
@@ -2374,6 +2435,7 @@ const TIPS = {
   eng_down:  { group: 'Units', title: 'Engineer stopped', body: 'At 0 HP the Engineer does not break, it stops. Walk over it and it gets back up at half HP.' },
   u_fix:     { group: 'Units', title: 'Repair bot', body: 'It flies to a downed Drone and brings it back online at half charge, then patches worn turrets and jammers, then the base (it can bring a breached base back). With nothing to fix it stays by you. One at a time.' },
 };
+for (const w in WORLD_RULES) { const R = WORLD_RULES[w]; TIPS['rule' + w] = { group: 'World rules', title: `World ${w}: ${R.name}`, body: `${R.text} Every world from World 2 has one rule like this, and Endurance uses the rule of the world you are in.` }; }
 const INTRO = ['move', 'base', 'ammo', 'drones', 'fog', 'goal'];
 const tipSeen = id => !!(SAVE.seenTips && SAVE.seenTips[id]);
 function markTip(id) { if (!SAVE.seenTips) SAVE.seenTips = {}; SAVE.seenTips[id] = 1; persist(SAVE); }
@@ -2392,6 +2454,7 @@ function updateTips(run, dt) {
   const near = (x, y, r) => dist2(x, y, p.x, p.y) < r * r && Math.abs(x - run.cam.x) < vw2 && Math.abs(y - run.cam.y) < vh2;
   if (run.t > 30 && !tipSeen('zoom')) tip(run, 'zoom', { at: p });
   if ((run.z.world || 1) === 2 && !tipSeen('world2')) tip(run, 'world2', { at: run.base });
+  { const rw = run.z.world || 1; if (WORLD_RULES[rw] && run.t > 3 && !tipSeen('rule' + rw)) tip(run, 'rule' + rw, { at: p }); }
   if ((run.z.world || 1) >= 3 && !tipSeen('world3')) tip(run, 'world3', { at: run.base }); // after any tutorial // pinch zoom is invisible until someone says so
   for (const e of run.enemies) { if (e.type === 'resonator') continue; const k = (e.tier > 1 && tipSeen('v_' + e.type) ? 'x_' : e.tier && tipSeen('e_' + e.type) ? 'v_' : 'e_') + e.type; if (TIPS[k] && !tipSeen(k) && near(e.x, e.y, 360) && visibleTo(run, e.x, e.y)) tip(run, k, { at: e }); }
   for (const g of run.gems) {
@@ -2460,7 +2523,7 @@ function endEnter(run, st, quiet) { // travel: this world's look and pressure (i
   run.z = Object.assign({}, spec, { name: 'Endurance', dur: 1e9, gold: 0 }); run.skin = chosenSkin() || look; /* a Map look you picked still wins */
   (SAVE.endLooks || (SAVE.endLooks = {}))[look] = 1;
   if (quiet) return; const g = st > ENDURANCE.worlds ? ENDURANCE.cosmosGold : ENDURANCE.stageGold * st; SAVE.gold += g; E.banked += g; persist(SAVE);
-  run.stageBanner = { text: st > ENDURANCE.worlds ? 'Now entering Cosmos' : `Now entering ${endName(st)}`, sub: `+${g} gold banked`, t: 3 }; toast(run, `${run.stageBanner.text}. +${g} gold`); SFX.win();
+  run.stageBanner = { text: st > ENDURANCE.worlds ? 'Now entering Cosmos' : `Now entering ${endName(st)}`, sub: `+${g} gold banked`, t: 3 }; toast(run, `${run.stageBanner.text}. +${g} gold`); { const R = ruleOf(run); if (R.name) toast(run, `World rule: ${R.name}. ${R.text}`); } SFX.win();
 }
 function startEndurance(run) {
   run.endurance = { killed: 0, stage: 1, banked: 0, hiveT: ENDURANCE.hiveEvery, bossT: ENDURANCE.bossEvery, bosses: 0 };
@@ -2521,7 +2584,7 @@ function reportOf(run, won) { // the summary kept with the run: damage taken by 
   const R = run.rep, tot = Object.values(R.hurt).reduce((a, v) => a + v, 0);
   const top = Object.entries(R.hurt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => [k, tot ? v / tot : 0]);
   return { top, hurt: Object.fromEntries(Object.entries(R.hurt).map(([k, v]) => [k, Math.round(v)])), killedBy: !won && run.p.hp <= 0 ? R.last : null, taken: Math.round(tot),
-    noAmmo: Math.round(R.noAmmo), base: Math.round(R.base), baseLow: +R.baseLow.toFixed(2), bossT: Math.round(R.bossT) };
+    noAmmo: Math.round(R.noAmmo), base: Math.round(R.base), baseLow: +R.baseLow.toFixed(2), bossT: Math.round(R.bossT), rule: ruleOf(run).name || null };
 }
 function reportLines(rp) { // plain sentences for the end screen and notes
   if (!rp) return [];
@@ -2530,11 +2593,20 @@ function reportLines(rp) { // plain sentences for the end screen and notes
   if (rp.noAmmo >= 5) out.push(`No ammo for ${mmss(rp.noAmmo)}.`);
   if (rp.base > 0) out.push(`The base took ${rp.base} damage (lowest ${Math.round(rp.baseLow * 100)}%).`);
   if (rp.bossT > 0) out.push(`Boss fight: ${mmss(rp.bossT)}.`);
+  if (rp.rule) out.push(`World rule: ${rp.rule}.`);
   return out;
+}
+const STORM_WARN = 10; // seconds of warning before a sandstorm
+function updateRule(run, dt) { // the zone's world rule: currents, sandstorms
+  const R = ruleOf(run);
+  run.cur = R.current && !run.tut ? { x: Math.cos(run.t * 0.05) * R.current, y: Math.sin(run.t * 0.05) * R.current } : null;
+  if (run.cur) { const o = run.curOff || (run.curOff = { x: 0, y: 0 }); o.x += run.cur.x * 3 * dt; o.y += run.cur.y * 3 * dt; } /* streaks drift faster than you do, so the eye catches them */
+  if (R.storm && !run.tut) { const [every, last] = R.storm, ph = run.t % every, on = ph > every - last; if (on && !run.stormOn) toast(run, `Sandstorm: your sight is cut for ${last} seconds`); if (ph > every - last - STORM_WARN && !on && !run.stormWarn) { run.stormWarn = true; toast(run, `Sandstorm in ${STORM_WARN} seconds`); } if (on) run.stormWarn = false; run.stormOn = on; } else run.stormOn = false;
 }
 function update(run, dt) {
   const p = run.p;
   if (!run.tut) { run.t += dt; trackReport(run, dt); }
+  updateRule(run, dt);
   const min = run.t / 60;
 
   // movement
@@ -2543,7 +2615,8 @@ function update(run, dt) {
   if (input.keys.ArrowUp || input.keys.w) dy -= 1; if (input.keys.ArrowDown || input.keys.s) dy += 1; }
   const L = Math.hypot(dx, dy);
   if (L > 1) { dx /= L; dy /= L; }
-  if (L > 0.01) { p.x = clamp(p.x + dx * p.speed * dt, p.r, WORLD - p.r); p.y = clamp(p.y + dy * p.speed * dt, p.r, WORLD - p.r); p.ang = Math.atan2(dy, dx); pushOut(run, p); }
+  if (L > 0.01) { const sp = p.speed * coldFactor(run); p.x = clamp(p.x + dx * sp * dt, p.r, WORLD - p.r); p.y = clamp(p.y + dy * sp * dt, p.r, WORLD - p.r); p.ang = Math.atan2(dy, dx); pushOut(run, p); }
+  if (run.cur) { p.x = clamp(p.x + run.cur.x * dt, p.r, WORLD - p.r); p.y = clamp(p.y + run.cur.y * dt, p.r, WORLD - p.r); pushOut(run, p); } /* Abyss: the current */
   if (p.inv > 0) p.inv -= dt;
   if (p.regen > 0) p.hp = Math.min(p.maxhp, p.hp + p.regen * dt);
 
@@ -2648,6 +2721,34 @@ function updateBase(run, dt) {
   if (b.hp <= 0 && !b.breached) { b.breached = true; toast(run, 'Base breached. No healing, reload or turret until you repair it.'); SFX.dead(); tip(run, 'breach', { at: b }); }
 }
 const HANDOVER_R = 200; // a drone carrying XP/parts hands them over when it comes this close to you
+/* s35 (Lance 10-08 22:17, 22:21, 21:54): Drones that perch for you. A perched Drone rests and watches, so it drains
+   slowly; flying costs more. With Drone autonomy 1 (World 5) idle Drones fly to a good perch near you on their own
+   (not on Hard; a tap overrides it, and a Drone you sent or recalled is left alone). Tight or Loose formation; a perch
+   on you; and every landing is the same short glide and settle. */
+const PERCH = { flyDrain: 4, homeDrain: 1.5, perchDrain: 2, every: 1.5, near: { tight: 340, loose: 520 }, far: 700, hold: 12, glide: 70, land: 0.35, minBat: 0.6, meLift: 30 };
+const formation = () => (SAVE.formation === 'tight' ? 'tight' : 'loose');
+const autoPerchOn = run => run.tier >= 1 && run.mode !== 'hard' && !run.tut && SAVE.autoPerch !== false;
+const meAnchor = run => run.me || (run.me = { x: run.p.x, y: run.p.y - PERCH.meLift, me: true, mote: null }); // the perch on you
+function autoPerch(run, dt) {
+  if (!autoPerchOn(run) || (run.apT = (run.apT || 0) - dt) > 0) return;
+  run.apT = PERCH.every; const p = run.p, near = PERCH.near[formation()];
+  for (const m of run.motes) if (m.auto && (m.state === 'perched' || m.state === 'flying') && m.anchor && !m.anchor.base && !m.anchor.me && dist2(m.anchor.x, m.anchor.y, p.x, p.y) > PERCH.far * PERCH.far) { recallMote(run, m); m.hold = 0; } /* left behind: come back and find a nearer one (no hold: it was not your call) */
+  const free = run.motes.filter(m => m.state === 'follow' && m.bat > m.maxBat * PERCH.minBat && !(m.hold > run.t));
+  const followers = run.motes.filter(m => m.state === 'follow').length;
+  if (!free.length || (run.motes.length >= 2 && followers <= 1)) return; // one Drone always stays with you
+  const taken = new Set(run.motes.map(m => m.anchor).filter(Boolean));
+  let best = null, bs = 1e12;
+  for (const a of run.anchors) {
+    if (a.base || a.mote || taken.has(a) || !run.fog.mapped[cellIdx(a.x, a.y)]) continue; /* only perches you have found */
+    const d = Math.sqrt(dist2(a.x, a.y, p.x, p.y)); if (d > near || !losClear(run, p.x, p.y, a.x, a.y)) continue; /* and in the open from you, so it flies there and sees out */
+    if (run.enemies.some(e => e.type === 'null' && dist2(e.x, e.y, a.x, a.y) < (JAM_R(e, run) + 50) ** 2)) continue;
+    const fight = run.enemies.some(e => !e.isCore && dist2(e.x, e.y, a.x, a.y) < 350 * 350);
+    const sc = Math.abs(d - near * 0.5) - (fight ? 150 : 0); if (sc < bs) { bs = sc; best = a; }
+  }
+  if (!best) return;
+  let m = null, md = 1e12; for (const c of free) { const d = dist2(c.x, c.y, best.x, best.y); if (d < md) { md = d; m = c; } }
+  m.state = 'flying'; m.anchor = best; m.auto = true; tip(run, 'autoperch', { at: best });
+}
 function droneHandover(run, m) {
   if (!(m.cargo || m.cargoParts)) return;
   if (m.cargo) gainXp(run, m.cargo);
@@ -2656,16 +2757,18 @@ function droneHandover(run, m) {
   m.cargo = 0; m.cargoParts = 0; SFX.gem();
 }
 function updateMotes(run, dt) {
-  const p = run.p;
+  const p = run.p; if (run.me) { run.me.x = p.x; run.me.y = p.y - PERCH.meLift; }
+  autoPerch(run, dt);
   const pick = run.skill ? (run.skill.dmag || 0) : 0; // Drone magnet node: follower pickup radius, parts at level 2
   for (const m of run.motes) {
-    m.ph += dt;
+    m.ph += dt; if (m.land > 0) m.land -= dt;
     if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < HANDOVER_R * HANDOVER_R) droneHandover(run, m);
     if (m.state === 'follow') {
       // scout ahead of your heading so you see what you are walking into
       // Drone positions (pause > Drone positions): a clock slot around your heading, else the default spread ahead
-      const slot = (SAVE.droneSlots || {})[m.id], lead = slot ? (slot.near ? DIAL.nearR : DIAL.farR) : 150 + m.id * 40;
-      const a = slot ? p.ang + slot.h * Math.PI / 6 : p.ang + (m.id - (run.motes.length - 1) / 2) * 0.5;
+      const slot = (SAVE.droneSlots || {})[m.id], tight = formation() === 'tight', n = run.motes.length; /* Tight: close, all round you; Loose: spread ahead, scouting. A slot you set still wins */
+      const lead = slot ? (slot.near ? DIAL.nearR : DIAL.farR) : tight ? 60 + m.id * 10 : 150 + m.id * 40;
+      const a = slot ? p.ang + slot.h * Math.PI / 6 : tight ? p.ang + m.id / n * Math.PI * 2 : p.ang + (m.id - (n - 1) / 2) * 0.5;
       let tx = p.x + Math.cos(a) * lead, ty = p.y + Math.sin(a) * lead;
       if (!losClear(run, p.x, p.y, tx, ty)) { tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 40; }
       m.x += (tx - m.x) * Math.min(1, dt * 4); m.y += (ty - m.y) * Math.min(1, dt * 4);
@@ -2675,28 +2778,29 @@ function updateMotes(run, dt) {
       for (const g of run.gems) if (!g.pull && !g.heal && (!g.part || pick >= 2) && dist2(g.x, g.y, m.x, m.y) < pr * pr) { g.pull = true; g.pt = 0; }
     } else if (m.state === 'flying' || m.state === 'returning') {
       const tx = m.state === 'flying' ? m.anchor.x : p.x, ty = m.state === 'flying' ? m.anchor.y : p.y;
-      const d = Math.hypot(tx - m.x, ty - m.y), sp = 240 * (run.tier >= 1 ? DRONE_TIERS[1].speed : 1);
-      if (d < 14 || d < sp * dt) {
-        if (m.state === 'flying') { statAdd('perches'); m.state = 'perched'; m.x = m.anchor.x; m.y = m.anchor.y; m.anchor.mote = m; toast(run, 'Drone perched. Watching this area.'); SFX.mote(); }
+      const d = Math.hypot(tx - m.x, ty - m.y), sp = 240 * (run.tier >= 1 ? DRONE_TIERS[1].speed : 1) * (m.state === 'flying' && !m.anchor.me ? Math.max(0.3, Math.min(1, d / PERCH.glide)) : 1); /* the same glide into every perch (you move, so onto you it flies straight in) */
+      if (m.state === 'flying' && !m.anchor.me ? d < 3 || d < sp * dt : d < 20 || d < sp * dt) {
+        if (m.state === 'flying') { statAdd('perches'); m.state = 'perched'; m.x = m.anchor.x; m.y = m.anchor.y; m.anchor.mote = m; m.land = PERCH.land; if (!m.auto) toast(run, m.anchor.me ? 'Drone perched on you. It watches all round you.' : 'Drone perched. Watching this area.'); SFX.mote(); }
         else { m.state = 'follow'; droneHandover(run, m); }
       } else { m.x += (tx - m.x) / d * sp * dt; m.y += (ty - m.y) / d * sp * dt; }
-      m.bat = Math.max(0, m.bat - 1.5 * dt);
+      if (!run.tut) m.bat = Math.max(0, m.bat - (m.state === 'flying' ? PERCH.flyDrain : PERCH.homeDrain) * dt * (ruleOf(run).drain || 1)); /* flying out costs more than resting on a perch; flying home on low battery stays cheap so GPS still gets it back */
       if (m.bat <= 0) { dimMote(run, m, 'battery'); }
     } else if (m.state === 'perched') {
       const onBase = m.anchor && m.anchor.base;
       if (onBase) { m.bat = Math.min(m.maxBat, m.bat + 7 * dt); m.hp = Math.min(100, m.hp + 10 * dt); } // the base charges it
-      else if (!run.tut) m.bat -= 4 * dt; // tutorial: no battery pressure while learning
+      else if (!run.tut) m.bat -= PERCH.perchDrain * dt * (ruleOf(run).drain || 1); // resting and watching; tutorial: no battery pressure while learning
+      if (m.anchor && m.anchor.me) { m.x += (p.x - m.x) * Math.min(1, dt * 8); m.y += (p.y - PERCH.meLift - m.y) * Math.min(1, dt * 8); } /* perched on you: it hovers just above your head, where you can see it */
       // gathers XP and parts it can see; you collect them when it comes within HANDOVER_R of you (or you of it)
-      if (!m.jammed) for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < run.moteVision * run.moteVision) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { if (g.part) m.cargoParts = (m.cargoParts || 0) + g.part; else m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } }
+      if (!m.jammed && !(m.anchor && m.anchor.me)) { const mv2 = moteVis(run) ** 2; /* one on you does not vacuum the screen (that is Drone magnet's job) */ for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < mv2) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { if (g.part) m.cargoParts = (m.cargoParts || 0) + g.part; else m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } } }
       // jamming: a Jammer within its ring (JAM_R) blinds the Mote
       let jam = false;
-      for (const e of run.enemies) if (e.type === 'null' && dist2(e.x, e.y, m.x, m.y) < JAM_R(e) ** 2) { jam = true; break; }
+      for (const e of run.enemies) if (e.type === 'null' && dist2(e.x, e.y, m.x, m.y) < JAM_R(e, run) ** 2) { jam = true; break; }
       if (jam && !m.jammed) { toast(run, 'Drone jammed by a Jammer'); SFX.jam(); }
       m.jammed = jam;
       // contact: Noise wears the Mote down
-      for (const e of run.enemies) if (dist2(e.x, e.y, m.x, m.y) < (e.r + 12) * (e.r + 12)) m.hp -= 45 * dt;
+      if (!(m.anchor && m.anchor.me)) for (const e of run.enemies) if (dist2(e.x, e.y, m.x, m.y) < (e.r + 12) * (e.r + 12)) m.hp -= 45 * dt; /* one over you flies above the fight */
       m.jamT = jam ? (m.jamT || 0) + dt : 0;
-      if (run.tier >= 3 && m.jamT > 2) relocateMote(run, m);
+      if (run.tier >= 3 && m.jamT > 2 && !(m.anchor && m.anchor.me)) relocateMote(run, m); /* one on you stays on you */
       else if (run.tier >= 1 && m.bat < m.maxBat * 0.15 && m.bat > 0) { recallMote(run, m); toast(run, 'Drone battery low: flying home (GPS)'); }
       else if (m.bat <= 0) dimMote(run, m, 'battery');
       else if (m.hp <= 0) { if (run.tier >= 3) { recallMote(run, m); m.hp = 30; toast(run, 'Drone hit: limping home (onboard compute)'); } else dimMote(run, m, 'shot'); }
@@ -2760,7 +2864,7 @@ function relocateMote(run, m) { // tier 3: pick the nearest free perch with no J
   let best = null, bd = 1e12;
   for (const a of run.anchors) {
     if (a.mote || a === m.anchor) continue;
-    if (run.enemies.some(e => e.type === 'null' && dist2(e.x, e.y, a.x, a.y) < (JAM_R(e) + 50) ** 2)) continue; /* clear of any Jammer or Warden ring, with room */
+    if (run.enemies.some(e => e.type === 'null' && dist2(e.x, e.y, a.x, a.y) < (JAM_R(e, run) + 50) ** 2)) continue; /* clear of any Jammer or Warden ring, with room */
     const d = dist2(a.x, a.y, m.x, m.y); if (d < bd) { bd = d; best = a; }
   }
   if (!best) return;
@@ -2768,13 +2872,14 @@ function relocateMote(run, m) { // tier 3: pick the nearest free perch with no J
   m.anchor = best; m.state = 'flying'; m.jammed = false; m.jamT = 0; toast(run, 'Drone jammed: moving to a safe perch (onboard compute)');
 }
 function sendMote(run, anchor) {
-  if (anchor.mote) { if (!run.tut) recallMote(run, anchor.mote); return true; } // tutorial: a double tap must not undo the perch step
+  const on = anchor.mote || run.motes.find(m => m.anchor === anchor && m.state === 'flying'); /* landed, or on its way */
+  if (on) { if (!run.tut) recallMote(run, on); return true; } // tutorial: a double tap must not undo the perch step
   let best = null, bd = 1e12;
   for (const m of run.motes) if (m.state === 'follow' && m.bat > 25) { const d = dist2(m.x, m.y, anchor.x, anchor.y); if (d < bd) { bd = d; best = m; } }
   if (!best) { toast(run, 'No charged Drone available'); return false; }
-  best.state = 'flying'; best.anchor = anchor; SFX.mote(); return true;
+  best.state = 'flying'; best.anchor = anchor; best.auto = false; SFX.mote(); return true; /* sent by you: auto-perch leaves it alone */
 }
-function recallMote(run, m) { if (m.anchor) { m.anchor.mote = null; m.anchor = null; } if (m.state === 'perched' || m.state === 'flying') m.state = 'returning'; m.jammed = false; }
+function recallMote(run, m) { m.hold = run.t + PERCH.hold; m.auto = false; if (m.anchor) { m.anchor.mote = null; m.anchor = null; } if (m.state === 'perched' || m.state === 'flying') m.state = 'returning'; m.jammed = false; }
 function recallAll(run) { for (const m of run.motes) recallMote(run, m); toast(run, 'Drones recalled'); }
 
 /* Enemy grid (s13 perf): 40 px cells as linked lists in typed arrays, rebuilt each use without allocating. Separation
@@ -2818,7 +2923,7 @@ function updateEnemies(run, dt) {
       if (aim) {
         e.cd = 2.6;
         const base = Math.atan2(aim.y - e.y, aim.x - e.x);
-        const fan = form(e).fan, gap = form(e).gap; /* a Heavy Gunner fires 7 */
+        const fan = Math.max(3, form(e).fan - Math.max(0, 3 - (run.z.world || 1))), gap = form(e).gap; /* a Heavy Gunner fires 7; World 1 two fewer, World 2 one fewer (s32 report: Gunner shots were 75-92% of early damage) */
         for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: SHOT_R, dmg: e.dmg, t: 4, src: 'gshot' }); }
       }
     } else if (e.type === 'resonator') {
@@ -2843,7 +2948,7 @@ function updateEnemies(run, dt) {
       for (let j = sgHead[cy * SGC + cx]; j >= 0; j = sgNext[j]) { if (j >= n0) continue; const o = es[j]; if (o === e) continue; const ddx = e.x - o.x, ddy = e.y - o.y, dd = ddx * ddx + ddy * ddy, mind = (e.r + o.r) * 1.1; if (dd < mind * mind && dd > 0.01) { const l = Math.sqrt(dd); sx += ddx / l * (mind - l); sy += ddy / l * (mind - l); } }
     }
     if (e.slide > 0) { e.slide -= dt; const tmp = mx; mx = -my * e.sdir; my = tmp * e.sdir; }
-    e.x += (mx * sp + sx * 4) * dt; e.y += (my * sp + sy * 4) * dt;
+    e.x += (mx * sp + sx * 4 + (run.cur ? run.cur.x : 0)) * dt; e.y += (my * sp + sy * 4 + (run.cur ? run.cur.y : 0)) * dt;
     e.x = clamp(e.x, e.r, WORLD - e.r); e.y = clamp(e.y, e.r, WORLD - e.r);
     if (pushOut(run, e) && !(e.slide > 0)) { e.slide = rnd(0.5, 1.2); e.sdir = Math.random() < 0.5 ? 1 : -1; }
     { const k = Math.min(1, dt * 10); e.mvx = (e.mvx || 0) + (mx * sp - (e.mvx || 0)) * k; e.mvy = (e.mvy || 0) + (my * sp - (e.mvy || 0)) * k; } // its own smoothed stride (not shoves), for Lead shot
@@ -2886,9 +2991,10 @@ function killEnemy(run, e, idx) {
   run.enemies[idx] = run.enemies[run.enemies.length - 1]; run.enemies.pop();
   if (e.isCore) hiveDestroyed(run, e.hive);
 }
-function damageEnemy(run, e, dmg, kx, ky) {
+function damageEnemy(run, e, dmg, kx, ky, mine) { // mine: your own weapons (Light shafts boost only those)
+  const R = ruleOf(run); if (R.mist && e.isCore && e.hive && !e.hive.found) return; /* Ink mist: a hive nobody has found yet cannot be hurt */
   if (e.isCore) cue(run, 'hive', 0.25, SFX.hiveHit);
-  e.hp -= dmg * modVal(run, 'dmgOut', 1); e.flash = 0.08;
+  e.hp -= dmg * modVal(run, 'dmgOut', 1) * (mine && R.light && inLight(run.p.x, run.p.y) ? R.light : 1); e.flash = 0.08;
   if (kx && !e.isCore) { e.x = clamp(e.x + kx, e.r, WORLD - e.r); e.y = clamp(e.y + ky, e.r, WORLD - e.r); }
 }
 function reapDead(run) {
@@ -2908,15 +3014,21 @@ function aimAt(run, sx, sy, t, spd, life) {
   if (!run.leadTip && t.type === 'harmonic' && vx * vx + vy * vy > 900) { run.leadTip = true; tip(run, 'lead', { at: t }); }
   return Math.atan2(dy + vy * tau, dx + vx * tau);
 }
-function nearestEnemy(run, range, preferBoss) {
-  const p = run.p; let best = null, bd = range * range;
-  if (preferBoss && run.boss && run.boss.hp > 0 && dist2(run.boss.x, run.boss.y, p.x, p.y) < bd && visibleTo(run, run.boss.x, run.boss.y)) return run.boss;
-  for (const e of run.enemies) { if (e.tutArty) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < bd && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) { bd = d; best = e; } }
+/* s36 (Lance 10-08 22:17: shoot at what my Drones see). Pulse looked 440 px out even though its bolts fly 648, so an
+   enemy a perched Drone could see 450-620 px away drew no fire. Past your own range it now fires at what a perched
+   Drone sees, out to the bolt's reach. Shots still never pass through walls: the line from you must be clear. */
+const PULSE_REACH = 620; // a Pulse bolt flies 540 px/s for 1.2 s (648 px)
+const seenAt = (run, e, d, range, far) => d < range * range ? visibleTo(run, e.x, e.y) : !!far && d < far * far && visibleTo(run, e.x, e.y, true); // in your range: anyone sees it; beyond: a perched Drone does
+function bossInReach(run, range, far) { const B = run.boss, p = run.p; if (!B || B.hp <= 0) return null; const d = dist2(B.x, B.y, p.x, p.y); return d < Math.max(range, far || 0) ** 2 && losClear(run, p.x, p.y, B.x, B.y) && seenAt(run, B, d, range, far) ? B : null; }
+function nearestEnemy(run, range, preferBoss, far) {
+  const p = run.p; let best = null, bd = Math.max(range, far || 0) ** 2;
+  if (preferBoss) { const B = bossInReach(run, range, far); if (B) return B; }
+  for (const e of run.enemies) { if (e.tutArty || (e.isCore && e.hive && !e.hive.found)) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < bd && losClear(run, p.x, p.y, e.x, e.y) && seenAt(run, e, d, range, far)) { bd = d; best = e; } }
   return best;
 }
-function nearestEnemies(run, range, k) { // up to k distinct targets by the same rules as nearestEnemy
+function nearestEnemies(run, range, k, far) { // up to k distinct targets by the same rules as nearestEnemy
   const p = run.p, out = [];
-  for (const e of run.enemies) { if (e.tutArty) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < range * range && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) out.push({ e, d }); }
+  for (const e of run.enemies) { if (e.tutArty || (e.isCore && e.hive && !e.hive.found)) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < Math.max(range, far || 0) ** 2 && losClear(run, p.x, p.y, e.x, e.y) && seenAt(run, e, d, range, far)) out.push({ e, d }); }
   return out.sort((a, b) => a.d - b.d).slice(0, k).map(o => o.e);
 }
 function updateWeapons(run, dt) {
@@ -2926,19 +3038,21 @@ function updateWeapons(run, dt) {
   if (run.dryT > 0) run.dryT -= dt;
   if (W.pulse && wcd.pulse <= 0 && run.ammo >= 1) {
     run.pulseAlt = !run.pulseAlt;
-    const t = nearestEnemy(run, 440 * p.area, run.pulseAlt);
+    const far = PULSE_REACH, near = nearestEnemies(run, 440 * p.area, 3, far); /* one scan for every bolt */
+    const t = (run.pulseAlt && bossInReach(run, 440 * p.area, far)) || near[0]; // every other shot goes to the boss when it can
     if (t) {
       wcd.pulse = (ev.pulse ? 0.45 : 0.6) * p.cdMult;
       const lvl = W.pulse, base = ev.pulse ? aimAt(run, p.x, p.y, t, 540, 1.2) : 0; // Barrage's fan centre
       const n = ev.pulse ? 3 : (lvl >= 4 ? 3 : lvl >= 2 ? 2 : 1);
       const dmg = (10 + 4 * lvl) * p.dmgMult * (ev.pulse ? 1.5 : 1);
-      // Barrage keeps its fan (centre bolt aimed); otherwise bolt 1 hits the target and the rest lock other enemies
-      const extra = ev.pulse ? [] : nearestEnemies(run, 440 * p.area, n).filter(e => e !== t);
+      // bolt 1 hits the target and the rest lock other enemies, each with Lead shot and Homing (s36: Barrage too; with
+      // no other target in reach, Barrage's spare bolts fan out round the first, still homing on it)
+      const extra = near.filter(e => e !== t);
       for (let i = 0; i < n && run.ammo >= 1; i++) {
         run.ammo -= 1;
-        const tt = ev.pulse ? null : (i === 0 ? t : extra[i - 1] || t);
-        const a = tt ? aimAt(run, p.x, p.y, tt, 540, 1.2) : base + (i - (n - 1) / 2) * 0.18;
-        run.bullets.push({ x: p.x, y: p.y, vx: Math.cos(a) * 540, vy: Math.sin(a) * 540, r: 4, dmg, own: true, pierce: ev.pulse ? 2 : 0, t: 1.2, hit: new Set(), tgt: run.skill.homing ? (tt || (i === (n - 1) / 2 ? t : null)) : null });
+        const own = i === 0 ? t : extra[i - 1], tt = own || (ev.pulse ? null : t);
+        const a = tt ? aimAt(run, p.x, p.y, tt, 540, 1.2) : base + (i % 2 ? -1 : 1) * Math.ceil(i / 2) * 0.18; /* a spare Barrage bolt: either side of the first */
+        run.bullets.push({ x: p.x, y: p.y, vx: Math.cos(a) * 540, vy: Math.sin(a) * 540, r: 4, dmg, own: true, pierce: ev.pulse ? 2 : 0, t: 1.2, hit: new Set(), tgt: run.skill.homing ? (tt || t) : null });
       }
       SFX.shot();
     }
@@ -2955,7 +3069,7 @@ function updateWeapons(run, dt) {
       for (const e of run.enemies) {
         if (dist2(s.x, s.y, e.x, e.y) < (e.r + 9) * (e.r + 9)) {
           const last = s.hit.get(e) || -9;
-          if (run.t - last > 0.4) { s.hit.set(e, run.t); const kb = ev.orbit ? 14 : 0; const l = Math.hypot(e.x - p.x, e.y - p.y) || 1; damageEnemy(run, e, dmg, (e.x - p.x) / l * kb, (e.y - p.y) / l * kb); }
+          if (run.t - last > 0.4) { s.hit.set(e, run.t); const kb = ev.orbit ? 14 : 0; const l = Math.hypot(e.x - p.x, e.y - p.y) || 1; damageEnemy(run, e, dmg, (e.x - p.x) / l * kb, (e.y - p.y) / l * kb, true); }
         }
       }
       if (s.hit.size > 400) s.hit.clear();
@@ -2981,7 +3095,7 @@ function updateWeapons(run, dt) {
       const bx = Math.cos(a), by = Math.sin(a);
       for (const e of run.enemies) {
         const ex = e.x - p.x, ey = e.y - p.y, proj = ex * bx + ey * by;
-        if (proj > 0 && proj < len) { const perp = Math.abs(ex * by - ey * bx); if (perp < LANCE.w0 / 2 + sp * proj + e.r && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) damageEnemy(run, e, dmg); }
+        if (proj > 0 && proj < len) { const perp = Math.abs(ex * by - ey * bx); if (perp < LANCE.w0 / 2 + sp * proj + e.r && losClear(run, p.x, p.y, e.x, e.y) && visibleTo(run, e.x, e.y)) damageEnemy(run, e, dmg, 0, 0, true); }
       }
       run.beams.push({ x: p.x, y: p.y, a, len, w0: LANCE.w0, w, t: 0.18 });
       beep(1600, 0.08, 'sawtooth', 0.03, 0.4);
@@ -2995,7 +3109,7 @@ function updateWeapons(run, dt) {
     if (wcd.fieldTick <= 0) {
       wcd.fieldTick = 0.25;
       const dmg = (4 + 1.5 * lvl) * p.dmgMult * (ev.field ? 1.3 : 1);
-      for (const e of run.enemies) if (dist2(e.x, e.y, p.x, p.y) < (rad + e.r) * (rad + e.r)) { damageEnemy(run, e, dmg); if (ev.field) e.slow = 0.4; }
+      for (const e of run.enemies) if (dist2(e.x, e.y, p.x, p.y) < (rad + e.r) * (rad + e.r)) { damageEnemy(run, e, dmg, 0, 0, true); if (ev.field) e.slow = 0.4; }
     }
   } else run.fieldR = 0;
   reapDead(run);
@@ -3041,7 +3155,7 @@ function updateProjectiles(run, dt) {
       const e = es[j];
       if (b.hit.has(e)) continue;
       if (dist2(b.x, b.y, e.x, e.y) < (b.r + e.r) * (b.r + e.r)) {
-        damageEnemy(run, e, b.dmg); b.hit.add(e); SFX.hit();
+        damageEnemy(run, e, b.dmg, 0, 0, !b.turret); b.hit.add(e); SFX.hit();
         if (b.pierce-- <= 0) { b.t = 0; break; }
       }
     }
@@ -3050,7 +3164,7 @@ function updateProjectiles(run, dt) {
   compact(run.bullets, b => b.t > 0);
   for (const n of run.novas) {
     n.t += dt; n.r = n.max * Math.min(1, n.t / 0.35);
-    for (const e of run.enemies) if (!n.hit.has(e) && dist2(n.x, n.y, e.x, e.y) < (n.r + e.r) * (n.r + e.r)) { n.hit.add(e); const l = Math.hypot(e.x - n.x, e.y - n.y) || 1; damageEnemy(run, e, n.dmg, (e.x - n.x) / l * 18, (e.y - n.y) / l * 18); }
+    for (const e of run.enemies) if (!n.hit.has(e) && dist2(n.x, n.y, e.x, e.y) < (n.r + e.r) * (n.r + e.r)) { n.hit.add(e); const l = Math.hypot(e.x - n.x, e.y - n.y) || 1; damageEnemy(run, e, n.dmg, (e.x - n.x) / l * 18, (e.y - n.y) / l * 18, true); }
   }
   compact(run.novas, n => n.t < 0.6);
   for (const b of run.beams) b.t -= dt;
@@ -3140,7 +3254,8 @@ const BOTS = {
             desc: l => ['Lets you build an Engineer (30 parts): it walls the base in.', 'Barricades 400 HP; it builds and repairs faster.', 'Barricades 520 HP; it builds and repairs fastest.'][l] },
 };
 const botLvl = (run, id) => (run.bots && run.bots[id]) || 0;
-const bot = (run, id, k) => BOTS[id][k][botLvl(run, id)] || BOTS[id][k][1]; // a level's number (level 1's when not learned, for things already built)
+const freeCount = id => (BOTS[id].count ? BOTS[id].count[0] : 0) * ((id !== 'ext' && id !== 'haul') || worldReached() >= CHAIN_WORLD ? 1 : 0); // s33: the free Extractor and Hauler come with World 3
+const bot = (run, id, k) => (k === 'count' && !botLvl(run, id) ? freeCount(id) : BOTS[id][k][botLvl(run, id)] || BOTS[id][k][1]); // a level's number (level 1's when not learned, for things already built)
 /* Supply chain (Lance 10-08: "there's no pipeline system to automate the collection and building of parts... ideally at
    a certain point you're managing and defending a supply chain, not just getting fuck by enemies"). Deposits on the
    map; an Extractor built on one mines parts into its own stock; Haulers (ground bots) drive the stock home along the
@@ -3225,7 +3340,7 @@ const SKILL_INFO = {
   'a:lead': 'Your shots aim at where the target will be when the bolt arrives, not where it is now. Plain Pulse misses a Gunner that sidesteps; with Lead shot it lands. Works for Pulse, gun drones and turrets.',
   'a:homing': 'Pulse bolts bend toward the enemy they were fired at once they are within 120px, so a late dodge still gets hit. Level 2 bends twice as hard.',
   'b:gun': 'Gun drones: small armed drones that shoot the nearest enemy they can see. Orders (Follow, Hold, Attack) steer them. Build with 20 parts; levels raise how many you can have and their damage.',
-  'b:scav': 'Scavengers fly out to caches and parts you have mapped and carry them home, fleeing enemies. Build with 15 parts; levels add a second and make them faster.',
+  'b:scav': 'Scavengers fly out to caches, parts, XP and health you have mapped: caches and parts go home, XP and health come to you, and you can run over one to take its load. They flee enemies. Build with 15 parts; levels add a second and make them faster.',
   'b:fix': 'The repair bot revives downed Drones, patches worn builds and brings a breached base back. Build with 15 parts; levels make it repair and revive faster.',
   'b:turret': 'Turrets shoot anything within reach that they have a clear line to, no Drone needed. Build with 30 parts where you stand; levels add damage, reach and HP, standing turrets included.',
   'b:jammer': 'Jammers blind every enemy in their ring: they wander and cannot dash or shoot. Build with 25 parts; levels widen the ring and add HP.',
@@ -3246,6 +3361,7 @@ function nodePoints(run, key) { const l = nodeLvl(run, key); return (key === 'w:
 function pointsBelow(run, tab, i, minus) { let n = 0; TREE_TIERS[tab].slice(0, i).forEach(t => { if (!t.evo) for (const k of t.keys) n += nodePoints(run, k); }); return n - (minus || 0); }
 function gateWhy(run, key) { // reason a first level is locked, '' if open
   if (nodeLvl(run, key) > 0) return '';
+  if (key[0] === 'b' && !latOpen(key.slice(2))) return `Opens in World ${latWorld(key.slice(2), 1)}.`;
   if (key[0] === 'b' && !lat(key.slice(2))) return 'Unlock it in the Workshop first (between runs).';
   const T = tierOf(key), have = T && !T.t.evo && T.t.need ? pointsBelow(run, T.tab, T.i) : 0;
   if (T && !T.t.evo && T.t.need && have < T.t.need) return `Tier ${T.i + 1} opens after ${T.t.need} points in the tier below. You have ${have}.`;
@@ -3275,7 +3391,7 @@ function treeNodes(run) {
       sellWhy: !l ? 'none' : p.evolved[k] && l <= MAX_LVL ? 'Evolved: keep it at 5' : k === 'pulse' && l === 1 ? 'Your starting gun' : sellBlock(run, 'w:' + k) });
   }
   for (const k in PASSIVES) {
-    const l = p.passives[k] || 0, why = l >= MAX_LVL ? 'Maxed' : gateWhy(run, 'p:' + k) || (!l && nP >= MAX_PASSIVES ? `${MAX_PASSIVES} passives max` : '');
+    const l = p.passives[k] || 0, why = l >= MAX_LVL ? 'Maxed' : gateWhy(run, 'p:' + k) || (!l && nP >= maxPassives() ? (lat('pslot') < 2 ? `${maxPassives()} passives max. ` + (latOpen('pslot', lat('pslot') + 1) ? `Buy slot ${maxPassives() + 1} in the Workshop` : `Slot ${maxPassives() + 1} opens in the Workshop in World ${latWorld('pslot', lat('pslot') + 1)}`) : `${maxPassives()} passives max`) : '');
     out.push({ key: 'p:' + k, branch: 'Passives', name: PASSIVES[k].name, lvl: l, max: MAX_LVL, cost: 1, desc: PASSIVES[k].desc + ' per level', why, sellWhy: !l ? 'none' : sellBlock(run, 'p:' + k) });
   }
   for (const k in WEAPONS) {
@@ -3303,8 +3419,9 @@ function treeNodes(run) {
   return out;
 }
 function botLevelled(run, id) { // builds already standing take their new HP; the row shows what you can build
-  if (id === 'turret' || id === 'jammer') for (const c of run.builds) if (c.kind === id) { const mh = 220 * bot(run, id, 'hp'), k = c.hp / c.maxhp; c.maxhp = mh; c.hp = mh * k; if (id === 'jammer') c.ring = bot(run, 'jammer', 'ring'); }
-  if (id === 'eng' && run.engSlots) for (const sl of run.engSlots) if (sl.wall) { const mh = bot(run, 'eng', 'barHp'), k = sl.wall.hp / sl.wall.maxhp; sl.wall.maxhp = mh; sl.wall.hp = mh * k; }
+  const reHp = (c, mh) => { c.hp = Math.max(1, Math.min(mh, c.hp + mh - c.maxhp)); c.maxhp = mh; }; /* s36: a level adds its HP outright, so a worn turret keeps up; selling takes the same amount back (no sell-and-rebuy repair) */
+  if (id === 'turret' || id === 'jammer') for (const c of run.builds) if (c.kind === id) { reHp(c, 220 * bot(run, id, 'hp')); if (id === 'jammer') c.ring = bot(run, 'jammer', 'ring'); }
+  if (id === 'eng' && run.engSlots) for (const sl of run.engSlots) if (sl.wall) reHp(sl.wall, bot(run, 'eng', 'barHp'));
   if (botLvl(run, id) === 1) tip(run, 'learned_bot', { at: run.p });
 }
 function addMote(run) {
@@ -3439,7 +3556,7 @@ const ORDERS = [
   { k: 'reserve', name: 'Keep for your own buttons', min: 0, max: 100, step: 10, def: 30, unit: ' parts', note: 'The Factory never spends below this.' },
 ];
 const orders = () => { const o = SAVE.orders || (SAVE.orders = {}); for (const q of ORDERS) if (o[q.k] == null) o[q.k] = q.def; return o; };
-const factoryOn = run => lat('factory') > 0 && !run.tut;
+const factoryOn = run => lat('factory') > 0 && !run.tut && run.mode !== 'hard'; // Hard is hands-on: no standing orders (s33)
 const repairBelow = run => (factoryOn(run) ? orders().repair / 100 : 0.9);
 function turretSpot(run, cx, cy, r, n) { // a free spot on a ring around (cx, cy): not in a wall, clear of builds and deposits
   for (let i = 0; i < n; i++) { const a = i / n * 6.283 + 0.4, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
@@ -3495,7 +3612,8 @@ function startChain(run) { // the free pair: an extractor on the deposit nearest
 function build(run, kind) {
   const b = BUILDS[kind], p = run.p;
   const bk = b.bot || kind; /* the BOTS entry that levels it */
-  if (!botLvl(run, bk) && !(BOTS[bk].count && BOTS[bk].count[0])) { toast(run, lat(bk) ? `Learn ${b.name} in the skill tree (Base) first` : `Unlock ${b.name} in the Workshop first`); return false; }
+  if (!latOpen(bk) && !freeCount(bk)) { toast(run, `${b.name}: opens in World ${latWorld(bk, 1)}`); return false; }
+  if (!botLvl(run, bk) && !freeCount(bk)) { toast(run, lat(bk) ? `Learn ${b.name} in the skill tree (Base) first` : `Unlock ${b.name} in the Workshop first`); return false; }
   if (kind === 'extractor') return buildExtractor(run);
   if (run.parts < b.cost) { toast(run, `Need ${b.cost} parts for a ${b.name}`); return false; }
   if (run.builds.filter(c => c.kind !== 'extractor').length >= 6) { toast(run, 'Six constructions max'); return false; }
@@ -3516,7 +3634,7 @@ function droneTarget(run, pool, typesOnly) { // the enemy your chosen target typ
   return null;
 }
 function autoArtillery(run, dt) {
-  const lv = lat('autoshell'); if (!lv || run.tut || run.aim || run.base.breached || run.shells < 1) return; // never under your own aim
+  const lv = lat('autoshell'); if (!lv || run.tut || run.mode === 'hard' || run.aim || run.base.breached || run.shells < 1) return; // never under your own aim
   if ((run.autoT = (run.autoT ?? 3) - dt) > 0) return;
   const safe = AUTO_SHELL.safeR * AUTO_SHELL.safeR, seen = run.enemies.filter(e => !e.isCore && dist2(e.x, e.y, run.p.x, run.p.y) > safe && visibleTo(run, e.x, e.y, true)); // never on top of you
   const t = droneTarget(run, seen);
@@ -3526,7 +3644,8 @@ function autoArtillery(run, dt) {
 }
 function buildUnit(run, kind, at) { // at: where it appears (the Factory builds at the base); default where you stand
   const U = UNITS[kind], p = at || run.p, B = BOTS[kind];
-  if (!botLvl(run, kind) && !(B.count && B.count[0])) { toast(run, lat(kind) ? `Learn ${U.name} in the skill tree (${B.sky}) first` : `Unlock ${U.name} in the Workshop first`); return false; }
+  if (!latOpen(kind) && !freeCount(kind)) { toast(run, `${U.name}: opens in World ${latWorld(kind, 1)}`); return false; } /* the free hauler comes with the chain (World 3); more open in World 4 */
+  if (!botLvl(run, kind) && !freeCount(kind)) { toast(run, lat(kind) ? `Learn ${U.name} in the skill tree (${B.sky}) first` : `Unlock ${U.name} in the Workshop first`); return false; }
   const max = B.count ? B.count[botLvl(run, kind)] : 1;
   if (run.parts < U.cost) { toast(run, `Need ${U.cost} parts for a ${U.name}`); return false; }
   if (run.units.filter(u => u.kind === kind).length >= max) { toast(run, max > 1 ? `${max} ${U.name}s max (level it up for more)` : `One ${U.name} at a time`); return false; }
@@ -3537,8 +3656,18 @@ function setOrder(run, mode, x, y) {
   run.order = { mode, x: x == null ? run.p.x : x, y: y == null ? run.p.y : y }; run.pickAttack = false; SFX.order();
   toast(run, mode === 'follow' ? 'Gun drones: follow me' : mode === 'hold' ? 'Gun drones: hold this spot' : 'Gun drones: attack there');
 }
-function scavTarget(run, u) { // nearest remembered cache or parts pile it can reach
-  let best = null, bd = 1e12; const { mapped } = run.fog;
+const SCAV_GRAB = 30;
+function scavHandover(run, u, home) { // a Scavenger's load: at the base, or to you when you run over it (XP and health come straight in)
+  const c = u.carry; if (!c) return;
+  if (c.cache) cacheReward(run, home ? 'Scavenger brought back a cache' : 'You took a cache from a Scavenger');
+  else if (c.parts) { run.parts += c.parts; toast(run, home ? `Scavenger brought back ${c.parts} parts` : `+${c.parts} parts from a Scavenger`); }
+  else if (c.heal) { run.p.hp = Math.min(run.p.maxhp, run.p.hp + c.heal); toast(run, 'A Scavenger brought you health'); }
+  else if (c.xp) { gainXp(run, c.xp); toast(run, `A Scavenger brought you ${c.xp} XP`); }
+  run.scavTrips = (run.scavTrips || 0) + 1; u.carry = null; if (home) SFX.levelup(); else { SFX.gem(); tip(run, 'scav_load', { at: u }); }
+}
+function scavTarget(run, u) { // nearest remembered cache, parts pile, XP or health it can reach (s36: XP and health go to you)
+  let best = null, bd = 1e12; const { mapped } = run.fog, hurt = run.p.hp < run.p.maxhp * 0.6, full = run.p.hp >= run.p.maxhp * 0.95;
+  for (const g of run.gems) if (!g.part && !g.pull && !(g.heal && full) && mapped[cellIdx(g.x, g.y)] && !run.units.some(o => o !== u && o.tgt && o.tgt.gem === g)) { const d = dist2(g.x, g.y, u.x, u.y) * (g.heal && hurt ? 0.1 : g.heal ? 1 : 1.5); if (d < bd) { bd = d; best = { gem: g, x: g.x, y: g.y }; } } /* health first when you are hurt, left where it is when you are not; XP a little behind caches and parts */
   for (const c of run.caches) if (!c.taken && mapped[cellIdx(c.x, c.y)] && !run.units.some(o => o !== u && o.tgt && o.tgt.cache === c)) { const d = dist2(c.x, c.y, u.x, u.y); if (d < bd) { bd = d; best = { cache: c, x: c.x, y: c.y }; } }
   for (const g of run.gems) if (g.part && !g.pull && mapped[cellIdx(g.x, g.y)] && !run.units.some(o => o !== u && o.tgt && o.tgt.gem === g)) { const d = dist2(g.x, g.y, u.x, u.y); if (d < bd) { bd = d; best = { gem: g, x: g.x, y: g.y }; } }
   return best;
@@ -3553,7 +3682,7 @@ function updateUnits(run, dt) {
       const cx = o.mode === 'follow' ? p.x : o.x, cy = o.mode === 'follow' ? p.y : o.y; tx = cx + Math.cos(a) * rr; ty = cy + Math.sin(a) * rr;
       if ((u.cd -= dt) <= 0) { // light gun: nearest enemy it can see, hives included
         let t = null, bd = U.range * U.range; const inRange = [];
-        for (const e of run.enemies) { const d = dist2(e.x, e.y, u.x, u.y); if (d < U.range * U.range && losClear(run, u.x, u.y, e.x, e.y)) { inRange.push(e); if (d < bd) { bd = d; t = e; } } }
+        const mist = ruleOf(run).mist; for (const e of run.enemies) { if (mist && e.isCore && !e.hive.found) continue; /* Ink mist: it has to be watched first */ const d = dist2(e.x, e.y, u.x, u.y); if (d < U.range * U.range && losClear(run, u.x, u.y, e.x, e.y)) { inRange.push(e); if (d < bd) { bd = d; t = e; } } }
         const pressed = run.enemies.some(e => !e.isCore && dist2(e.x, e.y, p.x, p.y) < 90 * 90); // something on top of you: shoot the nearest
         if (!pressed && inRange.length > 1) t = droneTarget(run, inRange, true) || t; // otherwise your Drone targets choice comes first
         if (t && t.isCore && !t.hive.found) { t.hive.found = true; toast(run, 'Your gun drones found a hive'); }
@@ -3570,7 +3699,7 @@ function updateUnits(run, dt) {
         else repairBase(run, U.healBase * bot(run, 'fix', 'heal') * dt);
       } else u.work = 0;
     } else if (u.kind === 'haul') { // hauler: fill up at the extractor with the most stock, drive it home, repeat
-      if ((u.jamT = (u.jamT || 0) - dt) <= 0) { u.jamT = 0.25; u.jam = run.enemies.some(e => e.type === 'null' && !e.isCore && dist2(e.x, e.y, u.x, u.y) < JAM_R(e) ** 2); if (u.jam) tip(run, 'haul_jam', { at: u }); } /* a Jammer's ring slows haulers to a crawl */
+      if ((u.jamT = (u.jamT || 0) - dt) <= 0) { u.jamT = 0.25; u.jam = run.enemies.some(e => e.type === 'null' && !e.isCore && dist2(e.x, e.y, u.x, u.y) < JAM_R(e, run) ** 2); if (u.jam) tip(run, 'haul_jam', { at: u }); } /* a Jammer's ring slows haulers to a crawl */
       const cap = u.cap = bot(run, 'haul', 'load');
       if (u.tgt && (!run.builds.includes(u.tgt) || u.load >= cap)) u.tgt = null;
       if (!u.tgt && !u.home && (u.look = (u.look || 0) - dt) <= 0) { u.look = 0.5; let best = null, bs = 2; /* stock not already spoken for by other haulers */
@@ -3607,16 +3736,15 @@ function updateUnits(run, dt) {
         if (!u.tgt && (u.look = (u.look || 0) - dt) <= 0) { u.look = 0.5; u.tgt = scavTarget(run, u); }
         if (u.tgt) { const g = u.tgt.gem; tx = g ? g.x : u.tgt.x; ty = g ? g.y : u.tgt.y;
           if (dist2(u.x, u.y, tx, ty) < 22 * 22) {
-            cue(run, 'pickup', 0.3, SFX.pickup); if (u.tgt.cache) { u.tgt.cache.taken = true; u.carry = { cache: 1 }; } else { run.gems.splice(run.gems.indexOf(u.tgt.gem), 1); u.carry = { parts: u.tgt.gem.part }; }
+            cue(run, 'pickup', 0.3, SFX.pickup); if (u.tgt.cache) { u.tgt.cache.taken = true; u.carry = { cache: 1 }; } else { const g = u.tgt.gem; run.gems.splice(run.gems.indexOf(g), 1);
+              if (g.part) u.carry = { parts: g.part }; else if (g.heal) u.carry = { heal: g.heal }; else { let xp = g.v || 1; for (let j = run.gems.length - 1; j >= 0; j--) { const h = run.gems[j]; if (!h.part && !h.heal && !h.pull && dist2(h.x, h.y, g.x, g.y) < 80 * 80) { xp += h.v || 1; run.gems.splice(j, 1); } } u.carry = { xp }; } } /* XP: it scoops up the cluster */
             u.tgt = null;
           }
         }
       }
-      if (u.carry && dist2(u.x, u.y, b.x, b.y) < (BASE_R - 10) * (BASE_R - 10)) { // home: hand it over
-        if (u.carry.cache) cacheReward(run, 'Scavenger brought back a cache');
-        else { run.parts += u.carry.parts; toast(run, `Scavenger brought back ${u.carry.parts} parts`); }
-        run.scavTrips = (run.scavTrips || 0) + 1; u.carry = null; SFX.levelup();
-      }
+      const toYou = u.carry && (u.carry.xp || u.carry.heal); if (toYou) { tx = p.x; ty = p.y; } /* XP and health come to you (fleeing too: you are its cover) */
+      if (u.carry && (dist2(u.x, u.y, p.x, p.y) < SCAV_GRAB * SCAV_GRAB)) scavHandover(run, u); /* run over it (or it reaches you): its load is yours */
+      else if (u.carry && !toYou && dist2(u.x, u.y, b.x, b.y) < (BASE_R - 10) * (BASE_R - 10)) scavHandover(run, u, true); // home: hand it over
     }
     const d = Math.hypot(tx - u.x, ty - u.y);
     if (d > 3 && !u.down) {
@@ -3634,7 +3762,9 @@ function updateUnits(run, dt) {
     if (u.hp <= 0 && u.kind === 'eng') { u.hp = 0; u.down = true; u.work = 0; toast(run, 'Engineer stopped: walk over it to bring it back'); tip(run, 'eng_down', { at: u }); continue; }
     if (u.hp <= 0) {
       if (u.carry && u.carry.cache) run.caches.push({ x: u.x, y: u.y, taken: false }); // drops what it carried: a whole cache stays a cache
-      else if (u.carry) run.gems.push({ x: u.x, y: u.y, v: 0, part: u.carry.parts, t: 0 });
+      else if (u.carry && u.carry.parts) run.gems.push({ x: u.x, y: u.y, v: 0, part: u.carry.parts, t: 0 });
+      else if (u.carry && u.carry.heal) run.gems.push({ x: u.x, y: u.y, heal: u.carry.heal, t: 0 });
+      else if (u.carry && u.carry.xp) { const n = Math.min(8, u.carry.xp); for (let k = 0; k < n; k++) run.gems.push({ x: u.x + rnd(-20, 20), y: u.y + rnd(-20, 20), v: Math.ceil(u.carry.xp / n), t: 0 }); } /* s36: XP and health drop as they were */
       else if (u.load >= 1) run.gems.push({ x: u.x, y: u.y, v: 0, part: Math.floor(u.load), t: 0 }); /* a hauler spills its load */
       run.units.splice(i, 1); toast(run, `${U.name} down`); for (let k = 0; k < 8; k++) spark(run, u.x, u.y, u.kind === 'gun' ? '#7ff5ff' : u.kind === 'fix' ? '#7dff9a' : '#ffd166');
     }
@@ -3659,10 +3789,11 @@ function endRun(run, won) {
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won && !run.endurance) statAdd('zones');
   const earnedEmber = won && !run.endurance && run.zone + 1 === EMBER_AT && SAVE.cleared < EMBER_AT; run.summary.ember = earnedEmber;
+  { const w = (run.z.world || 1) + 1; run.summary.opens = won && !run.endurance && (run.zone + 1) % 5 === 0 && SAVE.cleared < run.zone + 1 && w <= 10 ? { w, list: worldOpens(w) } : null; } /* a new world: say what it opens */
   { const wl = WORLDS[run.z.world || 1].skin; run.summary.look = won && !run.endurance && (run.zone + 1) % 5 === 0 && SAVE.cleared < run.zone + 1 && LOOK_WORLD[wl] ? THEMES[wl].name : null; }
   if (run.endurance) { const b = endBestOf() || {}; if (run.endurance.killed > (b.hives || 0) || (run.endurance.killed === (b.hives || 0) && run.t > (b.time || 0))) SAVE.endBest = { hives: run.endurance.killed, stage: run.endurance.stage, time: Math.round(run.t) }; } /* Endurance never moves zone progress */
   else {
-  if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
+  if (won && run.zone + 1 > SAVE.cleared && run.zone <= SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder. A playtest win past your progress does not (s33)
   if (won && run.mode === 'hard' && run.zone + 1 > (SAVE.clearedHard || 0)) SAVE.clearedHard = run.zone + 1;
   }
   persist(SAVE);
@@ -3797,11 +3928,12 @@ function drawEnemyLook(ctx, e, p, now, flat, lf) { // a look draws the body; the
   if (e.type === 'resonator') { ctx.fillStyle = '#1b1f2b'; ctx.fillRect(e.x - 40, e.y - e.r * 1.5 - 12, 80, 6); ctx.fillStyle = '#ffb347'; ctx.fillRect(e.x - 40, e.y - e.r * 1.5 - 12, 80 * Math.max(0, e.hp / e.maxhp), 6); }
   formRings(ctx, e);
 }
-function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, JAM_R(e), 0, 6.283); ctx.stroke(); }
+function nullRing(ctx, e) { ctx.strokeStyle = 'rgba(168,107,255,0.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, JAM_R(e, DRAW_RUN), 0, 6.283); ctx.stroke(); }
 function drawMote(ctx, m, run, now, flat) {
   if (m.state === 'dimmed') { ctx.strokeStyle = 'rgba(200,200,220,0.5)'; ctx.lineWidth = 1.5; poly(ctx, m.x, m.y, 7, 5, now); ctx.stroke(); ctx.fillStyle = 'rgba(200,200,220,0.5)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('down', m.x, m.y + 20); return; }
   if (LK && LK.mote) { ctx.save(); ctx.translate(m.x, m.y); LK.mote(ctx, 7, m, now, 0); ctx.restore(); }
   else { ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; poly(ctx, m.x, m.y, 6, 5, now * 2 + m.id); ctx.fill(); }
+  if (m.land > 0) { const k = 1 - m.land / PERCH.land; ctx.strokeStyle = `rgba(127,245,255,${(0.7 * (1 - k)).toFixed(2)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.x, m.y, 8 + 14 * k, 0, 6.283); ctx.stroke(); } /* settling onto the perch */
   if (flat) empRing(ctx, m, run);
   ctx.fillStyle = '#1b1f2b'; ctx.fillRect(m.x - 12, m.y + 10, 24, 3); ctx.fillStyle = m.bat / m.maxBat < 0.25 ? '#ff5a4a' : '#7ff5ff'; ctx.fillRect(m.x - 12, m.y + 10, 24 * m.bat / m.maxBat, 3);
 }
@@ -3906,7 +4038,25 @@ function drawFloor(ctx, TH, mapped, r0, r1, c0, c1) { // mapped cells in view: t
   if (TH.grid) { ctx.strokeStyle = TH.grid; ctx.lineWidth = 1; for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) ctx.strokeRect(c * CELL + 0.5, r * CELL + 0.5, CELL, CELL); }
   if (LK && LK.cell) for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (mapped[r * COLS + c]) LK.cell(ctx, c * CELL, r * CELL, CELL, r * COLS + c);
 }
+function drawRuleGround(ctx, run, x0, y0, x1, y1, now) { // world rules you can see on the ground
+  const R = ruleOf(run);
+  if (R.light) { ctx.fillStyle = 'rgba(255,236,170,0.17)'; const k0 = Math.floor((x0 + 0.6 * y0) / 700) - 1, k1 = Math.ceil((x1 + 0.6 * y1) / 700); /* the shafts inLight() tests */
+    for (let k = k0; k <= k1; k++) { const c = k * 700; ctx.beginPath(); ctx.moveTo(c - 0.6 * y0, y0); ctx.lineTo(c + 200 - 0.6 * y0, y0); ctx.lineTo(c + 200 - 0.6 * y1, y1); ctx.lineTo(c - 0.6 * y1, y1); ctx.closePath(); ctx.fill(); ctx.strokeStyle = 'rgba(255,236,170,0.35)'; ctx.lineWidth = 2; ctx.stroke(); } /* bright edges: you can tell where a shaft starts */
+    if (inLight(run.p.x, run.p.y)) { ctx.strokeStyle = 'rgba(255,220,120,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(run.p.x, run.p.y, run.p.r + 7, 0, Math.PI * 2); ctx.stroke(); } }
+  if (run.cur && run.curOff) { const L = Math.hypot(run.cur.x, run.cur.y) || 1, ux = run.cur.x / L, uy = run.cur.y / L, W = x1 - x0, H = y1 - y0; /* drifting streaks show the current */
+    ctx.strokeStyle = 'rgba(170,230,255,0.22)'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i < 36; i++) { const sx = x0 + (((i * 977 % 1000) / 1000 * W + run.curOff.x - x0) % W + W) % W, sy = y0 + (((i * 571 % 1000) / 1000 * H + run.curOff.y - y0) % H + H) % H; ctx.moveTo(sx, sy); ctx.lineTo(sx - ux * 18, sy - uy * 18); }
+    ctx.stroke(); }
+  if (R.mist) for (const h of run.hives) if (!h.dead && !h.found && h.watch > 0 && isSeen(run, h.x, h.y)) { /* Ink mist: something is there, keep watching */
+    ctx.strokeStyle = 'rgba(255,138,61,0.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x, h.y, 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, h.watch / R.mist)); ctx.stroke(); }
+}
+function drawRuleScreen(ctx, run, vw, vh) { // world rules on the screen: sandstorm tint, cold edges
+  if (run.stormOn) { ctx.fillStyle = 'rgba(196,150,80,0.22)'; ctx.fillRect(0, 0, vw, vh); }
+  if (ruleOf(run).cold && coldFactor(run) < 1) { const C = 'rgba(200,236,255,', edge = (x0, y0, x1, y1, x, y, w, h) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, C + '0.6)'); g.addColorStop(1, C + '0)'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); };
+    const sw = vw * 0.22, bh = vh * 0.18; edge(0, 0, sw, 0, 0, 64, sw, vh - 64); edge(vw, 0, vw - sw, 0, vw - sw, 64, sw, vh - 64); edge(0, vh, 0, vh - bh, 0, vh - bh, vw, bh); } /* frost creeps in from the sides and bottom, never over the HUD */
+}
 function render(ctx, run, vw, vh, now) {
+  DRAW_RUN = run;
   LK = lookOf(run); LKT = THEMES[run.skin] || THEMES.static; LNOW = now;
   if (run.cam25) return render25(ctx, run, vw, vh, now);
   const p = run.p, cam = run.cam;
@@ -3921,6 +4071,7 @@ function render(ctx, run, vw, vh, now) {
   const r0 = clamp(Math.floor((cam.y - hh) / CELL), 0, COLS - 1), r1 = clamp(Math.floor((cam.y + hh) / CELL), 0, COLS - 1);
   const { seen, mapped } = run.fog;
   drawFloor(ctx, TH, mapped, r0, r1, c0, c1); // unmapped cells: opaque static after the fog pass
+  drawRuleGround(ctx, run, cam.x - hw, cam.y - hh, cam.x + hw, cam.y + hh, now);
   // walls
   for (const o of run.walls) {
     if (o.x + o.w < cam.x - hw - 20 || o.x > cam.x + hw + 20 || o.y + o.h < cam.y - hh - 20 || o.y > cam.y + hh + 20) continue;
@@ -4007,6 +4158,7 @@ function drawStatic(ctx, run, now, mapped, r0, r1, c0, c1) {
 function drawOverlays(ctx, run, vw, vh, z, T) { // screen space: minimap, base and boss arrows, joystick
   const cam = run.cam;
   if (run.stageBanner) { const b = run.stageBanner, a = Math.min(1, b.t * 2, (3 - b.t) * 4), y = vh * 0.68; ctx.save(); /* below you, above the buttons */ ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, y - 34, vw, 64); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.font = '600 22px system-ui, sans-serif'; ctx.fillText(b.text, vw / 2, y); ctx.font = '14px system-ui, sans-serif'; ctx.fillStyle = (LKT.accent || '#7ff5ff'); ctx.fillText(b.sub, vw / 2, y + 22); ctx.restore(); } /* Endurance: a new world */
+  drawRuleScreen(ctx, run, vw, vh);
   if (LK && LK.screen) LK.screen(ctx, vw, vh, LNOW); // a look's screen touches (cheap ones only), under the minimap
   drawMinimap(ctx, run, vw, vh);
   { const b = run.base, dx = (b.x - cam.x) * z, dy = (b.y - cam.y) * z * T;
@@ -4042,7 +4194,7 @@ function render25(ctx, run, vw, vh, now) {
   const r0 = clamp(Math.floor((cam.y - hh) / CELL), 0, COLS - 1), r1 = clamp(Math.floor((cam.y + hh) / CELL), 0, COLS - 1);
   const { seen, mapped } = run.fog;
   ground();
-  drawFloor(ctx, TH, mapped, r0, r1, c0, c1);
+  drawFloor(ctx, TH, mapped, r0, r1, c0, c1); drawRuleGround(ctx, run, cam.x - hw, cam.y - hh, cam.x + hw, cam.y + hh, now);
   drawGround(ctx, run, now, mapped); drawMarkers(ctx, run, now, mapped, (x, y) => up(x, y, 0));
   if (run.mode === 'hard') { scr(); drawNight(ctx, run, vw, vh, z, T, ox, oy); }
   drawPickups(ctx, run, now, (x, y) => up(x, y, 0)); ground(); drawEffects(ctx, run, LIFT.player / T);
@@ -4145,6 +4297,7 @@ if (HAS_DOM) {
     let best = null, bd = 48 * 48;
     const T = viewT(R); for (const a of R.anchors) { const d = (a.x - w.x) ** 2 + ((a.y - w.y) * T) ** 2; if (d < bd) { bd = d; best = a; } } /* round on screen in 2.5D too */
     if (best) { sendMote(R, best); lastGround = 0; return; }
+    if (!R.tut) { const ps = screenOf(R.p.x, R.p.y); if (Math.hypot(sx - ps.x, sy - ps.y) < 34) { const me = meAnchor(R), had = R.motes.some(m => m.anchor === me); if (sendMote(R, me) && !had) tip(R, 'perchme', { at: R.p }); lastGround = 0; return; } } /* s35: tap yourself: a Drone perches on you */
     const tnow = performance.now(); // double tap on open ground: zoom back to 1x
     if (tnow - lastGround < 320 && R.zoom !== 1) { setZoom(1); persist(SAVE); toast(R, 'Zoom reset'); lastGround = 0; } else lastGround = tnow;
   }
@@ -4201,7 +4354,7 @@ if (HAS_DOM) {
   window.addEventListener('keyup', ev => { input.keys[ev.key] = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden && screen === 'run') togglePause(); });
 
-  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('pause-msg').textContent = ''; el('btn-pause-cam').textContent = `Camera: ${camName()}`; inlineTip('it-pause', 'dial'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
+  function togglePause() { if (screen === 'run') { screen = 'paused'; UI.go('pause'); el('btn-pause-orders').hidden = R.mode === 'hard'; /* Hard is hands-on: no standing orders (s33) */ el('pause-msg').textContent = ''; el('btn-pause-cam').textContent = `Camera: ${camName()}`; inlineTip('it-pause', 'dial'); el('btn-pause-tree').textContent = `Skill tree (${fmtPts(R.points)} point${R.points === 1 ? '' : 's'})`; } else if (screen === 'paused') { screen = 'run'; UI.go(null); } }
 
   /* menus */
   let updateTo = null, updateBusy = false, updateAt = -Infinity; // a newer build waiting in the launcher's cache
@@ -4216,11 +4369,13 @@ if (HAS_DOM) {
     } catch (e) { /* offline: try again on a later menu visit */ } finally { clearTimeout(tm); updateBusy = false; }
   }
   el('m-update').onclick = () => location.reload(); // the launcher starts the cached newer build
+  el('m-refund-ok').onclick = () => { delete SAVE.refundNote; persist(SAVE); el('m-refund').hidden = true; };
   el('m-new-ok').onclick = () => { SAVE.lastBuild = BUILD_ID; persist(SAVE); el('m-new').hidden = true; };
   el('p-ver').textContent = BUILD_ID;
   UI.menu = () => {
     UI.go('menu');
     showUpdate();
+    { const rf = SAVE.refundNote, b = el('m-refund'); b.hidden = !rf; if (rf) el('m-refund-list').innerHTML = rf.map(x => `<li>${esc(x.name)}${x.levels > 1 ? ` (${x.levels} levels)` : ''}: +${x.gold} gold, opens in World ${x.world}</li>`).join(''); }
     if (SAVE.lastBuild !== BUILD_ID) { const list = SAVE.runs > 0 ? newSince(SAVE.lastBuild) : [];
       if (!list.length) { SAVE.lastBuild = BUILD_ID; persist(SAVE); el('m-new').hidden = true; }
       else { el('m-new-list').innerHTML = list.map(w => w.items.map(t => `<li>${esc(t)}</li>`).join('')).join(''); el('m-new').hidden = false; } }
@@ -4249,7 +4404,8 @@ if (HAS_DOM) {
     const worlds = WORLD_IDS.filter(worldOpen); zoneTabs = worlds;
     if (!zoneWorld || zoneSeenCleared !== SAVE.cleared || !worlds.includes(zoneWorld)) { zoneWorld = ZONES[Math.min(SAVE.cleared, ZONES.length - 1)].world || 1; zoneSeenCleared = SAVE.cleared; } // a newly opened world shows first
     { const cv = el('zone-preview'), w = cv.clientWidth || 380, h = cv.clientHeight || 64, d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(w * d); cv.height = Math.round(h * d);
-      const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); drawWorldPreview(c, WORLDS[zoneWorld].skin, w, h, 1.2); cv.setAttribute('aria-label', `${WORLDS[zoneWorld].name}, drawn in its look`); } /* what this world looks like */
+      const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); { const o = worldOpens(zoneWorld), zo = el('z-opens'); zo.textContent = o.length ? `Opens here: ${o.join(', ')}` + (zoneWorld === CHAIN_WORLD ? ', and a free Extractor and Hauler each run.' : '.') : ''; zo.hidden = !o.length; el('z-goal').hidden = !!o.length;
+        const R = WORLD_RULES[zoneWorld], zr = el('z-rule'); zr.hidden = !R; const opensTxt = zo.textContent; if (R) { zr.textContent = `Rule: ${R.name}`; zr.onclick = () => { const on = zo.dataset.rule !== '1'; zo.dataset.rule = on ? '1' : ''; zo.textContent = on ? R.text : opensTxt; zo.hidden = !zo.textContent; el('z-goal').hidden = !zo.hidden; }; } zo.dataset.rule = ''; } /* one line, so the zones still fit */ drawWorldPreview(c, WORLDS[zoneWorld].skin, w, h, 1.2); cv.setAttribute('aria-label', `${WORLDS[zoneWorld].name}, drawn in its look`); } /* what this world looks like */
     el('zone-tabs').classList.toggle('five', worlds.length > 4); renderTabs(el('zone-tabs'), worlds, zoneWorld, w => { zoneWorld = w; UI.zones(); }, w => WORLDS[w].name.replace(/^World \d+: /, ''), w => WORLDS[w].skin);
     const box = el('zone-list'); box.innerHTML = '';
     ZONES.forEach((z, i) => {
@@ -4835,6 +4991,7 @@ if (HAS_DOM) {
     el('end-title').textContent = s.won ? `${run.z.name} cleared (${run.M.name})` : 'You died';
     el('end-body').innerHTML = [
       s.endurance ? `Endurance: reached ${endName(s.endurance.stage)}, ${s.endurance.killed} hives in ${fmtT(s.time)}. Gold for worlds passed: +${s.endurance.banked}. Salvage returned ${Math.round(s.salvage * 100)}% of run gold.` : s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
+      s.opens && s.opens.list.length ? `<b>World ${s.opens.w} is open.</b> New in the Workshop: ${s.opens.list.join(', ')}.` : '',
       s.look || s.ember ? `<b>${[s.look, s.ember && 'Ember'].filter(Boolean).join(' and ')} look${s.look && s.ember ? 's' : ''} earned.</b> Pick ${s.look && s.ember ? 'one' : 'it'} in Settings > Map look to use it in every zone.` : '',
       `${s.kills} kills in ${fmtT(s.time)}, level ${s.level}.`,
       `${Math.round(s.coverage * 100)}% of the map explored.`,
@@ -4987,7 +5144,7 @@ if (HAS_DOM) {
   const slotXY = (G, h, near) => { const a = -Math.PI / 2 + h * Math.PI / 6, r = near ? G.R0 : G.R1; return [G.cx + Math.cos(a) * r, G.cy + Math.sin(a) * r]; };
   UI.orders = () => { // the Factory's standing orders: one slider each, saved as you move it
     UI.go('orders'); const O = orders(), on = lat('factory') > 0;
-    el('ord-intro').textContent = on ? 'Your base follows these every run, in this order, with parts above your reserve.' : 'Unlock the Factory in the Workshop (Supply) and your base follows these every run. You can set them now.';
+    el('ord-intro').textContent = on ? 'Your base follows these every run, in this order, with parts above your reserve.' : (latOpen('factory') ? 'Unlock the Factory in the Workshop (Supply)' : `The Factory opens in World ${latWorld('factory', 1)}. Unlock it in the Workshop (Supply)`) + ' and your base follows these every run. You can set them now.';
     const box = el('ord-list'); box.innerHTML = '';
     for (const q of ORDERS) {
       const why = q.needs && !lat(q.needs) ? `Needs ${LATTICE.find(u => u.id === q.needs).name} unlocked` : q.needs2 && !lat(q.needs2) ? `Needs ${LATTICE.find(u => u.id === q.needs2).name} unlocked` : '';
@@ -5005,6 +5162,9 @@ if (HAS_DOM) {
     UI.go('dial'); const n = R ? R.motes.length : 1; if (dialSel >= n) dialSel = 0;
     const box = el('dial-drones'); box.innerHTML = '';
     for (let i = 0; i < n; i++) { const b = document.createElement('button'); b.className = i === dialSel ? 'on' : ''; b.textContent = `Drone ${i + 1}`; b.onclick = () => { dialSel = i; UI.dial(); }; box.appendChild(b); }
+    const fb = el('dial-form'); fb.innerHTML = ''; /* s35: formation, and whether idle Drones perch on their own */
+    for (const [k, name] of [['tight', 'Tight'], ['loose', 'Loose']]) { const b = document.createElement('button'); b.className = formation() === k ? 'on' : ''; b.textContent = name; b.onclick = () => { SAVE.formation = k; persist(SAVE); UI.dial(); }; fb.appendChild(b); }
+    { const b = document.createElement('button'), own = lat('tier') >= 1; b.className = own && SAVE.autoPerch !== false ? 'on' : ''; const hard = R && R.mode === 'hard'; b.textContent = !own ? 'Auto perch: World 5' : hard ? 'Auto perch: not on Hard' : SAVE.autoPerch !== false ? 'Auto perch: on' : 'Auto perch: off'; b.disabled = !own || hard; if (hard) b.className = ''; b.onclick = () => { SAVE.autoPerch = SAVE.autoPerch === false; persist(SAVE); UI.dial(); }; fb.appendChild(b); }
     const tb = el('dial-targets'); tb.innerHTML = ''; // what Drones go after (Auto artillery, Kamikaze strike 2, gun drones)
     for (const [k, v] of Object.entries(DRONE_TARGETS)) { const b = document.createElement('button'); b.className = (SAVE.droneTarget || 'jammer') === k ? 'on' : ''; b.textContent = v.name; b.onclick = () => { SAVE.droneTarget = k; persist(SAVE); UI.dial(); }; tb.appendChild(b); }
     drawDial();
@@ -5018,7 +5178,7 @@ if (HAS_DOM) {
     g.save(); g.translate(G.cx, G.cy); g.rotate(-Math.PI / 2); g.fillStyle = '#f6efe0'; g.beginPath(); g.moveTo(14, 0); g.lineTo(-10, 9); g.lineTo(-5, 0); g.lineTo(-10, -9); g.closePath(); g.fill(); g.restore();
     const n = R ? R.motes.length : 1, slots = SAVE.droneSlots || {};
     for (let i = 0; i < n; i++) {
-      const sl = slots[i], [x, y] = sl ? slotXY(G, sl.h, sl.near) : (() => { const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5; return [G.cx + Math.cos(a) * G.R1 * 0.8, G.cy + Math.sin(a) * G.R1 * 0.8]; })();
+      const sl = slots[i], [x, y] = sl ? slotXY(G, sl.h, sl.near) : formation() === 'tight' ? (() => { const a = -Math.PI / 2 + i / n * Math.PI * 2; return [G.cx + Math.cos(a) * G.R0 * 0.8, G.cy + Math.sin(a) * G.R0 * 0.8]; })() : (() => { const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5; return [G.cx + Math.cos(a) * G.R1 * 0.8, G.cy + Math.sin(a) * G.R1 * 0.8]; })(); /* unset Drones show where the formation puts them */
       g.fillStyle = sl ? 'rgba(127,245,255,0.95)' : 'rgba(127,245,255,0.35)'; g.beginPath(); g.arc(x, y, 13, 0, 6.283); g.fill();
       if (i === dialSel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 18, 0, 6.283); g.stroke(); }
       g.fillStyle = '#070a14'; g.font = 'bold 12px Roboto, Arial, sans-serif'; g.fillText(String(i + 1), x, y + 4);
@@ -5103,6 +5263,7 @@ if (HAS_DOM) {
   el('btn-end-note').onclick = () => UI.note('end');
   el('btn-playtest').onclick = () => {
     SAVE.playtest = !SAVE.playtest;
+    if (!SAVE.playtest) { const back = relockSave(SAVE); if (back) SAVE.refundNote = (SAVE.refundNote || []).concat(back); } /* back to real progress: what is ahead re-locks */
     if (SAVE.playtest && !SAVE.playtestGold) { SAVE.playtestGold = true; SAVE.gold += 500; }
     persist(SAVE); UI.settings(SAVE.playtest && SAVE.gold >= 500 ? 'All zones unlocked.' : '');
   };
@@ -5153,7 +5314,9 @@ if (HAS_DOM) {
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
     const hl = Math.floor(run.heat / 2); hud.heat.textContent = '\u25c6'.repeat(hl) + '\u25c7'.repeat(5 - hl); hud.heat.style.color = hl >= 3 ? '#ff8a7a' : '#ffb347';
-    hud.motes.textContent = run.motes.map(m => { const pc = Math.round(m.bat / m.maxBat * 100) + '%'; return m.state === 'dimmed' ? 'down' : m.state === 'perched' ? ((m.jammed ? 'jammed ' : m.anchor && m.anchor.base ? 'on base ' : 'perched ') + pc + (m.cargo ? ' +' + m.cargo + 'xp' : '') + (m.cargoParts ? ' +' + m.cargoParts + 'p' : '')) : m.state === 'follow' ? 'ready ' + pc : m.state === 'diving' ? 'diving' : 'moving ' + pc; }).join(' | ');
+    { const pips = m => { const f = m.bat / m.maxBat, k = Math.max(0, Math.min(5, Math.ceil(f * 5))); return `<span class="pip${f < 0.25 ? ' low' : ''}">${'\u25b0'.repeat(k)}${'\u25b1'.repeat(5 - k)}</span>`; }; /* battery pips per Drone */
+      const html = run.motes.map(m => m.state === 'dimmed' ? 'down' : m.state === 'diving' ? 'diving' : (m.state === 'perched' ? (m.jammed ? 'jammed ' : m.anchor && m.anchor.base ? 'base ' : m.anchor && m.anchor.me ? 'on you ' : m.auto ? 'auto ' : 'perched ') + (m.cargo ? '+' + m.cargo + 'xp ' : '') + (m.cargoParts ? '+' + m.cargoParts + 'p ' : '') : m.state === 'follow' ? 'ready ' : 'moving ') + pips(m)).join(' ');
+      if (hud.motes.dataset.h !== html) { hud.motes.innerHTML = html; hud.motes.dataset.h = html; } }
     hud.toast.innerHTML = run.toasts.map(t => `<div style="opacity:${Math.min(1, t.t)}">${t.txt}</div>`).join('');
   }
 
@@ -5173,7 +5336,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
