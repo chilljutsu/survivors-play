@@ -78,6 +78,7 @@
   #h-motes::before { content:"Drones: "; color:var(--dim); }
   .draft-hint { font-size:13px; color:var(--dim); text-align:center; }
   #end-body p { margin-bottom:6px; }
+  #end-body .rep { border-left:2px solid var(--cyan); padding:2px 0 2px 10px; margin-top:8px; font-size:14px; } #end-body .rep b { display:block; margin-bottom:4px; font-weight:500; }
   /* tutorial */
   #tip { position:fixed; inset:0; display:none; z-index:20; }
   #tip.on { display:block; }
@@ -1071,7 +1072,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-10 s31';
+const BUILD_ID = 'playtest 2026-10-10 s32';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1092,6 +1093,7 @@ const WHATS_NEW = [
   { s: 29, items: ['Food search finds Chick-fil-A as the restaurant serves it: sandwiches, nuggets, fries and every sauce.', 'Search also looks in Open Food Facts, and in most restaurant chains with a Nutritionix key (Settings).', 'USDA foods offer their real portions, like 1 sandwich, not just 100 g.'] },
   { s: 30, items: ['Worlds 6-8 have their own looks: Abyss from Zone 26, Ink from Zone 31, Ruins from Zone 36.'] },
   { s: 31, items: ['Worlds 9 and 10: Frost and Glass.', `Endurance is a journey: every ${ENDURANCE.perWorld} hives takes you to the next world, with gold banked at once. Past World ${ENDURANCE.worlds}, Cosmos never ends.`, 'Reaching a world in Endurance earns its look; Cosmos is earned only there.'] },
+  { s: 32, items: ['After a run, a run report says what hurt you most, what killed you, how long you had no ammo, and what the base took. A feedback note written after a run includes it.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1727,7 +1729,7 @@ function newRun(zoneIdx, mode) {
     fog: { seen: new Uint8Array(COLS * COLS), mapped: new Uint8Array(COLS * COLS) },
     heat: 0, gold: 0, kills: 0, spawnAcc: 0, burstT: 75, pursuitT: 20, shake: 0, boss: null, bossWarn: 0,
     points: lat('rerolls'), skill: {}, draft: null, toasts: [], stats: { maxLevel: 1 }, lastKillT: -9,
-    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], bots: {}, order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
+    cam: { x: WORLD / 2, y: WORLD / 2 }, wcd: {}, marks: [], rep: newReport(), mod: SAVE.modOn && tipSeen('tut_done') ? todayMod() : null, skin: skinFor(z), units: [], bots: {}, order: { mode: 'follow', x: 0, y: 0 }, zoom: clamp(SAVE.zoom || 1, ZOOM.min, ZOOM.max), cam25: SAVE.camera === '25d',
     walls: [], base: { x: WORLD / 2, y: WORLD / 2, hp: 800 * (1 + FORTIFY.hp * lat('fortify')), maxhp: 800 * (1 + FORTIFY.hp * lat('fortify')), alarm: 0, breached: false, cd: 0 }, assaultT: 0, assault: false, assaultCd: 0, assaultLeft: 0,
     ammo: 240, maxAmmo: 240, parts: Math.min(PARTS_CARRY_CAP, SAVE.carryParts || 0), caches: [], builds: [], dryT: 0,
     shells: 4, maxShells: 6, shellT: 0, strikes: [], tipQ: [], tipT: 0,
@@ -2247,7 +2249,7 @@ function updateHives(run, dt) {
       h.turretT -= dt; const p = run.p;
       if (h.turretT <= 0 && dist2(p.x, p.y, h.x, h.y) < HIVE.turretRange * HIVE.turretRange && losClear(run, h.x, h.y, p.x, p.y)) {
         h.turretT = HIVE.turretEvery; const a = Math.atan2(p.y - h.y, p.x - h.x);
-        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: SHOT_R, dmg: 8 * run.M.dmg, t: 3 });
+        run.ebullets.push({ x: h.x, y: h.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: SHOT_R, dmg: 8 * run.M.dmg, t: 3, src: 'hshot' });
       }
     }
     h.decideT -= dt; if (h.decideT <= 0) { h.decideT = HIVE.decideEvery; hiveDecide(run, h); }
@@ -2504,9 +2506,35 @@ function endTutorial(run, skipped) {
 
 /* ---------- update ---------- */
 const input = { dx: 0, dy: 0, keys: {} };
+/* s32 run report (queue #27, Lance 10-08 16:20 "Zone 8"): what hurt you, time with no ammo, base damage, boss time */
+const HURT_NAME = { static: 'Swarm', spike: 'Rushers', null: 'Jammers', harmonic: 'Gunners up close', resonator: 'the boss up close', scout: 'Scouts', gatherer: 'Gatherers',
+  gshot: 'Gunner shots', bshot: 'boss shots', hshot: 'hive turrets', shell: 'your own shells', other: 'other' };
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; // the report is built outside the UI (fmtT lives there)
+const newReport = () => ({ hurt: {}, noAmmo: 0, base: 0, baseLow: 1, bossT: 0, last: null });
+function trackReport(run, dt) {
+  const R = run.rep, b = run.base, W = run.p.weapons, need = W.pulse ? 1 : W.lance ? 4 : 0; /* only when an ammo weapon cannot fire */
+  if (need && run.ammo < need) R.noAmmo += dt;
+  R.baseLow = Math.min(R.baseLow, Math.max(0, b.hp / b.maxhp));
+  if (run.boss && run.boss.hp > 0) R.bossT += dt;
+}
+function reportOf(run, won) { // the summary kept with the run: damage taken by source, its top shares, and the rest
+  const R = run.rep, tot = Object.values(R.hurt).reduce((a, v) => a + v, 0);
+  const top = Object.entries(R.hurt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => [k, tot ? v / tot : 0]);
+  return { top, hurt: Object.fromEntries(Object.entries(R.hurt).map(([k, v]) => [k, Math.round(v)])), killedBy: !won && run.p.hp <= 0 ? R.last : null, taken: Math.round(tot),
+    noAmmo: Math.round(R.noAmmo), base: Math.round(R.base), baseLow: +R.baseLow.toFixed(2), bossT: Math.round(R.bossT) };
+}
+function reportLines(rp) { // plain sentences for the end screen and notes
+  if (!rp) return [];
+  const out = [];
+  if (rp.top.length) out.push(`What hurt you: ${rp.top.map(([k, f]) => `${HURT_NAME[k] || k} ${Math.round(f * 100)}%`).join(', ')}.` + (rp.killedBy ? ` Killed by ${HURT_NAME[rp.killedBy] || rp.killedBy}.` : ''));
+  if (rp.noAmmo >= 5) out.push(`No ammo for ${mmss(rp.noAmmo)}.`);
+  if (rp.base > 0) out.push(`The base took ${rp.base} damage (lowest ${Math.round(rp.baseLow * 100)}%).`);
+  if (rp.bossT > 0) out.push(`Boss fight: ${mmss(rp.bossT)}.`);
+  return out;
+}
 function update(run, dt) {
   const p = run.p;
-  if (!run.tut) run.t += dt;
+  if (!run.tut) { run.t += dt; trackReport(run, dt); }
   const min = run.t / 60;
 
   // movement
@@ -2791,7 +2819,7 @@ function updateEnemies(run, dt) {
         e.cd = 2.6;
         const base = Math.atan2(aim.y - e.y, aim.x - e.x);
         const fan = form(e).fan, gap = form(e).gap; /* a Heavy Gunner fires 7 */
-        for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: SHOT_R, dmg: e.dmg, t: 4 }); }
+        for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: SHOT_R, dmg: e.dmg, t: 4, src: 'gshot' }); }
       }
     } else if (e.type === 'resonator') {
       e.ang += dt * 0.8;
@@ -2799,7 +2827,7 @@ function updateEnemies(run, dt) {
       e.cd -= dt; e.spawnCd -= dt;
       if (e.cd <= 0 && d < 460) {
         e.cd = 3.6; const n = form(e).ring, off = e.ang;
-        for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: SHOT_R + 1, dmg: e.dmg, t: 3.5, ring: true }); }
+        for (let i = 0; i < n; i++) { const a = off + i / n * Math.PI * 2; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 115, vy: Math.sin(a) * 115, r: SHOT_R + 1, dmg: e.dmg, t: 3.5, ring: true, src: 'bshot' }); }
       }
       if (e.spawnCd <= 0) { e.spawnCd = 6; for (let i = 0; i < (run.z.bossAdds || 4) && es.length < ENEMY_CAP; i++) { const s = makeEnemy(run, 'static', e.x + rnd(-60, 60), e.y + rnd(-60, 60)); for (let k = 0; k < 5; k++) spark(run, s.x, s.y, '#ffb347'); } tip(run, 'summon', { at: e }); }
     } else if (e.type === 'null') {
@@ -2819,25 +2847,26 @@ function updateEnemies(run, dt) {
     e.x = clamp(e.x, e.r, WORLD - e.r); e.y = clamp(e.y, e.r, WORLD - e.r);
     if (pushOut(run, e) && !(e.slide > 0)) { e.slide = rnd(0.5, 1.2); e.sdir = Math.random() < 0.5 ? 1 : -1; }
     { const k = Math.min(1, dt * 10); e.mvx = (e.mvx || 0) + (mx * sp - (e.mvx || 0)) * k; e.mvy = (e.mvy || 0) + (my * sp - (e.mvy || 0)) * k; } // its own smoothed stride (not shoves), for Lead shot
-    if (e.target === 'base' && !run.base.breached && dist2(e.x, e.y, run.base.x, run.base.y) < (BASE_R + e.r) * (BASE_R + e.r) && e.hitT <= 0) { e.hitT = 0.8; run.base.hp -= e.dmg * 2; run.base.alarm = 1; run.shake = Math.max(run.shake, 0.3); }
+    if (e.target === 'base' && !run.base.breached && dist2(e.x, e.y, run.base.x, run.base.y) < (BASE_R + e.r) * (BASE_R + e.r) && e.hitT <= 0) { e.hitT = 0.8; run.base.hp -= e.dmg * 2; if (!run.tut) run.rep.base += e.dmg * 2; run.base.alarm = 1; run.shake = Math.max(run.shake, 0.3); }
     // contact damage
-    if (dist2(e.x, e.y, p.x, p.y) < (e.r + p.r) * (e.r + p.r) && e.hitT <= 0) { e.hitT = 0.8; hurtPlayer(run, e.dmg); }
+    if (dist2(e.x, e.y, p.x, p.y) < (e.r + p.r) * (e.r + p.r) && e.hitT <= 0) { e.hitT = 0.8; hurtPlayer(run, e.dmg, e.type); }
   }
   // enemy bullets
   for (const b of run.ebullets) {
     if (b.t <= 0) continue; // already blocked this frame (Intercept, a unit)
     b.x += b.vx * dt; b.y += b.vy * dt; b.t -= dt;
     { const w = wallAt(run, b.x, b.y); if (w) { b.t = 0; if (w.barricade) w.hp -= b.dmg; } } /* a barricade takes the hit */
-    if (dist2(b.x, b.y, p.x, p.y) < (b.r + p.r) * (b.r + p.r)) { hurtPlayer(run, b.dmg); b.t = 0; }
+    if (dist2(b.x, b.y, p.x, p.y) < (b.r + p.r) * (b.r + p.r)) { hurtPlayer(run, b.dmg, b.src); b.t = 0; }
   }
   compact(run.ebullets, b => b.t > 0);
   if (run.endurance && run.ebullets.length > EB_CAP) run.ebullets.splice(0, run.ebullets.length - EB_CAP); /* endless Endurance (Cosmos) reached 3000+: the oldest shots go first; zones are untouched */
 }
 function compact(arr, keep) { let j = 0; for (let i = 0; i < arr.length; i++) { const x = arr[i]; if (keep(x)) arr[j++] = x; } arr.length = j; return arr; } // filter in place: no new array each frame
-function hurtPlayer(run, dmg) {
+function hurtPlayer(run, dmg, src) {
   const p = run.p;
   if (p.inv > 0) return;
   dmg *= modVal(run, 'dmgIn', 1);
+  if (!run.tut) { const k = src || 'other'; run.rep.hurt[k] = (run.rep.hurt[k] || 0) + dmg; run.rep.last = k; } /* the run report: what hurt you (not the tutorial) */
   p.hp -= dmg; p.inv = 0.45; run.shake = 1; SFX.hurt();
   for (let i = 0; i < 6; i++) spark(run, p.x, p.y, '#ff6b5c');
 }
@@ -3384,7 +3413,7 @@ function updateStrikes(run, dt) {
       s.hit = true; s.t = 0; if (run.tut) run.tut.struck = true;
       const dmg = 150 * run.p.dmgMult;
       for (const e of run.enemies) { const d = dist2(e.x, e.y, s.x, s.y); if (d < (s.r + e.r) * (s.r + e.r)) { const l = Math.sqrt(d) || 1; damageEnemy(run, e, dmg * (e.type === 'resonator' ? 0.6 : 1), (e.x - s.x) / l * 30, (e.y - s.y) / l * 30); } }
-      if (dist2(run.p.x, run.p.y, s.x, s.y) < s.r * s.r) hurtPlayer(run, 25);
+      if (dist2(run.p.x, run.p.y, s.x, s.y) < s.r * s.r) hurtPlayer(run, 25, 'shell');
       for (let i = 0; i < 30; i++) spark(run, s.x + rnd(-40, 40), s.y + rnd(-40, 40), '#ffb347');
       run.shake = 1.2; SFX.nova(); buzz(80);
       reapDead(run);
@@ -3625,6 +3654,7 @@ function endRun(run, won) {
   const bonus = run.base.breached ? 0 : Math.round(run.z.gold * run.M.gold);
   const kept = won ? runGold + bonus : Math.round(runGold * salvage);
   run.summary = { endurance: run.endurance ? { killed: run.endurance.killed, stage: run.endurance.stage, banked: run.endurance.banked } : null, won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached, byHives: won && !!run.hives && run.hives.length > 0 && !hivesAlive(run).length };
+  trackReport(run, 0); run.summary.report = reportOf(run, won);
   run.summary.carry = Math.min(PARTS_CARRY_CAP, won ? run.parts : Math.floor(run.parts / 2)); SAVE.carryParts = run.summary.carry;
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won && !run.endurance) statAdd('zones');
@@ -4810,7 +4840,7 @@ if (HAS_DOM) {
       `${Math.round(s.coverage * 100)}% of the map explored.`,
       `<b>+${s.kept} gold</b> (${Math.round(SAVE.gold)} banked).`,
       s.carry ? `${s.carry} unspent parts carry to your next run.` : '',
-    ].filter(Boolean).map(x => `<p>${x}</p>`).join('');
+    ].filter(Boolean).map(x => `<p>${x}</p>`).join('') + (s.report && reportLines(s.report).length ? `<div class="rep"><b>Run report</b>${reportLines(s.report).map(x => `<p>${x}</p>`).join('')}</div>` : '');
     // the Workshop nudge: name the cheapest affordable upgrade
     const aff = LATTICE.map(u => ({ u, lvl: lat(u.id) })).filter(o => o.lvl < o.u.max).map(o => ({ ...o, cost: latticeCost(o.u, o.lvl) })).filter(o => o.cost <= SAVE.gold).sort((a, b) => (['signal', 'capacitor'].includes(b.u.id) - ['signal', 'capacitor'].includes(a.u.id)) || a.cost - b.cost)[0]; // damage/health first: they are what beat the next zone
     const wb = el('btn-end-shop'); wb.style.display = aff ? '' : 'none';
@@ -5017,7 +5047,7 @@ if (HAS_DOM) {
     catch (e) { return false; }
     finally { delete n.sending; persist(SAVE); }
   }
-  const noteCtx = () => !R ? 'menu' : `${R.z.name} ${R.M.name}, ${fmtT(R.t)} in, level ${R.p.level}, ${R.kills} kills, HP ${Math.round(R.p.hp)}/${R.p.maxhp}, ammo ${Math.floor(R.ammo)}${R.over ? (R.result === 'win' ? ', cleared' : ', died') : ''}`;
+  const noteCtx = () => !R ? 'menu' : `${R.z.name} ${R.M.name}, ${fmtT(R.t)} in, level ${R.p.level}, ${R.kills} kills, HP ${Math.round(R.p.hp)}/${R.p.maxhp}, ammo ${Math.floor(R.ammo)}${R.over ? (R.result === 'win' ? ', cleared' : ', died') : ''}${R.over && R.summary && R.summary.report ? '. ' + reportLines(R.summary.report).join(' ') : ''}`; /* a note written after a run carries its report */
   const noteLine = n => `[${n.at.slice(0, 16).replace('T', ' ')}] ${n.ctx}\n${n.text}`;
   UI.note = back => { noteBack = back; UI.go('note'); el('note-ctx').textContent = noteCtx(); el('note-text').value = ''; setTimeout(() => el('note-text').focus(), 60); };
   const noteReturn = msg => { if (noteBack === 'pause') { UI.go('pause'); el('pause-msg').textContent = msg || ''; } else if (noteBack === 'end') UI.go('end'); else UI.notes(msg); };
@@ -5143,7 +5173,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
