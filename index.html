@@ -521,16 +521,18 @@ const ZONES = [
 const WORLDS = { 1: { name: 'World 1: Static', skin: 'static' }, 2: { name: 'World 2: Meadow', skin: 'chibi' } };
 /* Zones 11-50 (Lance 10-08: "go over the whole game to see if it's balanced up to 50 levels ahead"), generated: five
    zones a world, more enemies (capped at ENEMY_CAP, so from ~Zone 20 Elite forms carry the climb), more evolved and
-   Elite forms, more boss escorts, faster hives. Worlds 3-8 have their own looks (s26-s30); 9-10 keep the old colours until Lance picks theirs.
+   Elite forms, more boss escorts, faster hives. Worlds 3-10 have their own looks (s26-s31).
    Checked by tools/campaign.js (docs/BALANCE_LOG.md, "Standard checks"). */
-/* Endurance (Lance 10-08: "have it in endurance mode for sure"): no timer; destroy ENDURANCE.goal hives to win while new
-   hives keep growing in and a boss comes every few minutes, tougher over time. Pressure starts at your current zone's
-   spec and the pressure clock never stops. Your supply chain and Factory orders carry over as in any run. */
-const ENDURANCE = { goal: 10, hiveEvery: 150, maxHives: 9, bossEvery: 360, gold: 3000, openAt: 3, paceTo: 3, paceAfter: 0.15 }; /* its clock climbs to minute 3, then slowly: new hives and bosses bring the rest */
+/* Endurance as a journey (Lance 10-10: "you progress through worlds in endurance mode and at some ridiculous point you enter
+   cosmos and that never really ends"): every ENDURANCE.perWorld hives destroyed takes you to the next world (its look,
+   its pressure, gold banked at once); past World 10 is Cosmos, endless. Reaching a world here also earns its look.
+   It always starts in World 1; new hives keep growing in, a boss comes every few minutes, tougher each time, and the
+   pressure clock never stops. Your supply chain and Factory orders carry over as in any run. */
+const ENDURANCE = { perWorld: 2, worlds: 10, stageGold: 150, cosmosGold: 1500, hiveEvery: 150, maxHives: 9, bossEvery: 360, openAt: 3, paceTo: 3, paceAfter: 0.15 }; /* its clock climbs to minute 3, then slowly: new hives and bosses bring the rest */
 const ZONE_DUR = [180, 300, 420, 540, 600]; // by place in a world (Lance 10-08: "the last zone of each world is about 10min, starting from maybe 3 min")
-const WORLD_LOOK = { 3: 'pnw', 4: 'anime', 5: 'dronewar', 6: 'abyss', 7: 'ink', 8: 'ruins' }; // generated worlds that have their own look so far
-const WORLD_BLURB = { 6: 'The deep sea: only living things glow.', 7: 'A woodblock print: black ink and a red seal mark the danger.', 8: 'Sandstone at noon: scarabs, jackals and cobras.' };
-const WORLD_NAMES = { 3: 'Forest', 4: 'Dusk', 5: 'Frontline', 6: 'Abyss', 7: 'Ink', 8: 'Ruins', 9: 'Storm', 10: 'Core' };
+const WORLD_LOOK = { 3: 'pnw', 4: 'anime', 5: 'dronewar', 6: 'abyss', 7: 'ink', 8: 'ruins', 9: 'tundra', 10: 'glass' }; // generated worlds that have their own look so far
+const WORLD_BLURB = { 6: 'The deep sea: only living things glow.', 7: 'A woodblock print: black ink and a red seal mark the danger.', 8: 'Sandstone at noon: scarabs, jackals and cobras.', 9: 'Polar night: frost wisps, wolves and a mammoth.', 10: 'A cathedral window: crimson and violet glass.' };
+const WORLD_NAMES = { 3: 'Forest', 4: 'Dusk', 5: 'Frontline', 6: 'Abyss', 7: 'Ink', 8: 'Ruins', 9: 'Frost', 10: 'Glass' };
 for (let n = 11; n <= 50; n++) {
   const k = n - 10, w = 3 + Math.floor((n - 11) / 5), first = (n - 11) % 5 === 0, elite = Math.max(0, 0.022 * (k - 8)); /* s21: gentler (s20 campaign walled from Zone 24) */
   if (first) WORLDS[w] = { name: `World ${w}: ${WORLD_NAMES[w]}`, skin: WORLD_LOOK[w] || (w % 2 ? 'static' : 'ember') }; /* worlds without their own look yet keep the old colours (s27-s28) */
@@ -794,15 +796,115 @@ Object.assign(LOOK_DRAW, {
     cell(g, x, y, S, i) { const a = hash(i); if (a < 0.4) { g.strokeStyle = 'rgba(122,85,48,0.18)'; g.lineWidth = 1.5; g.beginPath(); const py = y + S * (0.3 + a); g.moveTo(x + S * 0.1, py); g.quadraticCurveTo(x + S * 0.5, py - 10, x + S * 0.9, py); g.stroke(); } }, /* dune ripples */
   },
 });
+/* s31 (Lance 10-10: "they're all fine"): World 9 Frost and World 10 Glass from demos/worlds9-10.html, and Cosmos, the
+   look at the end of the Endurance journey. Yours: orange (Frost), gold and white (Glass and Cosmos). */
+THEMES.tundra = { name: 'Frost', style: 'Frozen tundra', bg: '#0d1b2a', grid: null, wall: '#2a4a66', wallDim: '#22405a', edge: '#cfefff', edgeDim: 'rgba(207,239,255,0.3)', edgeMem: 'rgba(207,239,255,0.55)', fog: 'rgba(4,10,20,0.84)', noise: [-6, 4, 14],
+  bolt: '#ffb27a', tbolt: '#ff7a3d', shot: ['rgba(127,212,255,0.75)', '#e8f8ff'], accent: '#ff7a3d', night: 'rgba(0,4,12,0.74)' };
+THEMES.glass = { name: 'Glass', style: 'Stained glass', bg: '#1a1420', grid: null, wall: '#6a5a80', wallDim: '#5a4a6e', edge: '#f0e6ff', edgeDim: 'rgba(240,230,255,0.4)', edgeMem: 'rgba(240,230,255,0.65)', /* pale walls with bright lead edges: they read against the dark glass (Lance 10-10) */ fog: 'rgba(8,5,12,0.82)', noise: [8, 0, 14],
+  bolt: '#fff4d0', tbolt: '#f2c14e', shot: ['rgba(192,40,60,0.8)', '#ffe0e6'], accent: '#f2c14e', night: 'rgba(4,2,8,0.74)' };
+THEMES.cosmos = { name: 'Cosmos', style: 'Painted space', bg: '#0b0820', grid: null, wall: '#3a3150', wallDim: '#2e2742', edge: '#8a7ab8', edgeDim: 'rgba(138,122,184,0.3)', edgeMem: 'rgba(138,122,184,0.55)', fog: 'rgba(4,2,12,0.84)', noise: [4, 0, 16],
+  bolt: '#fff6d8', tbolt: '#ffcf5a', shot: ['rgba(255,77,141,0.75)', '#ffe0ee'], accent: '#ffcf5a', night: 'rgba(2,0,8,0.74)' };
+const lead = g => { g.strokeStyle = '#0a070d'; g.lineWidth = 1.5; g.stroke(); }; // Glass: every pane gets a lead line
+Object.assign(LOOK_DRAW, {
+  tundra: { // World 9, Frost: polar night, blue snow; you and yours in warm orange, everything cold is a threat
+    player(g, r) { g.fillStyle = '#ff7a3d'; g.beginPath(); g.moveTo(-r, r * 1.3); g.lineTo(-r * 0.7, -r * 0.2); g.lineTo(r * 0.7, -r * 0.2); g.lineTo(r, r * 1.3); g.fill(); g.fillStyle = '#f2e6d8'; dot(g, 0, -r * 0.6, r * 0.75); g.fillStyle = '#ffd9b8'; dot(g, 0, -r * 0.55, r * 0.45); g.fillStyle = '#3a2a20'; dot(g, -r * 0.15, -r * 0.6, r * 0.08); dot(g, r * 0.15, -r * 0.6, r * 0.08); }, /* parka */
+    mote(g, r, o) { const c = o.jammed ? '#7a8a9a' : '#ff7a3d'; g.fillStyle = o.jammed ? 'rgba(122,138,154,0.25)' : 'rgba(255,122,61,0.25)'; dot(g, 0, 0, r * 1.6); g.strokeStyle = c; g.lineWidth = 2; g.beginPath(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2); } g.stroke(); g.fillStyle = o.jammed ? '#9aaaba' : '#ffb27a'; dot(g, 0, 0, r * 0.45); },
+    static(g, r) { g.fillStyle = 'rgba(207,239,255,0.22)'; dot(g, 0, 0, r * 1.2); g.strokeStyle = '#cfefff'; g.lineWidth = 1.6; g.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283, c = Math.cos(a), s = Math.sin(a); g.moveTo(0, 0); g.lineTo(c * r * 1.1, s * r * 1.1); g.moveTo(c * r * 0.6 + Math.cos(a + 0.6) * r * 0.25, s * r * 0.6 + Math.sin(a + 0.6) * r * 0.25); g.lineTo(c * r * 0.6, s * r * 0.6); } g.stroke(); }, /* frost wisp */
+    spike(g, r, o, now, face) { g.rotate(face + Math.PI / 2); g.fillStyle = '#9fb3c8'; g.beginPath(); g.moveTo(0, -r * 1.6); g.lineTo(r * 0.6, -r * 0.2); g.lineTo(r * 0.45, r * 1.1); g.lineTo(-r * 0.45, r * 1.1); g.lineTo(-r * 0.6, -r * 0.2); g.closePath(); g.moveTo(-r * 0.45, -r * 0.9); g.lineTo(-r * 0.7, -r * 1.5); g.lineTo(-r * 0.15, -r * 1.1); g.moveTo(r * 0.45, -r * 0.9); g.lineTo(r * 0.7, -r * 1.5); g.lineTo(r * 0.15, -r * 1.1); g.fill(); g.fillStyle = '#7fd4ff'; dot(g, -r * 0.2, -r * 0.7, r * 0.12); dot(g, r * 0.2, -r * 0.7, r * 0.12); }, /* frost wolf */
+    null(g, r, o, now) { g.fillStyle = 'rgba(207,239,255,0.18)'; dot(g, 0, 0, r * 1.3); g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 2.2; g.beginPath(); for (let i = 0; i < 3; i++) { const a = now * 3 + i * 2.1, rr = r * (0.5 + i * 0.3); g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); g.arc(0, 0, rr, a, a + 3.6); } g.stroke(); g.fillStyle = '#7fd4ff'; dot(g, -r * 0.22, -r * 0.1, r * 0.14); dot(g, r * 0.22, -r * 0.1, r * 0.14); }, /* blizzard spirit */
+    harmonic(g, r) { g.fillStyle = '#7fd4ff'; ngon(g, 6, r * 1.1, Math.PI / 6); g.fill(); g.fillStyle = '#cfefff'; ngon(g, 6, r * 0.55, Math.PI / 6); g.fill(); g.fillStyle = '#0d1b2a'; dot(g, 0, 0, r * 0.18); }, /* ice crystal */
+    resonator(g, r, o, now) { g.fillStyle = '#8a9aaa'; oval(g, 0, 0, r * 1.1, r * 0.95); g.fillStyle = '#6a7a8a'; oval(g, 0, r * 0.55, r * 0.3, r * 0.6); g.strokeStyle = '#f2f6fa'; g.lineWidth = r * 0.14; g.lineCap = 'round'; g.beginPath(); g.moveTo(-r * 0.3, r * 0.35); g.quadraticCurveTo(-r * 0.9, r * 0.9, -r * 0.5, r * 1.3); g.moveTo(r * 0.3, r * 0.35); g.quadraticCurveTo(r * 0.9, r * 0.9, r * 0.5, r * 1.3); g.stroke(); g.lineCap = 'butt';
+      const k = 0.55 + 0.45 * Math.sin(now * 5); g.fillStyle = `rgba(127,212,255,${k})`; dot(g, -r * 0.4, -r * 0.15, r * 0.14); dot(g, r * 0.4, -r * 0.15, r * 0.14); }, /* mammoth */
+    hive(g, r) { g.fillStyle = 'rgba(127,212,255,0.3)'; dot(g, 0, -r * 0.2, r * 1.2); g.fillStyle = '#5aa8d8'; g.beginPath(); for (const [x, h, w] of [[-r * 0.6, 1.1, 0.3], [0, 1.7, 0.38], [r * 0.6, 1.25, 0.3]]) { g.moveTo(x - r * w, r * 0.6); g.lineTo(x, -r * h); g.lineTo(x + r * w, r * 0.6); } g.fill(); g.fillStyle = '#0d1b2a'; g.beginPath(); g.arc(0, r * 0.6, r * 0.35, Math.PI, 0); g.fill(); }, /* ice spires */
+    scout(g, r, o, now, face) { g.rotate(face); g.fillStyle = '#cfefff'; g.beginPath(); g.moveTo(r * 1.4, 0); g.lineTo(-r, -r * 0.5); g.lineTo(-r * 0.5, 0); g.lineTo(-r, r * 0.5); g.closePath(); g.fill(); }, /* ice shard */
+    gatherer(g, r, o) { g.fillStyle = '#9fb3c8'; oval(g, 0, r * 0.1, r, r * 0.8); g.beginPath(); g.moveTo(-r * 0.4, -r * 0.4); g.lineTo(-r * 0.3, -r * 1.3); g.lineTo(-r * 0.05, -r * 0.5); g.moveTo(r * 0.4, -r * 0.4); g.lineTo(r * 0.3, -r * 1.3); g.lineTo(r * 0.05, -r * 0.5); g.fill(); g.fillStyle = '#7fd4ff'; dot(g, -r * 0.25, -r * 0.1, r * 0.12); dot(g, r * 0.25, -r * 0.1, r * 0.12); if (o.carry) { g.fillStyle = '#ffd166'; dot(g, r * 0.9, r * 0.5, r * 0.4); } }, /* snow hare */
+    gun(g, r) { g.fillStyle = '#ff7a3d'; ngon(g, 4, r * 1.05, 0); g.fill(); g.fillStyle = '#ffd9b8'; dot(g, 0, 0, r * 0.3); },
+    scav(g, r, o) { g.fillStyle = '#ff9a5a'; oval(g, 0, r * 0.15, r * 0.8, r * 0.65); g.beginPath(); g.moveTo(-r * 0.6, -r * 0.2); g.lineTo(-r * 0.45, -r); g.lineTo(-r * 0.1, -r * 0.4); g.moveTo(r * 0.6, -r * 0.2); g.lineTo(r * 0.45, -r); g.lineTo(r * 0.1, -r * 0.4); g.fill(); g.fillStyle = '#f2e6d8'; dot(g, 0, r * 0.25, r * 0.3); if (o.carry) { g.fillStyle = '#ffd166'; dot(g, r * 0.8, r * 0.6, r * 0.35); } }, /* husky */
+    fix(g, r) { g.fillStyle = '#f2f6fa'; dot(g, 0, 0, r * 0.95); g.fillStyle = '#ff7a3d'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#5a6a7a' : '#ff7a3d'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.fillStyle = '#f2f6fa'; g.fillRect(-r * 1.25, r * 0.3, r * 0.4, r * 0.5); g.fillStyle = '#3a2a20'; g.fillRect(-r * 0.6, -r * 0.4, r * 0.8, r * 0.4); }, /* snowplow */
+    haul(g, r, o) { g.fillStyle = o.jam ? '#7a4ab0' : '#5a3a26'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.strokeStyle = '#ff7a3d'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.6, r * 2, r * 1.2); const k = haulFrac(o); g.fillStyle = '#ffb27a'; if (k > 0) g.fillRect(-r * 0.8, -r * 0.45, r * 1.6 * k, r * 0.9); }, /* sled */
+    turret(g, r) { g.fillStyle = '#5a3a26'; g.fillRect(-r * 0.7, -r * 0.6, r * 1.4, r * 1.5); g.fillStyle = '#f2f6fa'; g.beginPath(); g.moveTo(-r * 0.95, -r * 0.6); g.lineTo(0, -r * 1.2); g.lineTo(r * 0.95, -r * 0.6); g.fill(); g.fillStyle = '#ff7a3d'; dot(g, 0, -r * 0.1, r * 0.3); }, /* watch hut */
+    jammer(g, r, o, now) { g.fillStyle = '#ff7a3d'; g.beginPath(); g.moveTo(0, -r * 1.2); g.lineTo(r * 0.6, r * 0.8); g.lineTo(-r * 0.6, r * 0.8); g.closePath(); g.fill(); const k = 0.4 + 0.5 * Math.sin(now * 5); g.strokeStyle = `rgba(255,122,61,${k})`; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r * 1.3, 0, 6.283); g.stroke(); },
+    extractor(g, r, o, now) { g.fillStyle = '#5a3a26'; g.fillRect(-r * 0.85, -r * 0.4, r * 1.7, r * 1.2); g.strokeStyle = '#ff7a3d'; g.lineWidth = 2; g.save(); g.translate(0, r * 0.2); g.rotate(now * 3); g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(r * 0.5, 0); g.moveTo(0, -r * 0.5); g.lineTo(0, r * 0.5); g.stroke(); g.restore(); },
+    base(g, s) { g.fillStyle = 'rgba(255,122,61,0.22)'; dot(g, 0, s * 0.2, s * 0.7); g.fillStyle = '#5a3a26'; g.fillRect(-s * 0.55, -s * 0.05, s * 1.1, s * 0.45); g.fillStyle = '#f2f6fa'; g.beginPath(); g.moveTo(-s * 0.7, -s * 0.02); g.lineTo(0, -s * 0.55); g.lineTo(s * 0.7, -s * 0.02); g.fill(); g.fillStyle = '#ffb27a'; g.fillRect(-s * 0.32, s * 0.08, s * 0.18, s * 0.16); g.fillRect(s * 0.14, s * 0.08, s * 0.18, s * 0.16); }, /* warm cabin */
+    perch(g, r, o) { g.fillStyle = o.mote ? '#ff7a3d' : '#4a6a86'; ngon(g, 4, r * 0.4, 0); g.fill(); },
+    deposit(g, r) { g.fillStyle = '#bfe8ff'; for (const [x, y, h] of [[-r * 0.45, r * 0.2, 0.7], [r * 0.4, r * 0.25, 0.6], [0, 0, 1]]) { g.beginPath(); g.moveTo(x, y - r * h); g.lineTo(x + r * 0.25, y); g.lineTo(x, y + r * 0.2); g.lineTo(x - r * 0.25, y); g.closePath(); g.fill(); } }, /* ice crystals */
+    cache(g, r) { g.fillStyle = '#c0582a'; g.fillRect(-r, -r * 0.65, r * 2, r * 1.3); g.fillStyle = '#f2f6fa'; g.fillRect(-r, -r * 0.65, r * 2, r * 0.3); }, /* supply crate under snow */
+    xp(g, r) { g.fillStyle = '#ffd166'; ngon(g, 4, r * 1.2, 0); g.fill(); },
+    part(g, r) { g.fillStyle = '#ffb27a'; ngon(g, 6, r, 0); g.fill(); },
+    heal(g, r) { g.fillStyle = '#ff9a6a'; g.fillRect(-r, -r * 0.3, r * 2, r * 0.6); g.fillRect(-r * 0.3, -r, r * 0.6, r * 2); },
+    wallTop(g, x, y, w, h) { g.fillStyle = 'rgba(240,248,255,0.35)'; g.fillRect(x, y, w, Math.min(h, 7)); }, /* a snow cap */
+    cell(g, x, y, S, i) { const a = hash(i); if (a < 0.35) { g.strokeStyle = 'rgba(207,239,255,0.10)'; g.lineWidth = 2; g.beginPath(); const py = y + S * (0.3 + a); g.moveTo(x + S * 0.1, py); g.quadraticCurveTo(x + S * 0.5, py - 10, x + S * 0.9, py + 3); g.stroke(); } else if (a > 0.82) { g.fillStyle = a > 0.96 ? 'rgba(125,255,154,0.05)' : 'rgba(255,255,255,0.35)'; if (a > 0.96) g.fillRect(x, y, S, S); else dot(g, x + hash(i + 3) * S, y + hash(i + 5) * S, 1.4); } }, /* drifts, snow, a little aurora light */
+  },
+  glass: { // World 10, Glass: every shape a pane with lead lines; yours gold and white, threats crimson and violet
+    player(g, r) { g.fillStyle = '#f2c14e'; g.beginPath(); g.moveTo(-r, r * 1.3); g.lineTo(-r * 0.6, -r * 0.2); g.lineTo(r * 0.6, -r * 0.2); g.lineTo(r, r * 1.3); g.closePath(); g.fill(); lead(g); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(0, -r * 0.6, r * 0.6, 0, 6.283); g.fill(); lead(g); g.beginPath(); g.moveTo(0, -r * 0.2); g.lineTo(0, r * 1.3); lead(g); },
+    mote(g, r, o) { g.fillStyle = o.jammed ? '#8a7a9a' : '#f2c14e'; ngon(g, 4, r * 1.2, 0); g.fill(); lead(g); g.fillStyle = '#ffffff'; ngon(g, 4, r * 0.5, 0); g.fill(); lead(g); },
+    static(g, r) { g.fillStyle = '#e0465a'; g.beginPath(); g.moveTo(0, -r * 1.2); g.lineTo(r * 0.8, 0); g.lineTo(0, r * 1.2); g.lineTo(-r * 0.8, 0); g.closePath(); g.fill(); g.moveTo(-r * 0.8, 0); g.lineTo(r * 0.8, 0); lead(g); }, /* shard */
+    spike(g, r, o, now, face) { g.rotate(face + Math.PI / 2); g.fillStyle = '#c0283c'; g.beginPath(); g.moveTo(0, -r * 1.6); g.lineTo(r * 0.7, r); g.lineTo(0, r * 0.5); g.lineTo(-r * 0.7, r); g.closePath(); g.fill(); g.moveTo(0, -r * 1.6); g.lineTo(0, r * 0.5); lead(g); },
+    null(g, r) { g.fillStyle = '#6a2c91'; dot(g, 0, 0, r * 1.1); g.fillStyle = '#9a5ac8'; g.beginPath(); for (let i = 0; i < 8; i += 2) { g.moveTo(0, 0); g.arc(0, 0, r * 1.1, i / 8 * 6.283, (i + 1) / 8 * 6.283); g.closePath(); } g.fill(); g.beginPath(); g.arc(0, 0, r * 1.1, 0, 6.283); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1); } lead(g); g.fillStyle = '#c0283c'; dot(g, 0, 0, r * 0.25); }, /* rose window */
+    harmonic(g, r) { g.fillStyle = '#6a2c91'; ngon(g, 6, r * 1.1, 0); g.fill(); lead(g); g.fillStyle = '#c0283c'; ngon(g, 6, r * 0.45, 0); g.fill(); lead(g); },
+    resonator(g, r, o, now) { g.fillStyle = '#4a1a3a'; dot(g, 0, 0, r); g.fillStyle = '#8a1e2e'; g.beginPath(); for (let i = 0; i < 12; i += 2) { g.moveTo(0, 0); g.arc(0, 0, r, i / 12 * 6.283, (i + 1) / 12 * 6.283); g.closePath(); } g.fill(); g.beginPath(); g.arc(0, 0, r, 0, 6.283); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.strokeStyle = '#0a070d'; g.lineWidth = 2.5; g.stroke();
+      const k = 0.55 + 0.45 * Math.sin(now * 5); g.fillStyle = `rgba(255,70,90,${k})`; dot(g, 0, 0, r * 0.3); }, /* great rose window */
+    hive(g, r) { g.fillStyle = '#8a1e2e'; g.beginPath(); g.moveTo(-r, r * 0.8); g.lineTo(-r, -r * 0.3); g.arc(0, -r * 0.3, r, Math.PI, 0); g.lineTo(r, r * 0.8); g.closePath(); g.fill(); lead(g); g.fillStyle = '#c0283c'; g.beginPath(); g.arc(0, -r * 0.3, r * 0.5, 0, 6.283); g.fill(); lead(g); g.beginPath(); g.moveTo(0, r * 0.2); g.lineTo(0, r * 0.8); g.moveTo(-r, r * 0.2); g.lineTo(r, r * 0.2); lead(g); }, /* crimson arch */
+    scout(g, r, o, now, face) { g.rotate(face); g.fillStyle = '#e0465a'; g.beginPath(); g.moveTo(r * 1.4, 0); g.lineTo(-r, -r * 0.6); g.lineTo(-r, r * 0.6); g.closePath(); g.fill(); lead(g); },
+    gatherer(g, r, o) { g.fillStyle = '#6a2c91'; g.beginPath(); g.ellipse(0, 0, r * 1.05, r * 0.85, 0, 0, 6.283); g.fill(); lead(g); g.fillStyle = '#c0283c'; dot(g, 0, -r * 0.2, r * 0.2); if (o.carry) { g.fillStyle = '#f2c14e'; dot(g, r * 0.9, r * 0.4, r * 0.4); } },
+    gun(g, r) { g.fillStyle = '#f2c14e'; ngon(g, 4, r * 1.05, 0); g.fill(); lead(g); g.fillStyle = '#ffffff'; dot(g, 0, 0, r * 0.3); },
+    scav(g, r, o) { g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(0, r * 0.15, r * 0.8, r * 0.65, 0, 0, 6.283); g.fill(); lead(g); g.fillStyle = '#f2c14e'; g.beginPath(); g.moveTo(-r * 0.6, -r * 0.2); g.lineTo(-r * 0.45, -r); g.lineTo(-r * 0.1, -r * 0.4); g.closePath(); g.moveTo(r * 0.6, -r * 0.2); g.lineTo(r * 0.45, -r); g.lineTo(r * 0.1, -r * 0.4); g.closePath(); g.fill(); lead(g); if (o.carry) { g.fillStyle = '#f2c14e'; dot(g, r * 0.8, r * 0.6, r * 0.35); } },
+    fix(g, r) { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(0, 0, r * 0.95, 0, 6.283); g.fill(); lead(g); g.fillStyle = '#f2c14e'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#6a5a7a' : '#f2c14e'; g.beginPath(); g.rect(-r, -r * 0.7, r * 2, r * 1.4); g.fill(); lead(g); g.fillStyle = '#ffffff'; g.fillRect(-r * 0.6, -r * 0.4, r * 1.2, r * 0.35); },
+    haul(g, r, o) { g.fillStyle = o.jam ? '#7a4ab0' : '#3a2a4a'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.strokeStyle = '#f2c14e'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.6, r * 2, r * 1.2); const k = haulFrac(o); g.fillStyle = '#f2c14e'; if (k > 0) g.fillRect(-r * 0.8, -r * 0.45, r * 1.6 * k, r * 0.9); },
+    turret(g, r) { g.fillStyle = '#f2c14e'; g.beginPath(); g.moveTo(-r * 0.7, r * 0.9); g.lineTo(-r * 0.7, -r * 0.4); g.arc(0, -r * 0.4, r * 0.7, Math.PI, 0); g.lineTo(r * 0.7, r * 0.9); g.closePath(); g.fill(); lead(g); g.fillStyle = '#ffffff'; dot(g, 0, -r * 0.3, r * 0.3); }, /* chapel tower */
+    jammer(g, r, o, now) { g.fillStyle = '#f2c14e'; g.beginPath(); g.moveTo(0, -r * 1.2); g.lineTo(r * 0.7, r * 0.8); g.lineTo(-r * 0.7, r * 0.8); g.closePath(); g.fill(); lead(g); const k = 0.4 + 0.5 * Math.sin(now * 5); g.strokeStyle = `rgba(242,193,78,${k})`; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r * 1.3, 0, 6.283); g.stroke(); },
+    extractor(g, r, o, now) { g.fillStyle = '#3a2a4a'; g.fillRect(-r * 0.85, -r * 0.4, r * 1.7, r * 1.2); g.strokeStyle = '#f2c14e'; g.lineWidth = 2; g.save(); g.translate(0, r * 0.2); g.rotate(now * 3); g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(r * 0.5, 0); g.moveTo(0, -r * 0.5); g.lineTo(0, r * 0.5); g.stroke(); g.restore(); },
+    base(g, s) { g.fillStyle = '#f2c14e'; g.beginPath(); g.moveTo(-s * 0.5, s * 0.4); g.lineTo(-s * 0.5, -s * 0.1); g.arc(0, -s * 0.1, s * 0.5, Math.PI, 0); g.lineTo(s * 0.5, s * 0.4); g.closePath(); g.fill(); g.strokeStyle = '#0a070d'; g.lineWidth = 2.5; g.stroke(); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(-s * 0.18, s * 0.4); g.lineTo(-s * 0.18, s * 0.05); g.arc(0, s * 0.05, s * 0.18, Math.PI, 0); g.lineTo(s * 0.18, s * 0.4); g.fill(); g.stroke(); }, /* gold chapel */
+    perch(g, r, o) { g.fillStyle = o.mote ? '#f2c14e' : '#8a7a9a'; ngon(g, 4, r * 0.4, 0); g.fill(); },
+    deposit(g, r) { g.fillStyle = '#3aa0a0'; for (const [x, y, h] of [[-r * 0.45, r * 0.2, 0.7], [r * 0.4, r * 0.25, 0.6], [0, 0, 1]]) { g.beginPath(); g.moveTo(x, y - r * h); g.lineTo(x + r * 0.25, y); g.lineTo(x, y + r * 0.2); g.lineTo(x - r * 0.25, y); g.closePath(); g.fill(); lead(g); } }, /* green glass shards */
+    cache(g, r) { g.fillStyle = '#8a6a2a'; g.beginPath(); g.rect(-r, -r * 0.6, r * 2, r * 1.2); g.fill(); lead(g); g.fillStyle = '#f2c14e'; g.fillRect(-r, -r * 0.12, r * 2, r * 0.24); }, /* reliquary */
+    xp(g, r) { g.fillStyle = '#f2c14e'; ngon(g, 4, r * 1.2, 0); g.fill(); },
+    part(g, r) { g.fillStyle = '#c8b8d8'; ngon(g, 6, r, 0); g.fill(); },
+    heal(g, r) { g.fillStyle = '#5ad28a'; g.fillRect(-r, -r * 0.3, r * 2, r * 0.6); g.fillRect(-r * 0.3, -r, r * 0.6, r * 2); },
+    wallTop(g, x, y, w, h) { g.fillStyle = 'rgba(242,193,78,0.22)'; for (let yy = y + 3; yy < y + h - 3; yy += 16) for (let xx = x + 3 + ((yy - y) % 32 ? 8 : 0); xx < x + w - 10; xx += 16) g.fillRect(xx, yy, 10, 10); g.strokeStyle = 'rgba(10,7,13,0.55)'; g.lineWidth = 1.5; g.strokeRect(x + 2, y + 2, w - 4, h - 4); }, /* window panes, so walls read as glass you cannot pass */
+    cell(g, x, y, S, i) { const a = hash(i); g.fillStyle = a < 0.25 ? 'rgba(42,90,160,0.22)' : a < 0.5 ? 'rgba(40,120,90,0.2)' : a < 0.75 ? 'rgba(160,120,40,0.18)' : 'rgba(120,50,140,0.18)'; g.fillRect(x + 2, y + 2, S - 4, S - 4); }, /* coloured floor panes; the dark gaps are the lead */
+  },
+  cosmos: { // Cosmos (Endurance's last stage): painted space. Yours white and gold, threats pink, violet and rock
+    player(g, r) { g.fillStyle = '#f2f2f8'; g.beginPath(); g.moveTo(-r * 0.9, r * 1.3); g.lineTo(-r * 0.75, -r * 0.1); g.lineTo(r * 0.75, -r * 0.1); g.lineTo(r * 0.9, r * 1.3); g.fill(); dot(g, 0, -r * 0.6, r * 0.8); g.fillStyle = '#ffcf5a'; oval(g, 0, -r * 0.55, r * 0.55, r * 0.38); g.fillStyle = 'rgba(255,255,255,0.7)'; dot(g, -r * 0.2, -r * 0.65, r * 0.1); g.fillStyle = '#c8c8d8'; g.fillRect(-r * 1.05, -r * 0.05, r * 0.3, r * 0.9); }, /* astronaut */
+    mote(g, r, o) { g.fillStyle = o.jammed ? '#7a6a9a' : '#ffcf5a'; g.fillRect(-r * 1.6, -r * 0.35, r * 0.9, r * 0.7); g.fillRect(r * 0.7, -r * 0.35, r * 0.9, r * 0.7); g.fillStyle = '#f2f2f8'; dot(g, 0, 0, r * 0.55); }, /* satellite */
+    static(g, r) { g.fillStyle = 'rgba(255,138,180,0.35)'; g.beginPath(); g.moveTo(0, -r * 0.6); g.lineTo(-r * 2.2, 0); g.lineTo(0, r * 0.6); g.fill(); g.fillStyle = '#ff8ab4'; dot(g, 0, 0, r * 0.7); g.fillStyle = '#ffffff'; dot(g, r * 0.15, -r * 0.15, r * 0.25); }, /* comet */
+    spike(g, r, o, now, face) { g.rotate(face + Math.PI / 2); g.fillStyle = 'rgba(255,154,60,0.55)'; g.beginPath(); g.moveTo(-r * 0.6, r * 0.3); g.lineTo(0, r * 2.2); g.lineTo(r * 0.6, r * 0.3); g.fill(); g.fillStyle = '#7a5a4a'; ngon(g, 7, r * 0.9, 0.3); g.fill(); g.fillStyle = '#5a4034'; dot(g, -r * 0.25, -r * 0.2, r * 0.2); dot(g, r * 0.3, r * 0.2, r * 0.15); }, /* meteor */
+    null(g, r, o, now) { const k = 0.6 + 0.4 * Math.sin(now * 4); g.strokeStyle = `rgba(160,112,255,${k})`; g.lineWidth = r * 0.35; g.beginPath(); g.ellipse(0, 0, r * 1.25, r * 0.55, -0.3, 0, 6.283); g.stroke(); g.fillStyle = '#000000'; dot(g, 0, 0, r * 0.75); g.strokeStyle = '#ff8ab4'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r * 0.8, 0, 6.283); g.stroke(); }, /* black hole */
+    harmonic(g, r) { g.fillStyle = '#8a5ac8'; oval(g, 0, r * 0.15, r * 1.3, r * 0.45); g.fillStyle = 'rgba(138,216,255,0.7)'; g.beginPath(); g.arc(0, 0, r * 0.6, Math.PI, 0); g.fill(); g.fillStyle = '#ff4d8d'; dots(g, [-r * 0.8, r * 0.25, r * 0.13, 0, r * 0.25, r * 0.13, r * 0.8, r * 0.25, r * 0.13]); }, /* saucer */
+    resonator(g, r, o, now) { g.fillStyle = '#4a2a7a'; oval(g, 0, 0, r * 1.5, r * 0.7); g.fillStyle = '#6a3aa8'; oval(g, 0, -r * 0.2, r * 0.8, r * 0.45); const k = 0.5 + 0.5 * Math.sin(now * 4); g.fillStyle = `rgba(255,77,141,${k})`; const pts = []; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + now; pts.push(Math.cos(a) * r * 1.2, Math.sin(a) * r * 0.5, r * 0.13); } dots(g, pts); }, /* mothership */
+    hive(g, r) { g.strokeStyle = 'rgba(255,138,180,0.7)'; g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, r * 1.6, r * 0.45, -0.25, Math.PI, 6.283); g.stroke(); g.fillStyle = '#b8304e'; dot(g, 0, 0, r); g.fillStyle = '#8a1e38'; dot(g, -r * 0.35, -r * 0.2, r * 0.25); dot(g, r * 0.3, r * 0.35, r * 0.18); g.beginPath(); g.ellipse(0, 0, r * 1.6, r * 0.45, -0.25, 0, Math.PI); g.stroke(); }, /* ringed red planet */
+    scout(g, r, o, now, face) { g.rotate(face); g.fillStyle = 'rgba(255,138,180,0.4)'; g.beginPath(); g.moveTo(0, -r * 0.4); g.lineTo(-r * 1.8, 0); g.lineTo(0, r * 0.4); g.fill(); g.fillStyle = '#ff8ab4'; dot(g, r * 0.3, 0, r * 0.5); }, /* small comet */
+    gatherer(g, r, o) { g.fillStyle = '#8a5ac8'; oval(g, 0, 0, r * 1.05, r * 0.85); g.fillStyle = '#ff4d8d'; dot(g, -r * 0.3, -r * 0.2, r * 0.15); dot(g, r * 0.3, -r * 0.2, r * 0.15); if (o.carry) { g.fillStyle = '#ffcf5a'; dot(g, r * 0.9, r * 0.4, r * 0.4); } }, /* blob alien */
+    gun(g, r) { g.fillStyle = '#ffcf5a'; g.fillRect(-r * 1.3, -r * 0.3, r * 0.8, r * 0.6); g.fillRect(r * 0.5, -r * 0.3, r * 0.8, r * 0.6); g.fillStyle = '#f2f2f8'; dot(g, 0, 0, r * 0.5); },
+    scav(g, r, o) { g.fillStyle = '#f2f2f8'; g.fillRect(-r * 0.8, -r * 0.5, r * 1.6, r * 0.9); g.fillStyle = '#ffcf5a'; dots(g, [-r * 0.55, r * 0.5, r * 0.25, r * 0.55, r * 0.5, r * 0.25]); if (o.carry) { g.fillStyle = '#ffcf5a'; dot(g, 0, -r * 0.7, r * 0.3); } }, /* rover */
+    fix(g, r) { g.fillStyle = '#f2f2f8'; dot(g, 0, 0, r * 0.95); g.fillStyle = '#ffcf5a'; g.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36); g.fillRect(-r * 0.18, -r * 0.6, r * 0.36, r * 1.2); },
+    eng(g, r, o) { g.fillStyle = o.down ? '#5a5a6a' : '#f2f2f8'; g.fillRect(-r, -r * 0.7, r * 2, r * 1.4); g.fillStyle = '#ffcf5a'; g.fillRect(-r, -r * 0.15, r * 2, r * 0.3); },
+    haul(g, r, o) { g.fillStyle = o.jam ? '#7a4ab0' : '#3a3150'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.strokeStyle = '#ffcf5a'; g.lineWidth = 1.5; g.strokeRect(-r, -r * 0.6, r * 2, r * 1.2); const k = haulFrac(o); g.fillStyle = '#ffcf5a'; if (k > 0) g.fillRect(-r * 0.8, -r * 0.45, r * 1.6 * k, r * 0.9); }, /* shuttle */
+    turret(g, r) { g.fillStyle = '#f2f2f8'; g.fillRect(-r * 0.6, -r * 0.4, r * 1.2, r * 1.3); g.strokeStyle = '#ffcf5a'; g.lineWidth = 2; g.beginPath(); g.arc(0, -r * 0.5, r * 0.6, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); g.fillStyle = '#ffcf5a'; dot(g, 0, -r * 0.7, r * 0.15); }, /* dish tower */
+    jammer(g, r, o, now) { g.strokeStyle = '#ffcf5a'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, r * 0.8); g.lineTo(0, -r * 1.1); g.moveTo(-r * 0.6, r * 0.8); g.lineTo(r * 0.6, r * 0.8); g.stroke(); const k = 0.4 + 0.5 * Math.sin(now * 5); g.strokeStyle = `rgba(255,207,90,${k})`; g.beginPath(); g.arc(0, -r * 1.1, r * 0.5, 0, 6.283); g.arc(0, -r * 1.1, r * 1.0, 0, 6.283); g.stroke(); }, /* antenna */
+    extractor(g, r, o, now) { g.fillStyle = '#3a3150'; g.fillRect(-r * 0.85, -r * 0.4, r * 1.7, r * 1.2); g.strokeStyle = '#ffcf5a'; g.lineWidth = 2; g.save(); g.translate(0, r * 0.2); g.rotate(now * 3); g.beginPath(); g.moveTo(-r * 0.5, 0); g.lineTo(r * 0.5, 0); g.moveTo(0, -r * 0.5); g.lineTo(0, r * 0.5); g.stroke(); g.restore(); },
+    base(g, s) { g.strokeStyle = '#ffcf5a'; g.lineWidth = s * 0.08; g.beginPath(); g.arc(0, 0, s * 0.62, 0, 6.283); g.stroke(); g.fillStyle = '#f2f2f8'; g.fillRect(-s * 0.12, -s * 0.62, s * 0.24, s * 1.24); g.fillRect(-s * 0.62, -s * 0.1, s * 1.24, s * 0.2); g.fillStyle = '#8ad8ff'; dot(g, 0, 0, s * 0.2); }, /* ring station */
+    perch(g, r, o) { g.fillStyle = o.mote ? '#ffcf5a' : '#5a4a8a'; ngon(g, 4, r * 0.4, 0); g.fill(); },
+    deposit(g, r) { g.fillStyle = '#5a4a5a'; ngon(g, 7, r * 0.9, 0.2); g.fill(); g.fillStyle = '#8ad8ff'; dots(g, [-r * 0.3, -r * 0.2, r * 0.2, r * 0.3, r * 0.25, r * 0.18]); }, /* asteroid with ice */
+    cache(g, r) { g.fillStyle = '#f2f2f8'; g.fillRect(-r, -r * 0.6, r * 2, r * 1.2); g.fillStyle = '#ffcf5a'; g.fillRect(-r, -r * 0.12, r * 2, r * 0.24); },
+    xp(g, r) { g.fillStyle = '#ffcf5a'; ngon(g, 4, r * 1.2, 0); g.fill(); },
+    part(g, r) { g.fillStyle = '#c8c8d8'; ngon(g, 6, r, 0); g.fill(); },
+    heal(g, r) { g.fillStyle = '#8ad8ff'; g.fillRect(-r, -r * 0.3, r * 2, r * 0.6); g.fillRect(-r * 0.3, -r, r * 0.6, r * 2); },
+    wallTop(g, x, y, w, h) { g.strokeStyle = 'rgba(138,122,184,0.35)'; g.lineWidth = 1; g.beginPath(); for (let xx = x + 14; xx < x + w; xx += 14) { g.moveTo(xx, y); g.lineTo(xx, y + h); } g.stroke(); }, /* hull plates */
+    cell(g, x, y, S, i) { const a = hash(i); if (a > 0.93) { g.fillStyle = a > 0.965 ? 'rgba(120,60,200,0.08)' : 'rgba(255,77,141,0.06)'; g.fillRect(x, y, S, S); } else if (a < 0.55) { g.fillStyle = a < 0.08 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'; dot(g, x + hash(i + 3) * S, y + hash(i + 5) * S, a < 0.08 ? 1.6 : 0.9); } }, /* stars and nebula */
+  },
+});
 let LK = null, LKT = THEMES.static, LNOW = 0; // the look being drawn this frame (set at the top of render)
 function lookBg(ctx, TH, vw, vh) { ctx.fillStyle = TH.bg; ctx.fillRect(0, 0, vw, vh); } // one flat fill: a full-screen gradient cost 5 ms a frame in software rendering
 function lookOf(run) { return LOOK_DRAW[run.skin] || null; }
 const WORLD_IDS = [...new Set(ZONES.map(z => z.world || 1))];
 const worldOpen = w => SAVE.playtest || ZONES.findIndex(z => (z.world || 1) === w) <= SAVE.cleared + 5; // open worlds and the next one (a preview of what is coming)
 const EMBER_AT = 10; // clearing this many zones earned the old Ember colours (kept for saves that have them)
-const LOOK_WORLD = { chibi: 2, pnw: 3, anime: 4, dronewar: 5, abyss: 6, ink: 7, ruins: 8 }; // a look is yours for every zone once its world is cleared (Lance 10-07: "once you beat that world's zones you can use that skin from settings")
-const lookEarned = id => id === 'static' || (id === 'ember' ? SAVE.cleared >= EMBER_AT : !!LOOK_WORLD[id] && SAVE.cleared >= LOOK_WORLD[id] * 5);
-const lookChoices = () => ['', 'static', ...Object.keys(LOOK_WORLD), 'ember'].filter(id => !id || lookEarned(id)); // '' = each world's own
+const LOOK_WORLD = { chibi: 2, pnw: 3, anime: 4, dronewar: 5, abyss: 6, ink: 7, ruins: 8, tundra: 9, glass: 10 }; // a look is yours for every zone once its world is cleared (Lance 10-07: "once you beat that world's zones you can use that skin from settings")
+const lookEarned = id => id === 'static' || !!(SAVE.endLooks && SAVE.endLooks[id]) || (id === 'ember' ? SAVE.cleared >= EMBER_AT : !!LOOK_WORLD[id] && SAVE.cleared >= LOOK_WORLD[id] * 5); // a world cleared, or reached in Endurance (Cosmos only that way)
+const lookChoices = () => ['', 'static', ...Object.keys(LOOK_WORLD), 'cosmos', 'ember'].filter(id => !id || lookEarned(id)); // '' = each world's own
 const chosenSkin = () => (SAVE.skin && THEMES[SAVE.skin] && lookEarned(SAVE.skin) ? SAVE.skin : '');
 const skinFor = z => chosenSkin() || WORLDS[z.world || 1].skin;
 
@@ -969,7 +1071,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-09 s30';
+const BUILD_ID = 'playtest 2026-10-10 s31';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -989,6 +1091,7 @@ const WHATS_NEW = [
   { s: 28, items: ['The game downloads new builds itself and tells you when one is ready.', 'The zones screen shows what each world looks like.'] },
   { s: 29, items: ['Food search finds Chick-fil-A as the restaurant serves it: sandwiches, nuggets, fries and every sauce.', 'Search also looks in Open Food Facts, and in most restaurant chains with a Nutritionix key (Settings).', 'USDA foods offer their real portions, like 1 sandwich, not just 100 g.'] },
   { s: 30, items: ['Worlds 6-8 have their own looks: Abyss from Zone 26, Ink from Zone 31, Ruins from Zone 36.'] },
+  { s: 31, items: ['Worlds 9 and 10: Frost and Glass.', `Endurance is a journey: every ${ENDURANCE.perWorld} hives takes you to the next world, with gold banked at once. Past World ${ENDURANCE.worlds}, Cosmos never ends.`, 'Reaching a world in Endurance earns its look; Cosmos is earned only there.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1963,7 +2066,7 @@ const HIVE = {
 // and reachable on foot from `from` (a cell)
 function validHiveSpot(run, x, y, from, o) {
   if (run.blocked[cellIdx(x, y)] || inWall(run, x, y)) return false;
-  if (dist2(x, y, run.base.x, run.base.y) < o.baseDist * o.baseDist || run.hives.some(h => dist2(h.x, h.y, x, y) < o.gap * o.gap)) return false;
+  if (dist2(x, y, run.base.x, run.base.y) < o.baseDist * o.baseDist || run.hives.some(h => !(o.ignoreDead && h.dead) && dist2(h.x, h.y, x, y) < o.gap * o.gap)) return false; /* Endurance: a destroyed hive's spot can grow a new one (it stalled at 24 hives) */
   if (o.unseen && isSeen(run, x, y)) return false;
   return fieldTo(run, from)[cellIdx(x, y)] >= 0;
 }
@@ -1987,6 +2090,7 @@ function markExplored(h, x, y, rc) {
   const c0 = Math.floor(x / CELL), r0 = Math.floor(y / CELL);
   for (let r = r0 - rc; r <= r0 + rc; r++) for (let c = c0 - rc; c <= c0 + rc; c++) if (r >= 0 && c >= 0 && r < COLS && c < COLS) h.explored[r * COLS + c] = 1;
 }
+const EB_CAP = 600; // Endurance: enemy shots on the map at once
 const hivesAlive = run => (run.hives || []).filter(h => !h.dead);
 function targetGone(run, t) {
   if (t.kind === 'cache') return t.ref.taken;
@@ -2125,7 +2229,10 @@ function hiveDestroyed(run, h) {
   run.gold += HIVE.lootGold + h.stock;
   for (const e of run.enemies) if (e.hive === h && !e.isCore) { if (e.tgt && e.tgt.claim) e.tgt.claim = false; e.hive = null; e.role = null; e.tgt = null; e.target = null; }
   toast(run, `Hive destroyed: +${parts} parts, +${HIVE.lootGold + h.stock} gold`); tip(run, 'hive_down', { at: run.p }); if (hivesAlive(run).length || run.endurance) SFX.hiveDown(); else SFX.win();
-  if (run.endurance) { const E = run.endurance; E.killed++; toast(run, `Hives destroyed: ${E.killed} of ${E.goal}`); if (E.killed >= E.goal && !run.over) { toast(run, 'Endurance won.'); endRun(run, true); } }
+  if (run.endurance && !run.over) { const E = run.endurance; E.killed++; const st = endStage(E.killed);
+    if (st > E.stage) endEnter(run, st);
+    else if (E.stage > ENDURANCE.worlds) { if (E.killed % ENDURANCE.perWorld === 0) { SAVE.gold += ENDURANCE.cosmosGold; E.banked += ENDURANCE.cosmosGold; persist(SAVE); toast(run, `Deeper into Cosmos: +${ENDURANCE.cosmosGold} gold`); } }
+    else toast(run, `Hives destroyed: ${E.killed}. ${ENDURANCE.perWorld - E.killed % ENDURANCE.perWorld} more to reach ${endShort(E.stage + 1)}`); }
   else if (!hivesAlive(run).length && !run.over) { toast(run, 'Every hive destroyed. Zone cleared.'); endRun(run, true); }
 }
 function updateHives(run, dt) {
@@ -2256,7 +2363,7 @@ const TIPS = {
   chain:     { group: 'Units', title: 'Your supply chain', body: 'The green drill is an Extractor on an ore deposit: it mines parts into its stock (amber bar). Your Hauler drives that stock home along the dashed route. Enemies will go after both, so guard the route. Build more on other deposits once you learn them.' },
   chain_steal: { group: 'Units', title: 'Stolen stock', body: 'A hive gatherer is carrying parts out of your extractor to grow its hive. Kill gatherers on your routes, or guard extractors with turrets (Factory orders).' },
   haul_jam:  { group: 'Units', title: 'Hauler jammed', body: 'Inside a Jammer\'s ring a hauler crawls at a third of its speed (it turns purple). Kill the Jammer or route around it.' },
-  endurance: { group: 'Between runs', title: 'Endurance', body: 'No timer. Destroy 10 hives to win while new hives keep growing in and a boss comes every 6 minutes, tougher each time. It starts as hard as your current zone and keeps climbing. Your supply chain and Factory orders work as usual.' },
+  endurance: { group: 'Between runs', title: 'Endurance', body: `A journey with no timer. Every ${ENDURANCE.perWorld} hives you destroy takes you to the next world: its look, its pressure, and gold banked at once. New hives keep growing in and a boss comes every 6 minutes. Past World ${ENDURANCE.worlds} lies Cosmos, which never ends. Reaching a world here also earns its look for Settings, Map look.` },
   chain_raid: { group: 'Units', title: 'Raid on your extractor', body: 'Enemies are wearing down an Extractor. If it falls, its deposit is free again and you will need 20 parts to rebuild. Turrets or an Engineer near your extractors keep the chain running.' },
   factory:   { group: 'Units', title: 'The Factory', body: 'Your base is following its standing orders: it builds haulers, gun drones and turrets from incoming parts, above the reserve you set. Change the orders any time on the Factory orders page from the pause screen.' },
   u_haul:    { group: 'Units', title: 'Hauler', body: 'A ground bot that drives extractor stock home (the amber fill is its load). It spills its load if it is destroyed. Every run starts with one.' },
@@ -2341,16 +2448,30 @@ const TUTORIAL = [
   { id: 'recall', text: 'Bring your Drone home: tap Recall (bottom right). It hands over the XP it gathered while perched.',
     hud: 'btn-recall', target: run => run.motes.filter(m => m.state !== 'follow'), done: run => run.motes.every(m => m.state === 'follow' || m.state === 'dimmed') },
 ];
+const endStage = killed => Math.min(ENDURANCE.worlds + 1, 1 + Math.floor(killed / ENDURANCE.perWorld)); // 11 = Cosmos
+const endName = st => (st > ENDURANCE.worlds ? 'Cosmos' : WORLDS[st].name.replace(':', ','));
+const endShort = st => (st > ENDURANCE.worlds ? 'Cosmos' : 'World ' + st);
+const endBestOf = () => (SAVE.endBest && SAVE.endBest.stage ? SAVE.endBest : null); // bests from before s31 (a goal of 10, started at your zone) were a different mode
+function endEnter(run, st, quiet) { // travel: this world's look and pressure (its first zone's spec; Cosmos runs on Zone 50's)
+  const E = run.endurance, spec = st > ENDURANCE.worlds ? ZONES[ZONES.length - 1] : ZONES.find(z => (z.world || 1) === st) || ZONES[0];
+  const look = st > ENDURANCE.worlds ? 'cosmos' : WORLDS[st].skin; E.stage = st; run.zone = ZONES.indexOf(spec); /* its enemy mix follows the world too */
+  run.z = Object.assign({}, spec, { name: 'Endurance', dur: 1e9, gold: 0 }); run.skin = chosenSkin() || look; /* a Map look you picked still wins */
+  (SAVE.endLooks || (SAVE.endLooks = {}))[look] = 1;
+  if (quiet) return; const g = st > ENDURANCE.worlds ? ENDURANCE.cosmosGold : ENDURANCE.stageGold * st; SAVE.gold += g; E.banked += g; persist(SAVE);
+  run.stageBanner = { text: st > ENDURANCE.worlds ? 'Now entering Cosmos' : `Now entering ${endName(st)}`, sub: `+${g} gold banked`, t: 3 }; toast(run, `${run.stageBanner.text}. +${g} gold`); SFX.win();
+}
 function startEndurance(run) {
-  run.endurance = { killed: 0, goal: ENDURANCE.goal, hiveT: ENDURANCE.hiveEvery, bossT: ENDURANCE.bossEvery, bosses: 0 };
-  run.z = Object.assign({}, run.z, { name: 'Endurance', dur: 1e9, gold: ENDURANCE.gold }); tip(run, 'endurance', { at: run.p });
+  run.endurance = { killed: 0, stage: 1, banked: 0, hiveT: ENDURANCE.hiveEvery, bossT: ENDURANCE.bossEvery, bosses: 0 };
+  endEnter(run, 1, true); tip(run, 'endurance', { at: run.p });
 }
 function updateEndurance(run, dt) {
   const E = run.endurance; if (!E || run.over || run.tut) return;
+  if (run.stageBanner && (run.stageBanner.t -= dt) <= 0) run.stageBanner = null;
+  if (run.hives.length > 30) { const keep = new Set(run.hives.filter(h => h.dead).slice(-12)); run.hives = run.hives.filter(h => !h.dead || keep.has(h)); } /* keep the last 12 ruins on the map; older ones fade */
   if (!hivesAlive(run).length) E.hiveT = Math.min(E.hiveT, 3); /* none left: one grows in soon */
   if ((E.hiveT -= dt) <= 0) { let placed = false; /* a new hive grows in somewhere you are not looking */
     if (hivesAlive(run).length < ENDURANCE.maxHives) for (let tries = 0; tries < 400 && !placed; tries++) { const x = rnd(200, WORLD - 200), y = rnd(200, WORLD - 200);
-      if (validHiveSpot(run, x, y, cellIdx(run.base.x, run.base.y), { baseDist: HIVE.minBaseDist, gap: HIVE.minGap * 0.7, unseen: tries < 300 })) { addHive(run, x, y, null); toast(run, 'A new hive is growing somewhere'); placed = true; } }
+      if (validHiveSpot(run, x, y, cellIdx(run.base.x, run.base.y), { baseDist: HIVE.minBaseDist, gap: HIVE.minGap * 0.7, unseen: tries < 300, ignoreDead: true })) { addHive(run, x, y, null); toast(run, 'A new hive is growing somewhere'); placed = true; } }
     E.hiveT = placed || hivesAlive(run).length >= ENDURANCE.maxHives ? ENDURANCE.hiveEvery : 5; } /* no spot yet: try again in 5 s, not every frame */
   if (run.boss && run.boss.hp > 0) E.bossT = Math.max(E.bossT - dt, 90); /* the next boss comes at least 90 s after this one dies */
   else if ((E.bossT -= dt) <= 0) { E.bossT = ENDURANCE.bossEvery; E.bosses++;
@@ -2710,6 +2831,7 @@ function updateEnemies(run, dt) {
     if (dist2(b.x, b.y, p.x, p.y) < (b.r + p.r) * (b.r + p.r)) { hurtPlayer(run, b.dmg); b.t = 0; }
   }
   compact(run.ebullets, b => b.t > 0);
+  if (run.endurance && run.ebullets.length > EB_CAP) run.ebullets.splice(0, run.ebullets.length - EB_CAP); /* endless Endurance (Cosmos) reached 3000+: the oldest shots go first; zones are untouched */
 }
 function compact(arr, keep) { let j = 0; for (let i = 0; i < arr.length; i++) { const x = arr[i]; if (keep(x)) arr[j++] = x; } arr.length = j; return arr; } // filter in place: no new array each frame
 function hurtPlayer(run, dmg) {
@@ -3502,13 +3624,13 @@ function endRun(run, won) {
   const runGold = Math.round(run.gold * (run.mod ? run.mod.gold : 1)); // today's modifier pays extra
   const bonus = run.base.breached ? 0 : Math.round(run.z.gold * run.M.gold);
   const kept = won ? runGold + bonus : Math.round(runGold * salvage);
-  run.summary = { endurance: run.endurance ? { killed: run.endurance.killed, goal: run.endurance.goal } : null, won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached, byHives: won && !!run.hives && run.hives.length > 0 && !hivesAlive(run).length };
+  run.summary = { endurance: run.endurance ? { killed: run.endurance.killed, stage: run.endurance.stage, banked: run.endurance.banked } : null, won, runGold, kept, salvage, kills: run.kills, level: run.p.level, time: run.t, coverage: coverage(run), zoneBonus: won ? bonus : 0, breached: run.base.breached, byHives: won && !!run.hives && run.hives.length > 0 && !hivesAlive(run).length };
   run.summary.carry = Math.min(PARTS_CARRY_CAP, won ? run.parts : Math.floor(run.parts / 2)); SAVE.carryParts = run.summary.carry;
   SAVE.gold += kept; SAVE.runs++; SAVE.bestKills = Math.max(SAVE.bestKills, run.kills);
   if (won && !run.endurance) statAdd('zones');
   const earnedEmber = won && !run.endurance && run.zone + 1 === EMBER_AT && SAVE.cleared < EMBER_AT; run.summary.ember = earnedEmber;
   { const wl = WORLDS[run.z.world || 1].skin; run.summary.look = won && !run.endurance && (run.zone + 1) % 5 === 0 && SAVE.cleared < run.zone + 1 && LOOK_WORLD[wl] ? THEMES[wl].name : null; }
-  if (run.endurance) { const b = SAVE.endBest || {}; if ((run.endurance.killed > (b.hives || 0)) || (run.endurance.killed === (b.hives || 0) && (won ? run.t < (b.time || 1e9) : run.t > (b.time || 0)))) SAVE.endBest = { hives: run.endurance.killed, time: Math.round(run.t), won }; } /* Endurance never moves zone progress */
+  if (run.endurance) { const b = endBestOf() || {}; if (run.endurance.killed > (b.hives || 0) || (run.endurance.killed === (b.hives || 0) && run.t > (b.time || 0))) SAVE.endBest = { hives: run.endurance.killed, stage: run.endurance.stage, time: Math.round(run.t) }; } /* Endurance never moves zone progress */
   else {
   if (won && run.zone + 1 > SAVE.cleared) SAVE.cleared = run.zone + 1; // Hard clears count too: Hard is strictly harder
   if (won && run.mode === 'hard' && run.zone + 1 > (SAVE.clearedHard || 0)) SAVE.clearedHard = run.zone + 1;
@@ -3854,6 +3976,7 @@ function drawStatic(ctx, run, now, mapped, r0, r1, c0, c1) {
 }
 function drawOverlays(ctx, run, vw, vh, z, T) { // screen space: minimap, base and boss arrows, joystick
   const cam = run.cam;
+  if (run.stageBanner) { const b = run.stageBanner, a = Math.min(1, b.t * 2, (3 - b.t) * 4), y = vh * 0.68; ctx.save(); /* below you, above the buttons */ ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, y - 34, vw, 64); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.font = '600 22px system-ui, sans-serif'; ctx.fillText(b.text, vw / 2, y); ctx.font = '14px system-ui, sans-serif'; ctx.fillStyle = (LKT.accent || '#7ff5ff'); ctx.fillText(b.sub, vw / 2, y + 22); ctx.restore(); } /* Endurance: a new world */
   if (LK && LK.screen) LK.screen(ctx, vw, vh, LNOW); // a look's screen touches (cheap ones only), under the minimap
   drawMinimap(ctx, run, vw, vh);
   { const b = run.base, dx = (b.x - cam.x) * z, dy = (b.y - cam.y) * z * T;
@@ -4087,9 +4210,9 @@ if (HAS_DOM) {
       const live = id => el(id).dataset.live, hardNow = ZONES.some((z, i) => hardOpen(i));
       const pick = live('it-zones') ? 'zones' : live('it-hard') ? 'hard' : live('it-mod') ? 'modifier' : !tipSeen('zones') ? 'zones' : hardNow && !tipSeen('hard') ? 'hard' : !tipSeen('modifier') ? 'modifier' : '';
       for (const [box, id] of [['it-zones', 'zones'], ['it-hard', 'hard'], ['it-mod', 'modifier']]) { if (pick === id) inlineTip(box, id); else { el(box).hidden = true; el(box).dataset.live = ''; } } }
-    { const b = el('btn-endurance'), open = SAVE.playtest || SAVE.cleared >= ENDURANCE.openAt, best = SAVE.endBest;
-      b.innerHTML = `<b>Endurance</b><em>${open ? (best ? `Best ${best.hives}/${ENDURANCE.goal}${best.won ? ', won' : ''}` : 'New') : 'Locked'}</em><span>${open ? `No timer. Destroy ${ENDURANCE.goal} hives while bosses and new hives keep coming.` : `Clear Zone ${ENDURANCE.openAt} to open it.`}</span>`;
-      b.disabled = !open; b.onclick = () => { if (open) startRun(Math.min(SAVE.cleared, ZONES.length - 1), 'normal', true); }; }
+    { const b = el('btn-endurance'), open = SAVE.playtest || SAVE.cleared >= ENDURANCE.openAt, best = endBestOf();
+      b.innerHTML = `<b>Endurance</b><em>${open ? (best ? `Best: ${endShort(best.stage)}` : 'New') : 'Locked'}</em><span>${open ? `Travel through the worlds, ${ENDURANCE.perWorld} hives each. Past World ${ENDURANCE.worlds}, Cosmos never ends.` : `Clear Zone ${ENDURANCE.openAt} to open it.`}</span>`;
+      b.disabled = !open; b.onclick = () => { if (open) startRun(0, 'normal', true); }; }
     { const md = todayMod(), b = el('btn-mod'); b.classList.toggle('on', !!SAVE.modOn);
       b.innerHTML = `<b>Today's modifier</b><em>${SAVE.modOn ? 'On' : 'Off'}</em><span>${md.name}. Run gold x${md.gold}. Tap to turn ${SAVE.modOn ? 'off' : 'on'}.</span>`;
       b.onclick = () => { SAVE.modOn = !SAVE.modOn; persist(SAVE); UI.zones(); }; }
@@ -4681,7 +4804,7 @@ if (HAS_DOM) {
     const s = run.summary;
     el('end-title').textContent = s.won ? `${run.z.name} cleared (${run.M.name})` : 'You died';
     el('end-body').innerHTML = [
-      s.endurance ? `Endurance: ${s.endurance.killed} of ${s.endurance.goal} hives in ${fmtT(s.time)}. ` + (s.won ? `Bonus +${s.zoneBonus}.` : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`) : s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
+      s.endurance ? `Endurance: reached ${endName(s.endurance.stage)}, ${s.endurance.killed} hives in ${fmtT(s.time)}. Gold for worlds passed: +${s.endurance.banked}. Salvage returned ${Math.round(s.salvage * 100)}% of run gold.` : s.won ? (s.byHives ? 'Every hive destroyed. ' : 'Boss down. ') + (s.breached ? 'The base was breached: no zone bonus.' : `Zone bonus +${s.zoneBonus}.`) : `Salvage returned ${Math.round(s.salvage * 100)}% of run gold.`,
       s.look || s.ember ? `<b>${[s.look, s.ember && 'Ember'].filter(Boolean).join(' and ')} look${s.look && s.ember ? 's' : ''} earned.</b> Pick ${s.look && s.ember ? 'one' : 'it'} in Settings > Map look to use it in every zone.` : '',
       `${s.kills} kills in ${fmtT(s.time)}, level ${s.level}.`,
       `${Math.round(s.coverage * 100)}% of the map explored.`,
@@ -4693,7 +4816,7 @@ if (HAS_DOM) {
     const wb = el('btn-end-shop'); wb.style.display = aff ? '' : 'none';
     if (aff) { wb.innerHTML = `Spend ${Math.round(SAVE.gold)} gold in the Workshop<br><small>${aff.u.name}: ${aff.u.fmt((aff.lvl + 1) * aff.u.per)} for ${aff.cost} gold</small>`; wb.onclick = () => UI.lattice(); }
     const nb = el('btn-next');
-    if (run.endurance) { nb.style.display = ''; nb.textContent = s.won ? 'Endurance again' : 'Retry Endurance'; nb.onclick = () => startRun(run.zone, 'normal', true); }
+    if (run.endurance) { nb.style.display = ''; nb.textContent = 'Endurance again'; nb.onclick = () => startRun(0, 'normal', true); }
     else if (s.won && run.zone + 1 < ZONES.length) { nb.style.display = ''; nb.textContent = `Next: ${ZONES[run.zone + 1].name}`; nb.onclick = () => startRun(run.zone + 1, run.mode === 'hard' && hardOpen(run.zone + 1) ? 'hard' : 'normal'); }
     else if (s.won) { nb.style.display = ''; nb.textContent = 'Run it again'; nb.onclick = () => startRun(run.zone, run.mode); }
     else { nb.style.display = ''; nb.textContent = 'Retry'; nb.onclick = () => startRun(run.zone, run.mode); }
@@ -4984,7 +5107,7 @@ if (HAS_DOM) {
     if (run.hudLook !== run.skin) { run.hudLook = run.skin; el('hud').classList.toggle('light', !!(THEMES[run.skin] || {}).light); } /* bright looks: HUD text gets a dark edge */
     hud.hp.style.width = Math.max(0, p.hp / p.maxhp * 100) + '%'; hud.xp.style.width = Math.min(100, p.xp / p.next * 100) + '%';
     hud.lvl.textContent = 'Lv ' + p.level; hud.kills.textContent = run.kills + ' kills';
-    { const hl = hivesAlive(run).length, ht = run.hives && run.hives.length ? ` \u00b7 ${hl} hive${hl === 1 ? '' : 's'}` : ''; hud.time.textContent = run.endurance ? `${fmtT(run.t)} \u00b7 ${run.endurance.killed}/${run.endurance.goal} hives` : (run.phase === 'boss' ? 'Boss' : fmtT(Math.max(0, run.z.dur - run.t))) + ht; }
+    { const hl = hivesAlive(run).length, ht = run.hives && run.hives.length ? ` \u00b7 ${hl} hive${hl === 1 ? '' : 's'}` : ''; hud.time.textContent = run.endurance ? `${endShort(run.endurance.stage)} \u00b7 ${run.endurance.killed} hives` /* fits one line; the time is on the end screen */ : (run.phase === 'boss' ? 'Boss' : fmtT(Math.max(0, run.z.dur - run.t))) + ht; }
     hud.gold.textContent = Math.round(run.gold) + 'g';
     hud.ammo.textContent = Math.floor(run.ammo) + ' ammo'; hud.ammo.style.color = run.ammo < 30 ? '#ff5a4a' : '';
     hud.parts.textContent = run.parts + ' parts';
@@ -5020,7 +5143,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
