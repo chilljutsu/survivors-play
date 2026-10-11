@@ -165,7 +165,7 @@
   .screen.fit { overflow:hidden; } .screen.fit > .col { margin:0; height:100%; min-height:0; }
   .screen.fit .itip { flex:0 1 auto; max-height:24vh; overflow:auto; }
   .screen.fit canvas.sky { flex:1 1 auto; height:auto; min-height:120px; }
-  #lattice canvas.sky { min-height:min(330px, 40vh); } /* s37: six rows of stars never squeeze into each other; the intro card and the panel scroll inside instead */
+  #lattice canvas.sky, #tree canvas.sky { min-height:min(330px, 40vh); } /* s38: the skill tree too (Lance 10-11: after the reset its intro card squeezed the stars into each other) */ /* s37: six rows of stars never squeeze into each other; the intro card and the panel scroll inside instead */
   #set-reset { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:8px 0; } #set-reset b { display:block; font-weight:500; font-size:16px; } #set-reset > span { display:block; color:var(--dim); font-size:13px; margin:3px 0 10px; }
   .screen.fit .tpanel { flex:0 1 auto; min-height:0; overflow-y:auto; } /* short phones: the panel gives way before buttons fall off */
   .tabs button { position:relative; } .tabs button.pts::after { content:''; position:absolute; top:6px; right:10px; width:7px; height:7px; border-radius:50%; background:var(--amber); }
@@ -1112,7 +1112,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-11 s37';
+const BUILD_ID = 'playtest 2026-10-11 s38';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1139,6 +1139,7 @@ const WHATS_NEW = [
   { s: 35, items: ['A perched Drone now drains slowly and flying costs more. Battery pips show each Drone on the Drones row.', 'With Drone autonomy (World 5), idle Drones perch near you on their own. A Drone you send or recall yourself is left alone. Not on Hard.', 'Tap yourself to perch a Drone on you: it watches all round you.', 'Tight or Loose formation, and Auto perch on or off, under Pause, Drone positions.', 'Every Drone glides in and settles the same way when it lands.'] },
   { s: 36, items: ['Pulse now fires at enemies a perched Drone sees, out to 620 px, as long as nothing blocks the shot.', 'Barrage aims each bolt at its own target, and Lead shot and Homing work on every bolt.', 'A new Turret level adds its health to turrets already standing, even worn ones.', 'Scavengers also fetch XP and health, which come straight to you. Run over a Scavenger to take its load.', 'Passive slots 5 and 6 can be bought in the Workshop from World 9 and World 10.'] },
   { s: 37, items: ['A fresh start: your game progress, the tutorial and the workout streak were reset. Workouts, food and settings are kept.', 'Upkeep: log food and a workout on the same day to keep your upgrades. Two grace days, then missed days rust a Workshop level; a kept day repairs one; rust older than 7 days is lost.', 'Settings has Start over, behind a hold.', 'Drones hand you their XP from farther away with every magnet upgrade.', 'On Hard, Gunners fire one fewer shot in Worlds 2 to 5 (World 1 is already at the minimum of 3).'] },
+  { s: 38, items: ['The skill tree keeps its stars apart while its first-time card is showing.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
