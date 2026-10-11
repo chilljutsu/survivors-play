@@ -108,7 +108,7 @@
   .itip { border:1px solid var(--cyan); border-radius:8px; padding:10px 12px; background:rgba(127,245,255,0.06); }
   .itip b { display:block; color:var(--cyan); font-weight:500; margin-bottom:3px; }
   .itip p { color:var(--ink); }
-  #m-refund ul, #m-new ul { margin:4px 0 8px; padding-left:18px; color:var(--ink); font-size:14px; line-height:1.4; } #m-new li { margin:2px 0; } #m-new button { width:auto; padding:8px 14px; }
+  #m-upkeep ul, #m-refund ul, #m-new ul { margin:4px 0 8px; padding-left:18px; color:var(--ink); font-size:14px; line-height:1.4; } #m-new li { margin:2px 0; } #m-new button { width:auto; padding:8px 14px; }
   .zhead { position:relative; border-radius:10px; overflow:hidden; padding:10px 12px; flex:none; } /* the selected world's look behind the title (no extra height) */
   #zone-preview { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
   .zhead #z-rule { position:relative; z-index:2; float:right; width:auto; display:inline-block; margin:2px 0 0 8px; line-height:1.3; text-align:center; background:rgba(0,0,0,0.35); font-family:inherit; min-height:0; font-size:13px; font-weight:600; color:#ffd98a; border:1px solid rgba(255,217,138,0.6); border-radius:12px; padding:2px 9px; margin-top:2px; cursor:pointer; } /* the world rule: tap for the full text */
@@ -165,6 +165,8 @@
   .screen.fit { overflow:hidden; } .screen.fit > .col { margin:0; height:100%; min-height:0; }
   .screen.fit .itip { flex:0 1 auto; max-height:24vh; overflow:auto; }
   .screen.fit canvas.sky { flex:1 1 auto; height:auto; min-height:120px; }
+  #lattice canvas.sky { min-height:min(330px, 40vh); } /* s37: six rows of stars never squeeze into each other; the intro card and the panel scroll inside instead */
+  #set-reset { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:8px 0; } #set-reset b { display:block; font-weight:500; font-size:16px; } #set-reset > span { display:block; color:var(--dim); font-size:13px; margin:3px 0 10px; }
   .screen.fit .tpanel { flex:0 1 auto; min-height:0; overflow-y:auto; } /* short phones: the panel gives way before buttons fall off */
   .tabs button { position:relative; } .tabs button.pts::after { content:''; position:absolute; top:6px; right:10px; width:7px; height:7px; border-radius:50%; background:var(--amber); }
   .screen.fit .grow { flex:1 1 auto; min-height:0; overflow-y:auto; } /* only on very short screens */
@@ -237,9 +239,12 @@
   <h1>SURVIVORS<small>working build. The name is yours to pick.</small></h1>
   <button id="m-update" class="row primary" hidden></button>
   <div class="itip" id="m-refund" hidden><b>The Workshop now opens world by world</b><p>New things now open one world at a time, so every world brings something new. What you owned ahead of your progress was refunded in full and opens again in its world:</p><ul id="m-refund-list"></ul><button id="m-refund-ok">Got it</button></div>
+  <div class="itip" id="m-reset" hidden><b>A fresh start</b><p>Your game progress was reset, as you asked: gold, the Workshop, cleared zones, Endurance, looks, the tutorial and your workout streak. Your workouts, food log, bodyweight, goals and settings are all kept.</p><p>New from now on: log food and a workout on the same day to keep your upgrades. Miss days and Workshop levels start to rust.</p><button id="m-reset-ok">Got it</button></div>
+  <div class="itip" id="m-upkeep" hidden><b>Upkeep</b><ul id="m-upkeep-list"></ul><button id="m-upkeep-ok">Got it</button></div>
   <div class="itip" id="m-new" hidden><b>New since you last played</b><ul id="m-new-list"></ul><button id="m-new-ok">Got it</button></div>
   <div class="stat"><b id="m-gold">0</b> gold banked</div>
   <div class="stat" id="m-streak"></div>
+  <div class="stat" id="m-upkeep-line"></div>
   <div class="stat" id="m-level" hidden></div>
   <div class="stat" id="m-cleared"></div>
   <button class="primary" id="btn-zones">Enter the field</button>
@@ -404,6 +409,7 @@
   <button class="row" id="btn-camera"></button>
   <button class="row" id="btn-skin"></button>
   <button class="row" id="btn-spawn"></button>
+  <div class="row" id="set-reset"><b>Start over</b><span>Resets gold, the Workshop, zones, Endurance, looks, the tutorial and the workout streak. Your workouts, food, bodyweight, goals and settings stay.</span></div>
   <button class="row" id="btn-backup"><b>Backup or restore save</b><span>Your save as text, for moving to a new install.</span></button>
   <button class="back">Back</button>
 </div></div>
@@ -1055,7 +1061,7 @@ const LAT_SKY = {
   motes: [0.29, 0.71], battery: [0.48, 0.71], tier: [0.68, 0.71], autoshell: [0.7, 0.91],
   pslot: [0.925, 0.51], rerolls: [0.925, 0.71], salvage: [0.92, 0.91], /* Runs: the right column of rows 3-5 */
 };
-const LAT_GROUPS = [['Combat', 0.03, -0.01, 'left'], ['Survival', 0.97, -0.01, 'right'], ['Base', 0.03, 0.31, 'left'], ['Supply', 0.03, 0.51, 'left'], ['Drones', 0.03, 0.71, 'left'], ['Runs', 0.97, 0.425, 'right']];
+const LAT_GROUPS = [['Combat', 0.03, -0.01, 'left'], ['Survival', 0.97, -0.01, 'right'], ['Base', 0.03, 0.31, 'left'], ['Supply', 0.03, 0.51, 'left'], ['Drones', 0.03, 0.71, 'left']] /* s37: no floating Runs label: it collided with Fortify at some heights; the panel names the group */;
 const latName = id => LATTICE.find(u => u.id === id).name;
 const latClusterLevels = (branch, minusId) => LATTICE.filter(u => LATTICE_INFO[u.id][0] === branch && !LAT_TIER[u.id] && !LAT_LINKS[u.id] && !u.unlock && u.id !== 'pslot') /* passive slots open by world, and do not count toward Head start */.reduce((a, u) => a + lat(u.id) - (u.id === minusId ? 1 : 0), 0);
 /* s33 (Lance 10-08: "I shouldn't have everything unlocked like this by world 3, but it should just barely be possible by
@@ -1082,8 +1088,9 @@ function relockSave(out) { // s33: what a save owns ahead of its progress is ref
   return back.length ? back : null;
 }
 function latWhy(id) {
-  { const next = lat(id) + 1, w = latWorld(id, next); if (!latOpen(id, next) && next <= (LATTICE.find(u => u.id === id) || { max: 0 }).max) return `Opens in World ${w}. Clear Zone ${(w - 1) * 5} to get there.`; }
-  if (lat(id) > 0) return '';
+  const own = SAVE.lattice[id] || 0; /* s37: gates follow the levels you bought, rusted or not */
+  { const next = own + 1, w = latWorld(id, next); if (!latOpen(id, next) && next <= (LATTICE.find(u => u.id === id) || { max: 0 }).max) return `Opens in World ${w}. Clear Zone ${(w - 1) * 5} to get there.`; }
+  if (own > 0) return '';
   const miss = (LAT_LINKS[id] || []).filter(([k, l]) => lat(k) < l); if (miss.length) return 'Needs ' + miss.map(([k, l]) => `${latName(k)} ${l}`).join(' and ');
   const T = LAT_TIER[id]; if (T) { const have = latClusterLevels(T[0]); if (have < T[1]) return `Opens after ${T[1]} levels of tier 1 ${T[0]} upgrades. You have ${have}.`; }
   return '';
@@ -1105,7 +1112,7 @@ const WORKOUTS = [
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-10 s36';
+const BUILD_ID = 'playtest 2026-10-11 s37';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1131,6 +1138,7 @@ const WHATS_NEW = [
   { s: 34, items: ['Every world from World 2 has its own rule: more hives, dense trees, fast Rushers, wide Jammers, currents, hidden hives, sandstorms, cold, and shafts of light. Tap Rule on the zones screen to read it.', 'Endurance uses the rule of the world you are in.'] },
   { s: 35, items: ['A perched Drone now drains slowly and flying costs more. Battery pips show each Drone on the Drones row.', 'With Drone autonomy (World 5), idle Drones perch near you on their own. A Drone you send or recall yourself is left alone. Not on Hard.', 'Tap yourself to perch a Drone on you: it watches all round you.', 'Tight or Loose formation, and Auto perch on or off, under Pause, Drone positions.', 'Every Drone glides in and settles the same way when it lands.'] },
   { s: 36, items: ['Pulse now fires at enemies a perched Drone sees, out to 620 px, as long as nothing blocks the shot.', 'Barrage aims each bolt at its own target, and Lead shot and Homing work on every bolt.', 'A new Turret level adds its health to turrets already standing, even worn ones.', 'Scavengers also fetch XP and health, which come straight to you. Run over a Scavenger to take its load.', 'Passive slots 5 and 6 can be bought in the Workshop from World 9 and World 10.'] },
+  { s: 37, items: ['A fresh start: your game progress, the tutorial and the workout streak were reset. Workouts, food and settings are kept.', 'Upkeep: log food and a workout on the same day to keep your upgrades. Two grace days, then missed days rust a Workshop level; a kept day repairs one; rust older than 7 days is lost.', 'Settings has Start over, behind a hold.', 'Drones hand you their XP from farther away with every magnet upgrade.', 'On Hard, Gunners fire one fewer shot in Worlds 2 to 5 (World 1 is already at the minimum of 3).'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1143,7 +1151,72 @@ function loadSave() {
   if (!s && memStore) s = memStore;
   const out = grandfatherBots(Object.assign(defaultSave(), s || {}));
   if (!out.looksV) { out.looksV = 1; out.skin = ''; } // s26: worlds have their own looks; start on them
+  let changed = false;
+  if (!out.reset37) { if (s) { resetProgress(out, new Date()); out.resetNote = 1; } out.reset37 = 1; changed = true; } /* s37 (Lance 10-11: "reset my game please so I can start from the beginning"): once */
+  if (!out.upkeep) { out.upkeep = newUpkeep(dayKey(new Date())); changed = true; }
+  if (judgeUpkeep(out, new Date()).length || changed) persist(out); /* saved at once, so a day is never judged twice */
   return out;
+}
+/* s37: start over. Game progress, the tutorial and the workout streak go; workouts, food, bodyweight, profile, PR goals,
+   settings, API keys and feedback notes stay (his answer: "2 and 3"). */
+const GAME_STATS = ['kills', 'hives', 'perches', 'zones', 'units', 'strikes', 'caches'];
+function resetProgress(s, now) {
+  Object.assign(s, { gold: 0, lattice: {}, cleared: 0, clearedHard: 0, runs: 0, bestKills: 0, carryParts: 0, playtest: false, skin: '', seenTips: {}, tipsOff: false,
+    streak: 0, freezes: 2, lastLog: null, resetAt: now.getTime(), botsGrand: 1 });
+  for (const k of ['endBest', 'endLooks', 'refundNote', 'playtestGold', 'quests', 'upkeepNote']) delete s[k];
+  if (s.stat) for (const k of GAME_STATS) delete s.stat[k];
+  s.upkeep = newUpkeep(dayKey(now));
+}
+/* s37 (Lance 10-11: "start losing upgrades and stuff if I'm not entering food and entering workouts"). Upkeep: a kept
+   day has food (a meal, not only supplements) AND a workout. A missed day spends a grace day (2, one back after 7 kept
+   days in a row); with none left it rusts the most expensive Workshop level you have. A rusted level does not work. Each
+   kept day repairs one (newest first). Rust older than 7 days is lost for good. Today is only judged once it is over. */
+const UPKEEP = { grace: 2, regain: 7, lose: 7 };
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const dayName = key => { const [y, m, d] = key.split('-').map(Number); return DAY_NAMES[new Date(y, m - 1, d).getDay()]; };
+function upkeepLine(e) { // one event, in plain words, for the menu card
+  const n = e.id ? LATTICE.find(u => u.id === e.id).name : '';
+  return e.kind === 'rust' ? `${dayName(e.day)}: food and a workout were not both logged. ${n} rusted (one level stops working until you repair it).`
+    : e.kind === 'repair' ? `${dayName(e.day)}: food and a workout logged. ${n} repaired.`
+    : e.kind === 'lost' ? `${n}: one level lost for good (rusted on ${dayName(e.day)}, more than ${UPKEEP.lose} days ago).`
+    : e.kind === 'graceUsed' ? `${dayName(e.day)}: not both logged. A grace day covered it (${e.left} left).`
+    : e.kind === 'grace' ? `${UPKEEP.regain} kept days in a row: a grace day back.`
+    : `${dayName(e.day)}: not both logged, but there was nothing to rust.`;
+}
+function upkeepStatus(s, now) { // the menu line: grace, rust, and what today still needs
+  const U = s.upkeep || newUpkeep(dayKey(now)), d = dayKey(now), food = (s.meals || []).some(m => m.day === d && m.meal !== 'Supplements'), work = (s.logs || []).some(l => l.day === d);
+  const today = food && work ? 'today is kept' : food ? 'today still needs a workout' : work ? 'today still needs food' : 'today needs food and a workout';
+  return `Upkeep: ${U.grace} grace day${U.grace === 1 ? '' : 's'}, ${U.rust.length ? U.rust.length + ' rusted' : 'nothing rusted'}; ${today}.`;
+}
+const newUpkeep = from => ({ from, checked: null, grace: UPKEEP.grace, keptRun: 0, rust: [], rustN: {} });
+const keptDay = (s, d) => (s.meals || []).some(m => m.day === d && m.meal !== 'Supplements') && (s.logs || []).some(l => l.day === d);
+const rustN = (s, id) => (s.upkeep && s.upkeep.rustN && s.upkeep.rustN[id]) || 0;
+function addDays(key, n) { const [y, m, d] = key.split('-').map(Number); return dayKey(new Date(y, m - 1, d + n)); }
+function rustPick(s) { // the most expensive level still working
+  let best = null, bc = -1;
+  for (const u of LATTICE) { const eff = (s.lattice[u.id] || 0) - rustN(s, u.id); if (eff > 0) { const c = latticeCost(u, eff - 1); if (c > bc) { bc = c; best = u.id; } } }
+  return best;
+}
+function judgeUpkeep(s, now) {
+  const U = s.upkeep || (s.upkeep = newUpkeep(dayKey(now))), today = dayKey(now), ev = [];
+  for (let i = U.rust.length - 1; i >= 0; i--) { const id = U.rust[i].id; if ((U.rustN[id] || 0) > (s.lattice[id] || 0)) { U.rust.splice(i, 1); U.rustN[id]--; } } /* levels taken away elsewhere (a refund, a sale) take their rust with them */
+  const loseOld = d => { for (let i = U.rust.length - 1; i >= 0; i--) { const r = U.rust[i]; if (daysBetween(r.day, d) > UPKEEP.lose) { U.rust.splice(i, 1); U.rustN[r.id]--; s.lattice[r.id] = Math.max(0, (s.lattice[r.id] || 0) - 1); ev.push({ kind: 'lost', id: r.id, day: r.day }); } } };
+  let d = U.checked ? addDays(U.checked, 1) : U.from;
+  for (let guard = 0; daysBetween(d, today) > 0 && guard < 400; guard++, d = addDays(d, 1)) {
+    loseOld(d);
+    if (keptDay(s, d)) {
+      if (U.rust.length) { const r = U.rust.pop(); U.rustN[r.id]--; ev.push({ kind: 'repair', id: r.id, day: d }); }
+      if (++U.keptRun >= UPKEEP.regain) { U.keptRun = 0; if (U.grace < UPKEEP.grace) { U.grace++; ev.push({ kind: 'grace', day: d }); } } /* every kept day counts toward the run, repairs too */
+    } else {
+      U.keptRun = 0;
+      if (U.grace > 0) { U.grace--; ev.push({ kind: 'graceUsed', day: d, left: U.grace }); }
+      else { const id = rustPick(s); if (id) { U.rust.push({ id, day: d }); U.rustN[id] = (U.rustN[id] || 0) + 1; ev.push({ kind: 'rust', id, day: d }); } else ev.push({ kind: 'missed', day: d }); }
+    }
+    U.checked = d;
+  }
+  loseOld(today);
+  if (ev.length) s.upkeepNote = (s.upkeepNote || []).concat(ev).slice(-30);
+  return ev;
 }
 function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once); s33: then anything ahead of progress is refunded and re-locked
   if (!out.botsGrand) { out.botsGrand = 1; if (out.runs > 0) for (const id of ['gun', 'scav', 'fix', 'turret', 'jammer', 'eng']) out.lattice[id] = Math.max(1, out.lattice[id] || 0); }
@@ -1155,7 +1228,7 @@ function persist(s) {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) { /* sandboxed: memory only */ }
 }
 let SAVE = loadSave();
-const lat = id => SAVE.lattice[id] || 0;
+const lat = id => Math.max(0, (SAVE.lattice[id] || 0) - rustN(SAVE, id)); // s37: rusted levels do not work
 const latVal = id => { const u = LATTICE.find(x => x.id === id); return lat(id) * u.per; };
 
 /* ---------- workout ledger with streak freezes and ramp-down ---------- */
@@ -1235,9 +1308,9 @@ function undoLog(ts) {
   const i = SAVE.logs.findIndex(l => l.ts === ts); if (i < 0) return null;
   const l = SAVE.logs.splice(i, 1)[0]; statAdd('workouts', -1);
   if (l.detail && l.detail.bw) { const prev = SAVE.logs.find(x => x.detail && x.detail.bw > 0); if (prev) SAVE.bodyweight = prev.detail.bw; } // a mistyped bodyweight goes with its log
-  SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0));
+  if (!SAVE.resetAt || l.ts >= SAVE.resetAt) SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0)); /* s37: a log from before the reset already lost its gold */
   const st = { streak: 0, freezes: 2, lastLog: null };
-  const days = [...new Set(SAVE.logs.map(x => x.day))].sort((a, b) => daysBetween(b, a));
+  const days = [...new Set(SAVE.logs.filter(x => !SAVE.resetAt || x.ts >= SAVE.resetAt).map(x => x.day))].sort((a, b) => daysBetween(b, a)); /* s37: a streak restarted by the reset stays restarted */
   for (const d of days) stepDay(st, d);
   Object.assign(SAVE, st);
   persist(SAVE);
@@ -2749,6 +2822,7 @@ function autoPerch(run, dt) {
   let m = null, md = 1e12; for (const c of free) { const d = dist2(c.x, c.y, best.x, best.y); if (d < md) { md = d; m = c; } }
   m.state = 'flying'; m.anchor = best; m.auto = true; tip(run, 'autoperch', { at: best });
 }
+const handoverR = run => HANDOVER_R * (run.p.magnet || 80) / 80 * (1 + 0.25 * ((run.skill && run.skill.dmag) || 0)); // s37 (Lance 10-11): scales with Workshop Magnet, the Magnet passive and Drone magnet
 function droneHandover(run, m) {
   if (!(m.cargo || m.cargoParts)) return;
   if (m.cargo) gainXp(run, m.cargo);
@@ -2760,9 +2834,10 @@ function updateMotes(run, dt) {
   const p = run.p; if (run.me) { run.me.x = p.x; run.me.y = p.y - PERCH.meLift; }
   autoPerch(run, dt);
   const pick = run.skill ? (run.skill.dmag || 0) : 0; // Drone magnet node: follower pickup radius, parts at level 2
+  const handR = handoverR(run); // s37: farther with every magnet upgrade
   for (const m of run.motes) {
     m.ph += dt; if (m.land > 0) m.land -= dt;
-    if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < HANDOVER_R * HANDOVER_R) droneHandover(run, m);
+    if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < handR * handR) droneHandover(run, m);
     if (m.state === 'follow') {
       // scout ahead of your heading so you see what you are walking into
       // Drone positions (pause > Drone positions): a clock slot around your heading, else the default spread ahead
@@ -2923,7 +2998,7 @@ function updateEnemies(run, dt) {
       if (aim) {
         e.cd = 2.6;
         const base = Math.atan2(aim.y - e.y, aim.x - e.x);
-        const fan = Math.max(3, form(e).fan - Math.max(0, 3 - (run.z.world || 1))), gap = form(e).gap; /* a Heavy Gunner fires 7; World 1 two fewer, World 2 one fewer (s32 report: Gunner shots were 75-92% of early damage) */
+        const fan = Math.max(3, form(e).fan - Math.max(0, 3 - (run.z.world || 1)) - (run.mode === 'hard' && (run.z.world || 1) <= 5 ? 1 : 0)), gap = form(e).gap; /* a Heavy Gunner fires 7; World 1 two fewer, World 2 one fewer (s32 report: Gunner shots were 75-92% of early damage) */
         for (let i = 0; i < fan; i++) { const a = base + (i - (fan - 1) / 2) * gap; run.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: SHOT_R, dmg: e.dmg, t: 4, src: 'gshot' }); }
       }
     } else if (e.type === 'resonator') {
@@ -4370,6 +4445,8 @@ if (HAS_DOM) {
   }
   el('m-update').onclick = () => location.reload(); // the launcher starts the cached newer build
   el('m-refund-ok').onclick = () => { delete SAVE.refundNote; persist(SAVE); el('m-refund').hidden = true; };
+  el('m-reset-ok').onclick = () => { delete SAVE.resetNote; persist(SAVE); el('m-reset').hidden = true; };
+  el('m-upkeep-ok').onclick = () => { delete SAVE.upkeepNote; persist(SAVE); el('m-upkeep').hidden = true; };
   el('m-new-ok').onclick = () => { SAVE.lastBuild = BUILD_ID; persist(SAVE); el('m-new').hidden = true; };
   el('p-ver').textContent = BUILD_ID;
   UI.menu = () => {
@@ -4382,6 +4459,10 @@ if (HAS_DOM) {
     checkForUpdate();
     el('m-gold').textContent = Math.round(SAVE.gold);
     el('m-streak').textContent = `${SAVE.streak} day streak, ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'}, ${streakMult(SAVE.streak).toFixed(2)}x`;
+    if (judgeUpkeep(SAVE, new Date()).length) persist(SAVE); /* s37: a day ended since the last look */
+    el('m-reset').hidden = !SAVE.resetNote;
+    { const N = SAVE.upkeepNote, b = el('m-upkeep'); b.hidden = !N || !N.length; if (N && N.length) el('m-upkeep-list').innerHTML = N.map(e => `<li>${esc(upkeepLine(e))}</li>`).join(''); }
+    el('m-upkeep-line').textContent = upkeepStatus(SAVE, new Date());
     { /* the world you are in: its five zones as marks (50 would not fit); Hard has its own row and world */
       const pips = (n, c) => { const cw = ZONES[Math.min(n, ZONES.length - 1)].world || 1; return `<b class="zw">${c ? 'Hard, ' : ''}${WORLDS[cw].name.replace(/: .*/, '')}</b>` + ZONES.map((z, i) => (z.world || 1) !== cw ? '' : `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); }; // cleared zones as marks, not words (Lance 10-07)
       el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
@@ -4390,6 +4471,7 @@ if (HAS_DOM) {
     ensureQuests(); dealGoals(); el('btn-quests').classList.toggle('pts', anyClaimable()); // amber dot: a reward is waiting
   };
   const hardOpen = i => i < SAVE.cleared || SAVE.playtest;
+  { const box = el('set-reset'); box.appendChild(holdSell('Hold to start over', () => { resetProgress(SAVE, new Date()); SAVE.resetNote = 1; persist(SAVE); UI.settings('Started over. Your workouts, food and settings are kept.'); })); }
   UI.zones = () => {
     UI.go('zones'); { // at most one new card per visit, so the zone list always fits: zones, then Hard, then the modifier
       const live = id => el(id).dataset.live, hardNow = ZONES.some((z, i) => hardOpen(i));
@@ -4423,7 +4505,7 @@ if (HAS_DOM) {
   swipeTabs(el('zones'), dir => { zoneWorld = cycle(zoneTabs, zoneWorld, dir); UI.zones(); slideIn(el('zone-list'), dir); });
   let latSel = null, latCache = null;
   function latModel() {
-    const stars = LATTICE.map(u => { const lvl = lat(u.id), why = latWhy(u.id), maxed = lvl >= u.max; return { key: u.id, name: u.name, lvl, max: u.max, can: !why && !maxed && SAVE.gold >= latticeCost(u, lvl), locked: !!why }; });
+    const stars = LATTICE.map(u => { const lvl = lat(u.id), raw = SAVE.lattice[u.id] || 0, why = latWhy(u.id), maxed = raw >= u.max; return { key: u.id, name: u.name, lvl, rust: raw - lvl, max: u.max, can: !why && !maxed && SAVE.gold >= latticeCost(u, raw), locked: !!why }; });
     const links = []; for (const d in LAT_LINKS) for (const [k, need] of LAT_LINKS[d]) links.push([k, d, need, lat(k) >= need, true]);
     return { pos: LAT_SKY, links, stars, sel: latSel, groups: LAT_GROUPS };
   }
@@ -4668,21 +4750,22 @@ if (HAS_DOM) {
   };
   const keepScroll = f => { const sc = el('lattice'), y = sc.scrollTop; f(); sc.scrollTop = y; };
   function latPanel(u) {
-    const box = el('lat-panel'), lvl = lat(u.id), maxed = lvl >= u.max, cost = latticeCost(u, lvl), why = latWhy(u.id), can = !why && !maxed && SAVE.gold >= cost;
+    const box = el('lat-panel'), lvl = SAVE.lattice[u.id] || 0, eff = lat(u.id), rusted = lvl - eff, maxed = lvl >= u.max, cost = latticeCost(u, lvl), why = latWhy(u.id), can = !why && !maxed && SAVE.gold >= cost; /* lvl: what you bought; eff: what works (s37 rust) */
     const [branch, detail] = LATTICE_INFO[u.id], ul = latUnlocks(u.id);
     box.innerHTML = `<div class="t"><b>${u.name}</b><small>${branch}</small></div>`
-      + `<p>${lvl ? 'Now: ' + u.fmt(lvl * u.per) : 'Not bought yet'}${maxed ? '. Maxed.' : '. Next level: ' + u.fmt((lvl + 1) * u.per)}</p>`
+      + `<p>${lvl ? 'Now: ' + u.fmt(eff * u.per) : 'Not bought yet'}${maxed ? '. Maxed.' : '. Next level: ' + u.fmt((eff + 1) * u.per)}</p>`
+      + (rusted ? `<p class="why">${rusted} level${rusted > 1 ? 's' : ''} rusted: not working. Log food and a workout on the same day to repair one. Rust older than ${UPKEEP.lose} days is lost.</p>` : '')
       + (why ? `<p class="why">${why}</p>` : '') + (ul.length ? `<p>Opens: ${ul.join(', ')}</p>` : '')
       + `<details class="wdet"><summary>Details</summary><p>${detail}</p></details>`;
     const buy = document.createElement('button'); buy.className = 'buybig'; buy.disabled = !can;
     buy.textContent = maxed ? 'Maxed' : why ? 'Locked' : can ? `Buy level ${lvl + 1} (${cost} gold)` : `Need ${cost} gold`;
     buy.onclick = () => { if (!can) return; SAVE.gold -= cost; SAVE.lattice[u.id] = lvl + 1; persist(SAVE); beep(660, 0.1, 'triangle', 0.05); buzz(15); keepScroll(() => UI.lattice()); };
     box.appendChild(buy);
-    const sb = lvl > 0 ? latSellBlock(u.id) : 'none';
+    const sb = eff > 0 ? latSellBlock(u.id) : 'none'; /* a rusted level cannot be sold */
     if (!sb) { // selling needs a deliberate 1 second hold and never sits next to Buy
-      const refund = Math.floor(latticeCost(u, lvl - 1) * LATTICE_SELL);
+      const refund = Math.floor(latticeCost(u, eff - 1) * LATTICE_SELL); /* the working level that goes, not a rusted one above it */
       const hs = holdSell(`Hold to sell 1 level (+${refund} gold)`, () => {
-        SAVE.lattice[u.id] = lvl - 1; SAVE.gold += refund; persist(SAVE); beep(330, 0.08, 'triangle', 0.05); buzz(30);
+        SAVE.lattice[u.id] = lvl - 1; SAVE.gold += refund; persist(SAVE); /* eff > 0, so a working level goes and the rust stays */ beep(330, 0.08, 'triangle', 0.05); buzz(30);
         keepScroll(() => UI.lattice(`Sold a level of ${u.name}: +${refund} gold.`));
       });
       hs.id = 'lat-sell'; box.appendChild(hs);
@@ -4932,12 +5015,12 @@ if (HAS_DOM) {
     for (const n of M.stars) {
       const [x, y] = pos(n.key), R = n.evo ? 13 : 15, col = n.evo ? '255,179,71' : '127,245,255', owned = n.lvl > 0;
       if (n.can) { g.fillStyle = `rgba(255,179,71,${0.12 + 0.18 * pulse})`; g.beginPath(); g.arc(x, y, R + 12, 0, 6.283); g.fill(); }
-      g.fillStyle = owned ? `rgba(${col},0.9)` : n.locked ? 'rgba(60,70,90,0.9)' : `rgba(${col},0.25)`;
+      g.fillStyle = owned ? `rgba(${col},0.9)` : n.rust ? 'rgba(200,116,58,0.6)' : n.locked ? 'rgba(60,70,90,0.9)' : `rgba(${col},0.25)`;
       if (n.evo) { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * 0.5 : R + 3; g[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); }
       else { g.beginPath(); g.arc(x, y, R, 0, 6.283); g.fill(); }
       if (n.max > 1) for (let i = 0; i < n.max; i++) { // level ring segments
         const gap = Math.min(0.08, 1.2 / n.max), a0 = -Math.PI / 2 + i / n.max * 6.283 + gap, a1 = -Math.PI / 2 + (i + 1) / n.max * 6.283 - gap;
-        g.strokeStyle = i < n.lvl ? `rgba(${col},0.95)` : 'rgba(120,140,170,0.3)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R + 5, a0, a1); g.stroke();
+        g.strokeStyle = i < n.lvl ? `rgba(${col},0.95)` : i < n.lvl + (n.rust || 0) ? 'rgba(200,116,58,0.95)' : 'rgba(120,140,170,0.3)'; g.lineWidth = 3; /* s37: rusted levels in rust */ g.beginPath(); g.arc(x, y, R + 5, a0, a1); g.stroke();
       }
       if (n.cost >= 2) { g.strokeStyle = n.lvl ? `rgba(${col},0.8)` : 'rgba(170,185,210,0.55)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, R + 9, 0, 6.283); g.stroke(); g.beginPath(); g.arc(x, y, R + 12, 0, 6.283); g.stroke(); } // double ring: costs 2 points
       if (n.key === M.sel) { g.strokeStyle = '#f6efe0'; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, R + (n.cost >= 2 ? 16 : 10), 0, 6.283); g.stroke(); }
@@ -5246,7 +5329,7 @@ if (HAS_DOM) {
     try { data = JSON.parse(decodeURIComponent(escape(atob(raw.replace(/^SURVIVORS1:/, ''))))); } catch (e) { data = null; }
     if (!data || typeof data !== 'object' || !('gold' in data)) { el('bk-msg').textContent = 'That text is not a save backup.'; return; }
     if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = `Tap again: replace this save with ${Math.round(data.gold)} gold, ${data.cleared || 0} zones cleared`; return; }
-    const keys = { fdcKey: SAVE.fdcKey, nixId: SAVE.nixId, nixKey: SAVE.nixKey }; SAVE = grandfatherBots(Object.assign(defaultSave(), data, keys)); for (const k in keys) if (SAVE[k] === undefined) delete SAVE[k]; persist(SAVE); UI.backup('Save restored.');
+    const keys = { fdcKey: SAVE.fdcKey, nixId: SAVE.nixId, nixKey: SAVE.nixKey }; SAVE = grandfatherBots(Object.assign(defaultSave(), data, keys, { reset37: 1 })); SAVE.upkeep = newUpkeep(dayKey(new Date())); delete SAVE.upkeepNote; /* a restored save starts its upkeep today: its old days are not judged against logs it never saw */ for (const k in keys) if (SAVE[k] === undefined) delete SAVE[k]; persist(SAVE); UI.backup('Save restored.');
   };
   el('btn-notes-new').onclick = () => UI.note('notes');
   el('btn-notes-copy').onclick = () => {
@@ -5336,7 +5419,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, setOrder, UNITS, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
