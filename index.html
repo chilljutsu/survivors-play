@@ -290,7 +290,7 @@
 </div></div>
 
 <div id="log" class="screen"><div class="col">
-  <h2>Workout ledger</h2>
+  <div class="tree-head"><h2>Workout ledger</h2><div class="fday"><button id="l-prev" aria-label="previous day">‹</button><b id="l-dayname">Today</b><button id="l-next" aria-label="next day">›</button></div></div>
   <div class="itip" id="it-log" hidden></div>
   <p id="log-streak"></p>
   <p id="log-msg"></p>
@@ -1120,11 +1120,14 @@ const WORKOUTS = [
   { id: 'run',   name: 'Run',                 gold: 200 },
   { id: 'dance', name: 'Dance practice',      gold: 250 },
   { id: 'bjj',   name: 'BJJ class',           gold: 500 },
+  { id: 'bw',    name: 'Bodyweight',          gold: 150 }, // s42 (Lance 10-12: "I just did 30 pushups but that can't be logged anywhere?")
 ];
+const BW_MOVES = { pushup: 'Push-ups', pullup: 'Pull-ups', chinup: 'Chin-ups', dip: 'Dips', situp: 'Sit-ups', squat: 'Air squats', burpee: 'Burpees', plank: 'Plank (seconds)' };
+const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rust window, so nothing already lost is touched)
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-11 s41';
+const BUILD_ID = 'playtest 2026-10-12 s42';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1155,6 +1158,7 @@ const WHATS_NEW = [
   { s: 39, items: ['Skills and the Workshop share the same tabs: Weapons, Drones, Bots, Base and You (your passives). In the skill tree every tier opens after 3 points in the tier below; in the Workshop, the lower rows of Drones and You open after 3 levels in the top row, and Bots and Base open world by world.', 'Gun drones are now the Drone gun: your own Drones shoot what they see, no parts needed.', 'Ammo tow (World 2): a hauler at your side with another 240 ammo. Two triple your ammo. It steps in front of Gunners and takes the shots.', 'Gun mount (World 6): a small gun on haulers and tows, then scavengers and repair bots, then the Engineer.'] },
   { s: 40, items: ['Tap the Drones line above your buttons to open the Drones page; Back drops you straight into the fight.', 'The Drones page has two tabs: Formation (positions, Tight or Loose, Auto perch) and Targets (what your Drones go after). Swipe between them.', 'Pause is a set of big tiles: Skill tree, Drones, Factory (not on Hard), Camera, How it works and a feedback note.', 'The skill tree Drones tab links to the Drones page.'] },
   { s: 41, items: ['World 1 in 2.5D: the base stands up and the grid is fainter, so the tilted map no longer looks stretched.', 'What a following Drone sees for you is outlined in cyan dashes. Your Pulse can hit what it sees; the base turret and the Drone gun now only shoot what someone can see.', 'In 2.5D, running your ship over a box picks it up.'] },
+  { s: 42, items: ['Workouts can be logged for earlier days: use the arrows at the top of the Workout ledger (up to a week back).', 'A day you fill in later (a workout or food) counts for upkeep: if it had cost a grace day or rusted a level, that is put right.', 'New workout: Bodyweight (push-ups, pull-ups, chin-ups, dips, sit-ups, air squats, burpees, plank) with reps and sets.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1197,6 +1201,7 @@ function upkeepLine(e) { // one event, in plain words, for the menu card
     : e.kind === 'lost' ? `${n}: one level lost for good (rusted on ${dayName(e.day)}, more than ${UPKEEP.lose} days ago).`
     : e.kind === 'graceUsed' ? `${dayName(e.day)}: not both logged. A grace day covered it (${e.left} left).`
     : e.kind === 'grace' ? `${UPKEEP.regain} kept days in a row: a grace day back.`
+    : e.kind === 'filled' ? `${dayName(e.day)} filled in: ${n ? n + ' repaired' : e.grace != null ? 'its grace day is back (' + e.grace + ' now)' : 'it counts as kept now'}.`
     : `${dayName(e.day)}: not both logged, but there was nothing to rust.`;
 }
 function upkeepStatus(s, now) { // the menu line: grace, rust, and what today still needs
@@ -1227,12 +1232,37 @@ function judgeUpkeep(s, now) {
       U.keptRun = 0;
       if (U.grace > 0) { U.grace--; ev.push({ kind: 'graceUsed', day: d, left: U.grace }); }
       else { const id = rustPick(s); if (id) { U.rust.push({ id, day: d }); U.rustN[id] = (U.rustN[id] || 0) + 1; ev.push({ kind: 'rust', id, day: d }); } else ev.push({ kind: 'missed', day: d }); }
+      const v = ev[ev.length - 1]; (U.days || (U.days = {}))[d] = { kind: v.kind, id: v.id || null }; /* s42: kept, so a day filled in later can be put right */
+      for (const k of Object.keys(U.days)) if (daysBetween(k, d) > UPKEEP.lose + 1) delete U.days[k];
     }
     U.checked = d;
   }
   loseOld(today);
   if (ev.length) s.upkeepNote = (s.upkeepNote || []).concat(ev).slice(-30);
   return ev;
+}
+/* s42 (Lance 10-12: "I did a 2mi run and 8 pullups yesterday but I can't log it retroactively"): a day already judged
+   as missed that is filled in later (a workout or food logged for it) is put right once: its grace day comes back, or
+   the level it rusted works again. Undoing that log takes it back. */
+function rejudgeDay(s, day) {
+  const U = s.upkeep; if (!U || !U.checked || daysBetween(day, U.checked) < 0 || daysBetween(day, dayKey(new Date())) > LOG_BACK || !keptDay(s, day)) return null; /* not judged yet: today's check will see it; older than a week: left alone */
+  const days = U.days || (U.days = {});
+  let v = days[day];
+  if (!v) { const r = U.rust.find(x => x.day === day), n = (s.upkeepNote || []).find(e => e.day === day && /graceUsed|rust|missed/.test(e.kind)); v = r ? { kind: 'rust', id: r.id } : n ? { kind: n.kind, id: n.id || null } : null; } /* judged before s42 kept verdicts */
+  if (!v || v.fixed) return null;
+  let e = { kind: 'filled', day }, did = null; /* did: what was actually given back, so an undo takes back exactly that */
+  if (v.kind === 'graceUsed' && U.grace < UPKEEP.grace) { U.grace++; did = 'grace'; e = { kind: 'filled', day, grace: U.grace }; }
+  else if (v.kind === 'rust') { const i = U.rust.findIndex(x => x.day === day && x.id === v.id); if (i >= 0) { U.rust.splice(i, 1); U.rustN[v.id]--; did = 'rust'; e = { kind: 'filled', day, id: v.id }; } } /* a later kept day may have repaired it already */
+  days[day] = Object.assign({}, v, { fixed: 1, did });
+  s.upkeepNote = (s.upkeepNote || []).concat(e).slice(-30);
+  return e;
+}
+function unjudgeDay(s, day) { // an undo that leaves a put-right day unkept again takes the fix back
+  const U = s.upkeep, v = U && U.days && U.days[day]; if (!v || !v.fixed || keptDay(s, day)) return;
+  const rustOne = id => { if (id && (s.lattice[id] || 0) > rustN(s, id)) { U.rust.push({ id, day }); U.rustN[id] = (U.rustN[id] || 0) + 1; } };
+  if (v.did === 'grace') { if (U.grace > 0) U.grace--; else rustOne(rustPick(s)); } /* the grace day it gave was spent since: the miss costs a level instead */
+  else if (v.did === 'rust') rustOne(v.id);
+  U.days[day] = { kind: v.kind, id: v.id };
 }
 function grandfatherBots(out) { // s19: a save that could already build every bot keeps them unlocked (once); s33: then anything ahead of progress is refunded and re-locked
   if (!out.botsGrand) { out.botsGrand = 1; if (out.runs > 0) for (const id of ['gun', 'scav', 'fix', 'turret', 'jammer', 'eng']) out.lattice[id] = Math.max(1, out.lattice[id] || 0); }
@@ -1295,11 +1325,13 @@ function bestBands(logs) { // highest band reached per lift across a log list
   return out;
 }
 
-function logWorkout(id, now, detail) {
+function logWorkout(id, now, detail, at) {
   now = now || new Date();
   const w = WORKOUTS.find(x => x.id === id);
-  const today = dayKey(now);
-  const note = stepDay(SAVE, today);
+  const today = dayKey(at || now), back = !!at && today !== dayKey(now); /* s42: a day you fill in later */
+  if (back && (daysBetween(today, dayKey(now)) > LOG_BACK || daysBetween(today, dayKey(now)) < 0 || (SAVE.resetAt && daysBetween(dayKey(new Date(SAVE.resetAt)), today) < 0))) return null; /* not before a fresh start */
+  const wasKept = keptDay(SAVE, today);
+  const note = back ? '' : stepDay(SAVE, today);
   const mult = streakMult(SAVE.streak);
   const gold = Math.round(w.gold * mult);
   // first time reaching a strength band pays a bonus
@@ -1312,23 +1344,31 @@ function logWorkout(id, now, detail) {
     if (b > (before[x.lift] ?? -1)) { bonus += BAND_BONUS * (b - (before[x.lift] ?? -1)); before[x.lift] = b; line += ' (new band)'; }
     lines.push(line + '.');
   }
-  if (detail && detail.bw > 0) SAVE.bodyweight = detail.bw; // the latest bodyweight feeds Ratings
-  SAVE.gold += gold + bonus; statAdd('workouts', 1, now);
-  SAVE.logs.unshift({ id, day: today, gold, bonus, ts: now.getTime(), detail: detail || null });
+  if (detail && detail.bw > 0 && !back) SAVE.bodyweight = detail.bw; // the latest bodyweight feeds Ratings (a filled-in day is not the latest)
+  SAVE.gold += gold + bonus; if (!back) statAdd('workouts', 1, now); /* quests count today's workouts, like food */
+  const [y, m, d] = today.split('-').map(Number); let ts = back ? new Date(y, m - 1, d, 12).getTime() + (now.getTime() % 3600000) : now.getTime(); /* a filled-in log sits on its own day */
+  while (SAVE.logs.some(l => l.ts === ts)) ts++; /* undo finds a log by its time, so no two share one */
+  SAVE.logs.unshift(Object.assign({ id, day: today, gold, bonus, ts, detail: detail || null }, back ? { back: 1, made: now.getTime() } : {}));
+  if (back) { SAVE.logs.sort((a, b) => b.ts - a.ts); replayStreak(); }
   SAVE.logs = SAVE.logs.slice(0, 400);
+  const fixed = !wasKept && back ? rejudgeDay(SAVE, today) : null;
   persist(SAVE);
-  return { gold, bonus, mult, note, lines };
+  return { gold, bonus, mult, note: back ? (fixed ? upkeepLine(fixed) : '') : note, lines, fixed, back: back ? dayName(today) : null };
 }
-// undo one entry: refund what it paid and replay the streak from what is left, so undo is exact
-function undoLog(ts) {
-  const i = SAVE.logs.findIndex(l => l.ts === ts); if (i < 0) return null;
-  const l = SAVE.logs.splice(i, 1)[0]; statAdd('workouts', -1);
-  if (l.detail && l.detail.bw) { const prev = SAVE.logs.find(x => x.detail && x.detail.bw > 0); if (prev) SAVE.bodyweight = prev.detail.bw; } // a mistyped bodyweight goes with its log
-  if (!SAVE.resetAt || l.ts >= SAVE.resetAt) SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0)); /* s37: a log from before the reset already lost its gold */
+// the streak from what is logged, day by day (undo and filled-in days use it, so both are exact)
+function replayStreak() {
   const st = { streak: 0, freezes: 2, lastLog: null };
   const days = [...new Set(SAVE.logs.filter(x => !SAVE.resetAt || x.ts >= SAVE.resetAt).map(x => x.day))].sort((a, b) => daysBetween(b, a)); /* s37: a streak restarted by the reset stays restarted */
   for (const d of days) stepDay(st, d);
   Object.assign(SAVE, st);
+}
+// undo one entry: refund what it paid and replay the streak from what is left, so undo is exact
+function undoLog(ts) {
+  const i = SAVE.logs.findIndex(l => l.ts === ts); if (i < 0) return null;
+  const l = SAVE.logs.splice(i, 1)[0]; if (!l.back) statAdd('workouts', -1); /* it was counted when logged (a filled-in day never was) */
+  if (l.detail && l.detail.bw) { const prev = SAVE.logs.find(x => x.detail && x.detail.bw > 0); if (prev) SAVE.bodyweight = prev.detail.bw; } // a mistyped bodyweight goes with its log
+  if (!SAVE.resetAt || (l.made || l.ts) >= SAVE.resetAt) SAVE.gold = Math.max(0, SAVE.gold - l.gold - (l.bonus || 0)); /* s37: a log from before the reset already lost its gold */
+  replayStreak(); unjudgeDay(SAVE, l.day);
   persist(SAVE);
   return l;
 }
@@ -1710,16 +1750,16 @@ function creditFood(day, before, now) { // quests count today's eating only: a p
 function logFood(foodId, meal, n, now, at) {
   now = now || new Date(); at = at || now; const day = dayKey(at), f = (SAVE.foods || {})[foodId]; if (!f || !(n > 0) || !FOOD.meals.includes(meal)) return null;
   if (at.getTime() < now.getTime() - (FOOD.keepDays - 1) * 864e5) return null; // older than the log keeps
-  const before = foodDayState(day);
+  const before = foodDayState(day), wasKept = keptDay(SAVE, day);
   const e = { id: now.getTime().toString(36) + Math.floor(Math.random() * 1e6).toString(36), day, ts: at.getTime(), meal, food: foodId, n: +n };
   (SAVE.meals || (SAVE.meals = [])).push(e); f.t = now.getTime(); mealsChanged();
-  creditFood(day, before, now);
+  creditFood(day, before, now); if (!wasKept && day !== dayKey(now)) rejudgeDay(SAVE, day); /* s42: a past day filled in */
   const cut = now.getTime() - FOOD.keepDays * 864e5; if (SAVE.meals.length > 3000 || SAVE.meals.some(m => m.ts < cut)) { SAVE.meals = SAVE.meals.filter(m => m.ts >= cut).slice(-3000); mealsChanged(); }
   persist(SAVE); return e;
 }
 function setServings(id, n, now) { // 0 removes it
   const m = (SAVE.meals || []).find(x => x.id === id); if (!m) return false; const before = foodDayState(m.day);
-  if (n > 0) m.n = +n; else { SAVE.meals.splice(SAVE.meals.indexOf(m), 1); mealsChanged(); }
+  if (n > 0) m.n = +n; else { SAVE.meals.splice(SAVE.meals.indexOf(m), 1); mealsChanged(); unjudgeDay(SAVE, m.day); }
   creditFood(m.day, before, now || new Date()); persist(SAVE); return true;
 }
 // one nutrient over the last `days` days: daily totals for the days you logged food, oldest first
@@ -4844,12 +4884,14 @@ if (HAS_DOM) {
     dance: [{ k: 'min', label: 'Minutes' }, { k: 'style', label: 'Style', text: true, ph: 'popping, shuffle, cutting shapes' }],
     bjj:   [{ k: 'min', label: 'Minutes' }, { k: 'rolls', label: 'Rolls' }],
     gym:   [], // lift rows, built below
+    bw:    [], // s42: exercise rows, built below
   };
   const wName = id => WORKOUTS.find(w => w.id === id).name;
-  const fmtDay = l => new Date(l.ts || Date.parse(l.day)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const fmtDay = l => { const [y, m, d] = (l.day || '').split('-').map(Number); return (l.day ? new Date(y, m - 1, d) : new Date(l.ts)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }; /* the day it belongs to (s42: filled-in logs) */
   function detailText(l) {
     const d = l.detail; if (!d) return '';
     if (l.id === 'gym') return (d.lifts || []).map(x => `${LIFTS[x.lift].name} ${x.w}x${x.reps}${x.sets > 1 ? ` (${x.sets} sets)` : ''}`).join(', ');
+    if (l.id === 'bw') return (d.moves || []).map(x => `${BW_MOVES[x.ex] || x.ex} ${x.reps}${x.ex === 'plank' ? ' s' : ''}${x.sets > 1 ? ` x ${x.sets} sets` : ''}`).join(', ');
     const parts = [];
     if (d.min) parts.push(`${d.min} min`);
     if (d.mi) parts.push(`${d.mi} mi` + (d.min ? `, ${fmtPace(d.min / d.mi)}/mi` : ''));
@@ -4873,24 +4915,29 @@ if (HAS_DOM) {
       row.appendChild(u); box.appendChild(row);
     }
   }
+  let logDay = 0; // s42: 0 today, -1 yesterday, back to -LOG_BACK
+  const lday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate() + logDay, 12); };
+  const ldayName = () => logDay === 0 ? 'Today' : logDay === -1 ? 'Yesterday' : lday().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  el('l-prev').onclick = () => { if (logDay > -LOG_BACK) { logDay--; UI.log(); } }; el('l-next').onclick = () => { if (logDay < 0) { logDay++; UI.log(); } };
   UI.log = (msg) => {
     UI.go('log'); inlineTip('it-log', 'ledger');
+    el('l-dayname').textContent = ldayName(); el('l-next').disabled = logDay === 0; el('l-prev').disabled = logDay <= -LOG_BACK;
     el('log-streak').textContent = `${SAVE.streak} day streak. ${SAVE.freezes} freeze${SAVE.freezes === 1 ? '' : 's'} banked. Payout x${streakMult(SAVE.streak).toFixed(2)}.`;
     el('log-msg').innerHTML = msg || 'Honor system. Two freezes cover missed days; past that the streak halves instead of resetting. A freeze is earned every 7 days.';
     const box = el('log-list'); box.innerHTML = '';
     for (const w of WORKOUTS) {
       const d = document.createElement('button'); d.className = 'row';
-      d.innerHTML = `<b>${w.name}</b><em>+${Math.round(w.gold * streakMult(SAVE.streak))} gold</em>`;
+      d.innerHTML = `<b>${w.name}</b><em>+${Math.round(w.gold * streakMult(SAVE.streak))} gold${logDay ? ', ' + ldayName().toLowerCase() : ''}</em>`;
       d.onclick = () => UI.logForm(w.id);
       box.appendChild(d);
     }
-    recentList(el('log-hist'), SAVE.logs.slice(0, 8), m => UI.log(m));
+    recentList(el('log-hist'), [...SAVE.logs].sort((a, b) => (b.made || b.ts) - (a.made || a.ts)).slice(0, 3), m => UI.log(m)); /* s42: the last three keep the page on one screen; History has them all */
   };
   el('btn-log-history').onclick = () => UI.hist('gym');
 
   UI.logForm = id => {
     UI.go('logform');
-    el('lf-title').textContent = wName(id);
+    el('lf-title').textContent = wName(id) + (logDay ? ', ' + ldayName().toLowerCase() : ''); /* which day it goes on, said plainly */
     const box = el('lf-fields'); box.innerHTML = '';
     const field = (f, val) => `<label>${f.label}<input data-k="${f.k}" ${f.text ? 'type="text"' : `type="number" inputmode="decimal" min="0" step="${f.step || '1'}"`} placeholder="${f.ph || ''}" value="${val ?? ''}"></label>`;
     if (id === 'gym') {
@@ -4902,6 +4949,15 @@ if (HAS_DOM) {
         el('lf-lifts').appendChild(r);
       };
       addRow(); el('lf-add').onclick = addRow;
+    } else if (id === 'bw') { /* s42: push-ups, pull-ups and friends, reps and sets per row */
+      box.innerHTML = `<div id="lf-moves" class="col"></div><button id="lf-add">Add another exercise</button>`;
+      const addRow = () => {
+        const r = document.createElement('div'); r.className = 'liftrow';
+        r.innerHTML = `<select data-k="ex">${Object.entries(BW_MOVES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>`
+          + `<label>reps<input data-k="reps" type="number" inputmode="numeric" min="1"></label><label>sets<input data-k="sets" type="number" inputmode="numeric" min="1" value="1"></label>`;
+        el('lf-moves').appendChild(r);
+      };
+      addRow(); el('lf-add').onclick = addRow;
     } else box.innerHTML = FORMS[id].map(f => field(f)).join('');
     el('lf-note').textContent = id === 'gym' ? 'Strength bands use built-in bodyweight-ratio standards (StrengthLevel has no public API), so treat them as an estimate. Reaching a new band pays +100 gold.' : 'Details are optional but feed your history charts.';
     el('btn-lf-save').onclick = () => {
@@ -4910,10 +4966,14 @@ if (HAS_DOM) {
       if (id === 'gym') {
         const bw = num(box, 'bw'); if (bw) detail.bw = bw;
         detail.lifts = [...box.querySelectorAll('.liftrow')].map(r => ({ lift: r.querySelector('[data-k="lift"]').value, w: num(r, 'w'), reps: num(r, 'reps') || 1, sets: num(r, 'sets') || 1 })).filter(x => x.w);
+      } else if (id === 'bw') {
+        detail.moves = [...box.querySelectorAll('.liftrow')].map(r => ({ ex: r.querySelector('[data-k="ex"]').value, reps: num(r, 'reps'), sets: num(r, 'sets') || 1 })).filter(x => x.reps > 0);
+        if (!detail.moves.length) { el('lf-note').textContent = 'Put in the reps (or seconds for a plank) first.'; return; }
       } else for (const f of FORMS[id]) { const e = box.querySelector(`[data-k="${f.k}"]`); const v = f.text ? e.value.trim() : num(box, f.k); if (v !== null && v !== '') detail[f.k] = v; }
-      const r = logWorkout(id, new Date(), Object.keys(detail).length ? detail : null);
+      const r = logWorkout(id, new Date(), Object.keys(detail).length ? detail : null, logDay ? lday() : null);
+      if (!r) { el('lf-note').textContent = `Workouts can be filled in up to ${LOG_BACK} days back.`; return; }
       beep(880, 0.12, 'triangle', 0.06); buzz(30);
-      UI.log([`Logged. +${r.gold} gold at x${r.mult.toFixed(2)}. ${r.note}`, ...r.lines.map(esc), r.bonus ? `<b>New strength band: +${r.bonus} gold.</b>` : ''].filter(Boolean).join('<br>'));
+      UI.log([`Logged${r.back ? ' for ' + r.back : ''}. +${r.gold} gold at x${r.mult.toFixed(2)}. ${esc(r.note)}`, ...r.lines.map(esc), r.bonus ? `<b>New strength band: +${r.bonus} gold.</b>` : ''].filter(Boolean).join('<br>'));
     };
     el('btn-lf-cancel').onclick = () => UI.log();
   };
@@ -4925,6 +4985,7 @@ if (HAS_DOM) {
     gym:   Object.entries(LIFTS).map(([k, v]) => ({ name: v.name, f: d => { const xs = (d.lifts || []).filter(x => x.lift === k); return xs.length ? Math.max(...xs.map(x => e1rm(x.w, x.reps))) : null; }, fmt: v => Math.round(v) + ' lb est. 1RM' })),
     dance: [{ name: 'Minutes', f: d => d.min, fmt: v => v + ' min' }],
     bjj:   [{ name: 'Minutes', f: d => d.min, fmt: v => v + ' min' }],
+    bw:    Object.entries(BW_MOVES).map(([k, v]) => ({ name: v.replace(' (seconds)', ''), f: d => { const xs = (d.moves || []).filter(x => x.ex === k); return xs.length ? Math.max(...xs.map(x => x.reps)) : null; }, fmt: v => v + (k === 'plank' ? ' s' : ' reps') + ' (best set)' })),
   };
   let histKind = 'gym', histMetric = 0;
   UI.hist = (kind, mi) => {
@@ -5158,7 +5219,7 @@ if (HAS_DOM) {
     else { nb.style.display = ''; nb.textContent = 'Retry'; nb.onclick = () => startRun(run.zone, run.mode); }
     UI.go('end'); inlineTip('it-end', s.won ? 'win' : (!tipSeen('lose') ? 'lose' : 'workshop_death'));
   };
-  el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => UI.log(); el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
+  el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => { logDay = 0; UI.log(); }; /* the menu always opens on today */ el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
   const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', fitness: 'menu', logform: 'log', hist: 'log' };
   function goBack() {
@@ -5491,7 +5552,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
