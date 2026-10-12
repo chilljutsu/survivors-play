@@ -1025,7 +1025,7 @@ const LATTICE = [
 /* Drone autonomy ladder, after the ARES project: each tier adds to the starting buddy drone (tiers stack). */
 const DRONE_TIERS = [
   { name: 'Buddy',            desc: 'Follows, scouts, perches where you send it.' },
-  { name: 'GPS',              desc: '+30% battery, +25% flight speed, flies home on low battery instead of dropping.', bat: 1.3, speed: 1.25 },
+  { name: 'GPS',              desc: '+30% battery, +25% flight speed, flies back to you on low battery to charge instead of dropping.', bat: 1.3, speed: 1.25 },
   { name: 'Video feed',       desc: 'Perched view 40% wider; when jammed it still sees at half range.', vision: 1.4 },
   { name: 'Onboard compute',  desc: 'Moves itself to a safe perch when jammed; limps home instead of going down.' },
 ];
@@ -1049,7 +1049,7 @@ const LATTICE_INFO = {
   clock:     ['You', 'Faster movement, so it is easier to dodge Rusher dashes and Gunner fans.'],
   magnet:    ['You', 'XP gems, health and parts fly to you from farther away.'],
   motes:     ['Drones', 'Start every run with more Drones, so you can watch more perches at once. (In a run, the Extra drone skill adds more.)'],
-  battery:   ['Drones', 'Drones stay perched longer before the battery runs out. The base perch always charges them.'],
+  battery:   ['Drones', 'A bigger battery: Drones fly and watch longer before they need a charge. Flying uses charge, perching uses a quarter as much; they charge on you, and twice as fast on the base.'],
   tier:      ['Drones', DRONE_TIERS.slice(1).map((t, i) => `Tier ${i + 1}, ${t.name}: ${t.desc}`).join(' ')],
   salvage:   ['You', 'When you die you keep more of that run\'s gold (you always keep all of it when you clear a zone).'],
   gun:       ['Drones', 'Unlocks the Drone gun in the skill tree (Drones): your own Drones carry a light gun and shoot what they see. No parts needed.'],
@@ -1139,7 +1139,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-12 s43';
+const BUILD_ID = 'playtest 2026-10-12 s44';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1163,7 +1163,7 @@ const WHATS_NEW = [
   { s: 32, items: ['After a run, a run report says what hurt you most, what killed you, how long you had no ammo, and what the base took. A feedback note written after a run includes it.'] },
   { s: 33, items: ['The Workshop opens world by world: each world brings one or two new things (the zones screen says which). Anything you owned ahead of your progress was refunded in full.', 'Hard is hands-on: no Factory orders and no auto artillery.', 'Gunners fire fewer shots in Worlds 1 and 2.'] },
   { s: 34, items: ['Every world from World 2 has its own rule: more hives, dense trees, fast Rushers, wide Jammers, currents, hidden hives, sandstorms, cold, and shafts of light. Tap Rule on the zones screen to read it.', 'Endurance uses the rule of the world you are in.'] },
-  { s: 35, items: ['A perched Drone now drains slowly and flying costs more. Battery pips show each Drone on the Drones row.', 'With Drone autonomy (World 5), idle Drones perch near you on their own. A Drone you send or recall yourself is left alone. Not on Hard.', 'Tap yourself to perch a Drone on you: it watches all round you.', 'Tight or Loose formation, and Auto perch on or off, on the Drones page (tap the Drones line).', 'Every Drone glides in and settles the same way when it lands.'] },
+  { s: 35, items: ['Battery pips show each Drone on the Drones row. (s44 put the battery right: flying uses charge, perching very little, and Drones charge on you.)', 'With Drone autonomy (World 5), idle Drones perch near you on their own. A Drone you send or recall yourself is left alone. Not on Hard.', 'Tap yourself to perch a Drone on you: it watches all round you.', 'Tight or Loose formation, and Auto perch on or off, on the Drones page (tap the Drones line).', 'Every Drone glides in and settles the same way when it lands.'] },
   { s: 36, items: ['Pulse now fires at enemies a perched Drone sees, out to 620 px, as long as nothing blocks the shot.', 'Barrage aims each bolt at its own target, and Lead shot and Homing work on every bolt.', 'A new Turret level adds its health to turrets already standing, even worn ones.', 'Scavengers also fetch XP and health, which come straight to you. Run over a Scavenger to take its load.', 'Passive slots 5 and 6 can be bought in the Workshop from World 9 and World 10.'] },
   { s: 37, items: ['A fresh start: your game progress, the tutorial and the workout streak were reset. Workouts, food and settings are kept.', 'Upkeep: log food and a workout on the same day to keep your upgrades. Two grace days, then missed days rust a Workshop level; a kept day repairs one; rust older than 7 days is lost.', 'Settings has Start over, behind a hold.', 'Drones hand you their XP from farther away with every magnet upgrade.', 'On Hard, Gunners fire one fewer shot in Worlds 2 to 5 (World 1 is already at the minimum of 3).'] },
   { s: 38, items: ['The skill tree keeps its stars apart while its first-time card is showing.'] },
@@ -1172,6 +1172,7 @@ const WHATS_NEW = [
   { s: 41, items: ['World 1 in 2.5D: the base stands up and the grid is fainter, so the tilted map no longer looks stretched.', 'What a following Drone sees for you is outlined in cyan dashes. Your Pulse can hit what it sees; the base turret and the Drone gun now only shoot what someone can see.', 'In 2.5D, running your ship over a box picks it up.'] },
   { s: 42, items: ['Workouts can be logged for earlier days: use the arrows at the top of the Workout ledger (up to a week back).', 'A day you fill in later (a workout or food) counts for upkeep: if it had cost a grace day or rusted a level, that is put right.', 'New workout: Bodyweight (push-ups, pull-ups, chin-ups, dips, sit-ups, air squats, burpees, plank) with reps and sets.'] },
   { s: 43, items: ['Food, Add, Photo: take or pick up to 6 photos (labels, plates, captions), add a note if you like, and Claude lists what you ate. Check it and log. Each goes on the day and meal its photo was taken.', 'Photo logging needs your own Anthropic API key, added once in Settings, Food keys. It stays on this phone and is never in a backup.'] },
+  { s: 44, items: ['Drone battery, as you asked on 10-08: flying uses charge (following you too), perching uses a quarter as much, perched on you it charges, on the base twice as fast. Below a quarter, a Drone settles on your shoulder to charge and flies ahead again when full.', '2.5D is zoomed out like your Looks page, and the edge of what you see fades softly instead of a hard ring.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -2159,7 +2160,7 @@ function computeVision(run) {
   if (!run.base.breached && !run.tut) { const r = baseSight(run), q = run.baseVis; /* s41: the base sees round itself, so its turret only shoots what is in sight; it never moves, so its view is worked out again only when walls change */
     if (!q || q.r !== r || q.wv !== (run.wallsV || 0)) { run.baseVis = visionPoly(run, run.base.x, run.base.y, r); Object.assign(run.baseVis, { perched: false, drone: false, base: true, wv: run.wallsV || 0 }); }
     v.push(run.baseVis); }
-  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) add(m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1), true); else if (m.state === 'follow' && m.bat > 10) add(m.x, m.y, 150, false, true); } /* s41: drawn as the Drone's, not yours */
+  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) add(m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1), true); else if (m.state === 'follow' && !m.dock && m.bat > 10) add(m.x, m.y, 150, false, true); } /* s41: drawn as the Drone's, not yours */
 }
 
 function visibleTo(run, x, y, perchedOnly) {
@@ -2199,7 +2200,7 @@ function updateFog(run) {
   run.fog.seen.fill(0);
   revealCircle(run, run.p.x, run.p.y, playerSight(run));
   if (!run.base.breached && !run.tut) revealCircle(run, run.base.x, run.base.y, baseSight(run)); /* s41: what the base sees counts as seen */
-  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) revealCircle(run, m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1)); else if (m.state === 'follow' && m.bat > 10) revealCircle(run, m.x, m.y, 150); }
+  for (const m of run.motes) { if (m.state === 'perched' && (!m.jammed || run.tier >= 2)) revealCircle(run, m.x, m.y, moteVis(run) * (m.jammed ? 0.5 : 1)); else if (m.state === 'follow' && !m.dock && m.bat > 10) revealCircle(run, m.x, m.y, 150); }
 }
 function isSeen(run, x, y) { return run.fog.seen[cellIdx(x, y)] === 1; }
 // Fog memory (DECISIONS 24): enemies out of sight are not drawn; a group that slips out of sight leaves a dashed
@@ -2228,7 +2229,8 @@ function spawnPos(run) {
   for (let i = 0; i < 24; i++) {
     const a = rnd(0, Math.PI * 2), d = rnd(380, 820);
     const x = clamp(p.x + Math.cos(a) * d, 20, WORLD - 20), y = clamp(p.y + Math.sin(a) * d, 20, WORLD - 20);
-    if ((SAVE.spawnAnywhere || !isSeen(run, x, y)) && dist2(x, y, p.x, p.y) > 330 * 330 && !inWall(run, x, y)) return { x, y };
+    const off = !run.view || Math.abs(x - p.x) > run.view.w / 2 + 30 || Math.abs(y - p.y) > run.view.h / 2 + 30; /* s44: "anywhere off screen" means off the real screen, whatever the camera */
+    if ((SAVE.spawnAnywhere ? off : !isSeen(run, x, y)) && dist2(x, y, p.x, p.y) > 330 * 330 && !inWall(run, x, y)) return { x, y };
   }
   // everything nearby is observed: Noise condenses at the far edge instead (mapping pays)
   const a = rnd(0, Math.PI * 2), d = 900;
@@ -2608,9 +2610,10 @@ const TIPS = {
   shot_block: { group: 'Weapons', title: 'Your shots stop theirs', body: 'A Pulse bolt that meets a Gunner shot head on stops it. A near miss slides past, so aim does not have to be perfect, but it has to be close. Boss rings are too thick to stop.' },
   homing:    { group: 'Weapons', title: 'Homing', body: 'A Pulse bolt just bent toward its target. Close to the enemy it was fired at, a bolt curves after it, so a late dodge still gets hit.' },
   // drones
-  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Its battery drains slowly while perched (flying drains it faster; the base perch charges it). Tap the perch again, or press Recall, to bring it home. Tap yourself to perch a Drone on you.' },
+  perched:   { group: 'Drones', title: 'Drone perched', body: 'It reveals a wide circle, stops enemies spawning inside it, and gathers XP and parts it can see. You get them when you come within about 200px of it, or when it flies back. Perched, its battery drains a quarter as fast as flying; the base perch charges it fast. Tap the perch again, or press Recall, to bring it home. Tap yourself to perch a Drone on you.' },
   autoperch: { group: 'Drones', title: 'Drones perch on their own', body: 'With Drone autonomy, idle Drones fly to a good perch near you and come away when you leave it far behind. With two or more, one always stays with you. A Drone you send or recall yourself is left alone. Turn it off, or pick Tight or Loose, on the Drones page: tap the Drones line on the screen. Not on Hard.' },
-  perchme:   { group: 'Drones', title: 'A Drone on you', body: 'It hovers over you and watches all round you as far as a perched Drone sees, and drains slowly like one. Enemies do not knock it down. Tap yourself again to send it back to following.' },
+  dock:      { group: 'Drones', title: 'Charging on you', body: 'Drones use battery while they fly, following you too. When one runs low it settles on your shoulder and charges, then flies ahead again when full. Perched on a spot it uses a quarter as much; on you it charges, and on the base twice as fast.' },
+  perchme:   { group: 'Drones', title: 'A Drone on you', body: 'It hovers over you, watches all round you as far as a perched Drone sees, and charges while it is there. Enemies do not knock it down. Tap yourself again to send it back to following.' },
   dronerow:  { group: 'Drones', title: 'The Drones page', body: 'Tap the Drones line above your buttons to open the Drones page: where each Drone flies, Tight or Loose, Auto perch, and what they go after. The fight waits, and Back drops you straight into it.' },
   dial:      { group: 'Drones', title: 'Drone positions', body: 'Tap the Drones line on the screen (or Pause, then Drones): a clock around you where 12 is straight ahead. Pick a Drone and tap a spot. The inner ring keeps it close beside you, the outer ring sends it out to scout. Reset puts them back to spreading ahead. Your choice is kept for every run.' },
   intercept: { group: 'Drones', title: 'Intercept', body: 'Your following Drone just shot down an enemy bullet. Set it on the inner ring on the Drones page (tap the Drones line) to keep it beside you as a shield. A block costs it health: at the first level one block knocks it down, and you walk over it to recover it.' },
@@ -2619,7 +2622,7 @@ const TIPS = {
   artillery: { group: 'Drones', title: 'Artillery', body: 'With a Drone perched you can call artillery. Tap Shell: time slows to 30% and the camera shows the Drone feed (Next feed flips between perched Drones). Tap a spot it can see; the shell lands 1.6 seconds later and hurts you too if you stand in it. The base makes a shell every 20 seconds. There is a perch on the base itself, handy for raids.' },
   jammed:    { group: 'Drones', title: 'Drone jammed', body: 'A Jammer is close to your perched Drone, so it went blind (purple). Kill the Jammer or recall the Drone.' },
   downed:    { group: 'Drones', title: 'Drone down', body: 'A Drone ran out of battery or got knocked down. It is not lost: walk over it to pick it up at half charge.' },
-  tier1:     { group: 'Drones', title: 'Drone tier 1: GPS', body: 'Your Drone now has 30% more battery, flies 25% faster, and flies home by itself when its battery runs low instead of dropping.' },
+  tier1:     { group: 'Drones', title: 'Drone tier 1: GPS', body: 'Your Drone now has 30% more battery, flies 25% faster, and flies back to you to charge when its battery runs low, instead of dropping.' },
   tier2:     { group: 'Drones', title: 'Drone tier 2: Video feed', body: 'A perched Drone now sees 40% farther, and a Jammer only halves its view instead of blinding it.' },
   tier3:     { group: 'Drones', title: 'Drone tier 3: Onboard compute', body: 'When a Jammer blinds it for 2 seconds, your Drone moves itself to the nearest safe perch. When it gets hit hard it limps home to you instead of going down.' },
   // base and heat
@@ -2953,7 +2956,11 @@ const HANDOVER_R = 200; // a drone carrying XP/parts hands them over when it com
    slowly; flying costs more. With Drone autonomy 1 (World 5) idle Drones fly to a good perch near you on their own
    (not on Hard; a tap overrides it, and a Drone you sent or recalled is left alone). Tight or Loose formation; a perch
    on you; and every landing is the same short glide and settle. */
-const PERCH = { flyDrain: 4, homeDrain: 1.5, perchDrain: 2, every: 1.5, near: { tight: 340, loose: 520 }, far: 700, hold: 12, glide: 70, land: 0.35, minBat: 0.6, meLift: 30 };
+/* s44 (Lance 10-08: "drone batteries should drain as they fly, and drain way less while they perch, that's the whole
+   point ... they stay flying ahead but return to perch on me and charge (faster if I'm at the base) when they run low";
+   10-11: it "does not appear to be losing battery when flying"). Flying uses charge, following too; perched drains a
+   quarter as much; on you it charges, on the base twice as fast; below `dock` a following Drone settles on you to charge. */
+const PERCH = { flyDrain: 4, followDrain: 2, homeDrain: 1.5, perchDrain: 0.5, meCharge: 5, baseCharge: 10, dock: 0.25, every: 1.5, near: { tight: 340, loose: 520 }, far: 700, hold: 12, glide: 70, land: 0.35, minBat: 0.6, meLift: 30 };
 const formation = () => (SAVE.formation === 'tight' ? 'tight' : 'loose');
 const autoPerchOn = run => run.tier >= 1 && run.mode !== 'hard' && !run.tut && SAVE.autoPerch !== false;
 const meAnchor = run => run.me || (run.me = { x: run.p.x, y: run.p.y - PERCH.meLift, me: true, mote: null }); // the perch on you
@@ -2961,8 +2968,8 @@ function autoPerch(run, dt) {
   if (!autoPerchOn(run) || (run.apT = (run.apT || 0) - dt) > 0) return;
   run.apT = PERCH.every; const p = run.p, near = PERCH.near[formation()];
   for (const m of run.motes) if (m.auto && (m.state === 'perched' || m.state === 'flying') && m.anchor && !m.anchor.base && !m.anchor.me && dist2(m.anchor.x, m.anchor.y, p.x, p.y) > PERCH.far * PERCH.far) { recallMote(run, m); m.hold = 0; } /* left behind: come back and find a nearer one (no hold: it was not your call) */
-  const free = run.motes.filter(m => m.state === 'follow' && m.bat > m.maxBat * PERCH.minBat && !(m.hold > run.t));
-  const followers = run.motes.filter(m => m.state === 'follow').length;
+  const free = run.motes.filter(m => m.state === 'follow' && !m.dock && m.bat > m.maxBat * PERCH.minBat && !(m.hold > run.t));
+  const followers = run.motes.filter(m => m.state === 'follow' && !m.dock).length; /* s44: one charging on you sees nothing, so it is not the one that stays */
   if (!free.length || (run.motes.length >= 2 && followers <= 1)) return; // one Drone always stays with you
   const taken = new Set(run.motes.map(m => m.anchor).filter(Boolean));
   let best = null, bs = 1e12;
@@ -2992,18 +2999,27 @@ function updateMotes(run, dt) {
   const handR = handoverR(run); // s37: farther with every magnet upgrade
   for (const m of run.motes) {
     m.ph += dt; if (m.land > 0) m.land -= dt;
-    droneGun(run, m, dt);
+    if (m.state !== 'follow') m.dock = false; /* charging on you ends when it does anything else */
+    if (!m.dock) droneGun(run, m, dt); /* charging: it does not shoot */
     if (m.state !== 'dimmed' && dist2(m.x, m.y, p.x, p.y) < handR * handR) droneHandover(run, m);
     if (m.state === 'follow') {
       // scout ahead of your heading so you see what you are walking into
       // Drone positions (the Drones page, Formation): a clock slot around your heading, else the default spread ahead
       const slot = (SAVE.droneSlots || {})[m.id], tight = formation() === 'tight', n = run.motes.length; /* Tight: close, all round you; Loose: spread ahead, scouting. A slot you set still wins */
+      const drain = ruleOf(run).drain || 1, atBase = !run.base.breached && dist2(p.x, p.y, run.base.x, run.base.y) < (BASE_R + 40) ** 2;
+      if (!run.tut && !m.dock && m.bat < m.maxBat * PERCH.dock) { m.dock = true; toast(run, 'Drone battery low: it settles on you to charge'); tip(run, 'dock', { at: p }); }
+      if (m.dock) { /* charging on you: it rides on your shoulder, sees nothing, and lifts off again when full */
+        const a = -Math.PI / 2 + (m.id - (n - 1) / 2) * 0.6; m.x += (p.x + Math.cos(a) * 16 - m.x) * Math.min(1, dt * 8); m.y += (p.y - PERCH.meLift + Math.sin(a) * 6 - m.y) * Math.min(1, dt * 8);
+        m.bat = Math.min(m.maxBat, m.bat + (atBase ? PERCH.baseCharge : PERCH.meCharge) * dt); m.hp = Math.min(100, m.hp + 10 * dt); m.jammed = false;
+        if (m.bat >= m.maxBat) { m.dock = false; toast(run, 'Drone charged: flying ahead again'); }
+        continue;
+      }
       const lead = slot ? (slot.near ? DIAL.nearR : DIAL.farR) : tight ? 60 + m.id * 10 : 150 + m.id * 40;
       const a = slot ? p.ang + slot.h * Math.PI / 6 : tight ? p.ang + m.id / n * Math.PI * 2 : p.ang + (m.id - (n - 1) / 2) * 0.5;
       let tx = p.x + Math.cos(a) * lead, ty = p.y + Math.sin(a) * lead;
       if (!losClear(run, p.x, p.y, tx, ty)) { tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 40; }
       m.x += (tx - m.x) * Math.min(1, dt * 4); m.y += (ty - m.y) * Math.min(1, dt * 4);
-      m.bat = Math.min(m.maxBat, m.bat + 7 * dt); m.hp = Math.min(100, m.hp + 10 * dt); m.jammed = false;
+      if (!run.tut) m.bat = Math.max(0, m.bat - PERCH.followDrain * dt * drain); m.hp = Math.min(100, m.hp + 10 * dt); m.jammed = false; /* flying with you uses charge (s44) */
       // a following drone sweeps up XP near it (and parts with Drone magnet 2); it is beside you, so they fly to you
       const pr = 70 * (1 + 0.5 * pick);
       for (const g of run.gems) if (!g.pull && !g.heal && (!g.part || pick >= 2) && dist2(g.x, g.y, m.x, m.y) < pr * pr) { g.pull = true; g.pt = 0; }
@@ -3018,8 +3034,9 @@ function updateMotes(run, dt) {
       if (m.bat <= 0) { dimMote(run, m, 'battery'); }
     } else if (m.state === 'perched') {
       const onBase = m.anchor && m.anchor.base;
-      if (onBase) { m.bat = Math.min(m.maxBat, m.bat + 7 * dt); m.hp = Math.min(100, m.hp + 10 * dt); } // the base charges it
-      else if (!run.tut) m.bat -= PERCH.perchDrain * dt * (ruleOf(run).drain || 1); // resting and watching; tutorial: no battery pressure while learning
+      if (onBase) { m.bat = Math.min(m.maxBat, m.bat + PERCH.baseCharge * dt); m.hp = Math.min(100, m.hp + 10 * dt); } // the base charges it, fastest
+      else if (m.anchor && m.anchor.me) m.bat = Math.min(m.maxBat, m.bat + PERCH.meCharge * dt); // on you it charges (s44)
+      else if (!run.tut) m.bat -= PERCH.perchDrain * dt * (ruleOf(run).drain || 1); // resting and watching drains a quarter of flying; tutorial: no battery pressure while learning
       if (m.anchor && m.anchor.me) { m.x += (p.x - m.x) * Math.min(1, dt * 8); m.y += (p.y - PERCH.meLift - m.y) * Math.min(1, dt * 8); } /* perched on you: it hovers just above your head, where you can see it */
       // gathers XP and parts it can see; you collect them when it comes within HANDOVER_R of you (or you of it)
       if (!m.jammed && !(m.anchor && m.anchor.me)) { const mv2 = moteVis(run) ** 2; /* one on you does not vacuum the screen (that is Drone magnet's job) */ for (let i = run.gems.length - 1; i >= 0; i--) { const g = run.gems[i]; if (g.heal || g.pull) continue; const d = dist2(g.x, g.y, m.x, m.y); if (d < mv2) { const l = Math.sqrt(d) || 1; g.x += (m.x - g.x) / l * 260 * dt; g.y += (m.y - g.y) / l * 260 * dt; if (d < 12 * 12) { if (g.part) m.cargoParts = (m.cargoParts || 0) + g.part; else m.cargo = (m.cargo || 0) + g.v; run.gems[i] = run.gems[run.gems.length - 1]; run.gems.pop(); } } } }
@@ -3032,7 +3049,7 @@ function updateMotes(run, dt) {
       if (!(m.anchor && m.anchor.me)) for (const e of run.enemies) if (dist2(e.x, e.y, m.x, m.y) < (e.r + 12) * (e.r + 12)) m.hp -= 45 * dt; /* one over you flies above the fight */
       m.jamT = jam ? (m.jamT || 0) + dt : 0;
       if (run.tier >= 3 && m.jamT > 2 && !(m.anchor && m.anchor.me)) relocateMote(run, m); /* one on you stays on you */
-      else if (run.tier >= 1 && m.bat < m.maxBat * 0.15 && m.bat > 0) { recallMote(run, m); toast(run, 'Drone battery low: flying home (GPS)'); }
+      else if (run.tier >= 1 && m.bat < m.maxBat * 0.15 && m.bat > 0) { recallMote(run, m); toast(run, 'Drone battery low: flying back to you to charge (GPS)'); }
       else if (m.bat <= 0) dimMote(run, m, 'battery');
       else if (m.hp <= 0) { if (run.tier >= 3) { recallMote(run, m); m.hp = 30; toast(run, 'Drone hit: limping home (onboard compute)'); } else dimMote(run, m, 'shot'); }
     } else if (m.state === 'diving') { // Kamikaze strike: fly into the target, hit hard, go down
@@ -3054,7 +3071,7 @@ function updateMotes(run, dt) {
 function droneSkills(run, dt) {
   const sk = run.skill, emp = sk.demp || 0;
   for (const m of run.motes) {
-    if (m.state === 'dimmed' || m.state === 'diving') continue;
+    if (m.state === 'dimmed' || m.state === 'diving' || m.dock) continue; /* s44: charging on you, it does nothing else */
     if (sk.dshield && m.state === 'follow' && (m.icd = (m.icd || 0) - dt) <= 0) { // Intercept: shoot down the nearest enemy bullet
       const wall = sk.dwall > 0, ir = wall ? INTERCEPT.wallR : INTERCEPT.r;
       let hit = null, bd = ir * ir;
@@ -3106,7 +3123,7 @@ function sendMote(run, anchor) {
   const on = anchor.mote || run.motes.find(m => m.anchor === anchor && m.state === 'flying'); /* landed, or on its way */
   if (on) { if (!run.tut) recallMote(run, on); return true; } // tutorial: a double tap must not undo the perch step
   let best = null, bd = 1e12;
-  for (const m of run.motes) if (m.state === 'follow' && m.bat > 25) { const d = dist2(m.x, m.y, anchor.x, anchor.y); if (d < bd) { bd = d; best = m; } }
+  for (const m of run.motes) if (m.state === 'follow' && (anchor.me || (!m.dock && m.bat > m.maxBat * PERCH.dock))) { /* s44: one charging on you only moves onto you */ const d = dist2(m.x, m.y, anchor.x, anchor.y); if (d < bd) { bd = d; best = m; } }
   if (!best) { toast(run, 'No charged Drone available'); return false; }
   best.state = 'flying'; best.anchor = anchor; best.auto = false; SFX.mote(); return true; /* sent by you: auto-perch leaves it alone */
 }
@@ -4099,8 +4116,12 @@ function poly(ctx, x, y, r, n, ang) { ctx.beginPath(); for (let i = 0; i < n; i+
 
 /* 2.5D camera (Lance 10-08: top-down and 2.5D are always both offered). The ground squashes by T, things stand up
    on a shadow, walls get height (WALL_H, screen px at zoom 1) and are drawn back to front with everything else. */
-const VIEW25 = { T: 0.62, wallH: 26, fadeA: 0.3, dimA: 0.4, shadow: 'rgba(0,0,0,0.32)' };
+/* s44 (Lance 10-12: "if you look at survivors looks that I made public you don't see that stretching"): like the Looks
+   page, 2.5D shows more of the ground (about 560 units across instead of 412: zk) and the edge of what you see is soft
+   (fogSoft), with no hard outline. */
+const VIEW25 = { zk: 412 / 560, fogSoft: 14, T: 0.62, wallH: 26, fadeA: 0.3, dimA: 0.4, shadow: 'rgba(0,0,0,0.32)' };
 const viewT = run => (run && run.cam25 ? VIEW25.T : 1);
+const viewZ = run => (run.zoom || 1) * (run.cam25 ? VIEW25.zk : 1); // the camera's scale: your pinch zoom, and 2.5D a little further out
 const camName = () => (SAVE.camera === '25d' ? '2.5D' : 'Top-down');
 function toggleCamera() { SAVE.camera = SAVE.camera === '25d' ? 'top' : '25d'; persist(SAVE); if (R) R.cam25 = SAVE.camera === '25d'; }
 function drawBuild(ctx, c, now, flat) {
@@ -4296,7 +4317,7 @@ function drawWorldPreview(ctx, skin, W, H, now) {
    following Drone's cyan and dashed, so the area it adds ahead of you reads as the Drone's (s41, Lance 10-11: "I'm
    shooting at enemies who haven't entered my sight") */
 function visEdges(ctx, run, tilt) {
-  for (const v of run.vis) { if (v.base) continue; ctx.strokeStyle = v.perched ? 'rgba(127,245,255,0.45)' : v.drone ? 'rgba(127,245,255,0.5)' : tilt ? 'rgba(210,230,255,0.22)' : 'rgba(210,230,255,0.38)'; if (v.drone) ctx.setLineDash([7, 7]);
+  for (const v of run.vis) { if (v.base || (tilt && !v.drone && !v.perched)) continue; ctx.strokeStyle = v.perched ? 'rgba(127,245,255,0.45)' : v.drone ? 'rgba(127,245,255,0.5)' : tilt ? 'rgba(210,230,255,0.22)' : 'rgba(210,230,255,0.38)'; if (v.drone) ctx.setLineDash([7, 7]);
     ctx.beginPath(); for (let i = 0; i < v.pts.length; i++) ctx[i ? 'lineTo' : 'moveTo'](v.pts[i][0], v.pts[i][1]); ctx.closePath(); ctx.stroke(); if (v.drone) ctx.setLineDash([]); }
 }
 function drawFloor(ctx, TH, mapped, r0, r1, c0, c1, gridA) { // mapped cells in view: the grid, or the look's ground
@@ -4408,13 +4429,16 @@ function drawNight(ctx, run, vw, vh, z, T, ox, oy) {
   f.globalCompositeOperation = 'source-over'; ctx.drawImage(nightCv, 0, 0, vw, vh);
 }
 const NIGHT = { you: 250, base: 230, perched: 210, drone: 90, turret: 80, strike: 140 }; // light radius, world px
+let fogSm = null; // s44: 2.5D's fog, drawn small and stretched up so the edge of sight is soft (a full-screen blur cost too much)
 function fogCut(ctx, run, vw, vh, TH, z, T, ox, oy) { // darken the screen except the vision polygons (projected on the ground)
-  if (fogCv.width !== Math.round(vw * fogDpr) || fogCv.height !== Math.round(vh * fogDpr)) { fogCv.width = Math.round(vw * fogDpr); fogCv.height = Math.round(vh * fogDpr); }
-  const f = fogCtx; f.setTransform(fogDpr, 0, 0, fogDpr, 0, 0);
-  f.globalCompositeOperation = 'source-over'; f.fillStyle = TH.fog; f.fillRect(0, 0, vw, vh);
+  const soft = T < 1, k = soft ? 1 / VIEW25.fogSoft * 2.5 : fogDpr, W = Math.max(1, Math.round(vw * k)), H = Math.max(1, Math.round(vh * k));
+  const cv = soft ? (fogSm || (fogSm = document.createElement('canvas'))) : fogCv; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const f = cv.getContext('2d'); f.setTransform(k, 0, 0, k, 0, 0);
+  f.globalCompositeOperation = 'source-over'; f.clearRect(0, 0, vw, vh); f.fillStyle = TH.fog; f.fillRect(0, 0, vw, vh);
   f.globalCompositeOperation = 'destination-out';
   for (const v of run.vis) { f.beginPath(); for (let i = 0; i < v.pts.length; i++) f[i ? 'lineTo' : 'moveTo'](v.pts[i][0] * z + ox, v.pts[i][1] * z * T + oy); f.closePath(); f.fill(); }
-  ctx.drawImage(fogCv, 0, 0, vw, vh);
+  const sm = ctx.imageSmoothingEnabled; if (soft) ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(cv, 0, 0, vw, vh); ctx.imageSmoothingEnabled = sm; /* only this layer is smoothed */
 }
 function drawStatic(ctx, run, now, mapped, r0, r1, c0, c1) {
   const nt = noiseTiles[run.skin] || noiseTile;
@@ -4448,7 +4472,7 @@ const LIFT = { ground: 8, e: 4, unit: 18, mote: 22, perched: 34, build: 12, play
 function render25(ctx, run, vw, vh, now) {
   const p = run.p, cam = run.cam, T = VIEW25.T, WH = VIEW25.wallH, d = fogDpr;
   const shx = run.shake > 0 ? rnd(-4, 4) * run.shake : 0, shy = run.shake > 0 ? rnd(-4, 4) * run.shake : 0;
-  const z = run.zoom || 1, hw = vw / 2 / z, hh = vh / 2 / z / T, wl = WH / T; // wl: a wall's height measured on the squashed ground
+  const z = viewZ(run), hw = vw / 2 / z, hh = vh / 2 / z / T, wl = WH / T; // wl: a wall's height measured on the squashed ground
   const ox = Math.round(vw / 2 - cam.x * z + shx), oy = Math.round(vh / 2 - cam.y * z * T + shy), A = d * z;
   const ground = () => ctx.setTransform(A, 0, 0, A * T, d * ox, d * oy);
   const up = (x, y, lift) => ctx.setTransform(A, 0, 0, A, d * ox, d * (oy + y * z * (T - 1) - lift * z)); // (x, y) lands on its ground point, raised by lift
@@ -4470,7 +4494,7 @@ function render25(ctx, run, vw, vh, now) {
   if (run.vis && fogCv) {
     scr(); fogCut(ctx, run, vw, vh, TH, z, T, ox, oy);
     ground(); ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
-    visEdges(ctx, run, true);
+    visEdges(ctx, run, true); /* s44: in 2.5D your own ring is left to the soft fog edge; Drones' areas keep their outline */
     drawStatic(ctx, run, now, mapped, r0, r1, c0, c1);
   }
   // collect the uprights: walls you know of, builds, units, enemies in sight, Drones, you
@@ -4549,8 +4573,8 @@ if (HAS_DOM) {
 
   /* input */
   let joyId = null, taps = new Map();
-  const worldOf = (sx, sy) => { const z = R.zoom || 1, T = viewT(R); return { x: (sx - vw / 2) / z + R.cam.x, y: (sy - vh / 2) / (z * T) + R.cam.y }; }; /* ground point under a screen point (2.5D squashes y by T) */
-  const screenOf = (x, y) => { const z = R.zoom || 1, T = viewT(R); return { x: (x - R.cam.x) * z + vw / 2, y: (y - R.cam.y) * z * T + vh / 2 }; };
+  const worldOf = (sx, sy) => { const z = viewZ(R), T = viewT(R); return { x: (sx - vw / 2) / z + R.cam.x, y: (sy - vh / 2) / (z * T) + R.cam.y }; }; /* ground point under a screen point (2.5D squashes y by T) */
+  const screenOf = (x, y) => { const z = viewZ(R), T = viewT(R); return { x: (x - R.cam.x) * z + vw / 2, y: (y - R.cam.y) * z * T + vh / 2 }; };
   window.screenOf = (x, y) => screenOf(x, y); // for tests
   function tapAt(sx, sy) {
     if (!R || screen !== 'run') return;
@@ -4560,7 +4584,7 @@ if (HAS_DOM) {
     const w = worldOf(sx, sy);
     if (R.aim) { callStrike(R, w.x, w.y); return; }
     let best = null, bd = 48 * 48;
-    const T = viewT(R); for (const a of R.anchors) { const d = (a.x - w.x) ** 2 + ((a.y - w.y) * T) ** 2; if (d < bd) { bd = d; best = a; } } /* round on screen in 2.5D too */
+    for (const a of R.anchors) { const q = screenOf(a.x, a.y), d = (q.x - sx) ** 2 + (q.y - sy) ** 2; if (d < bd) { bd = d; best = a; } } /* s44: 48 px on screen, whatever the zoom or camera */
     if (best) { sendMote(R, best); lastGround = 0; return; }
     if (!R.tut) { const ps = screenOf(R.p.x, R.p.y); if (Math.hypot(sx - ps.x, sy - ps.y) < 34) { const me = meAnchor(R), had = R.motes.some(m => m.anchor === me); if (sendMote(R, me) && !had) tip(R, 'perchme', { at: R.p }); lastGround = 0; return; } } /* s35: tap yourself: a Drone perches on you */
     const tnow = performance.now(); // double tap on open ground: zoom back to 1x
@@ -5680,7 +5704,7 @@ if (HAS_DOM) {
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
     const hl = Math.floor(run.heat / 2); hud.heat.textContent = '\u25c6'.repeat(hl) + '\u25c7'.repeat(5 - hl); hud.heat.style.color = hl >= 3 ? '#ff8a7a' : '#ffb347';
     { const pips = m => { const f = m.bat / m.maxBat, k = Math.max(0, Math.min(5, Math.ceil(f * 5))); return `<span class="pip${f < 0.25 ? ' low' : ''}">${'\u25b0'.repeat(k)}${'\u25b1'.repeat(5 - k)}</span>`; }; /* battery pips per Drone */
-      const html = run.motes.map(m => m.state === 'dimmed' ? 'down' : m.state === 'diving' ? 'diving' : (m.state === 'perched' ? (m.jammed ? 'jammed ' : m.anchor && m.anchor.base ? 'base ' : m.anchor && m.anchor.me ? 'on you ' : m.auto ? 'auto ' : 'perched ') + (m.cargo ? '+' + m.cargo + 'xp ' : '') + (m.cargoParts ? '+' + m.cargoParts + 'p ' : '') : m.state === 'follow' ? 'ready ' : 'moving ') + pips(m)).join(' ');
+      const html = run.motes.map(m => m.state === 'dimmed' ? 'down' : m.state === 'diving' ? 'diving' : (m.state === 'perched' ? (m.jammed ? 'jammed ' : m.anchor && m.anchor.base ? 'base ' : m.anchor && m.anchor.me ? 'on you ' : m.auto ? 'auto ' : 'perched ') + (m.cargo ? '+' + m.cargo + 'xp ' : '') + (m.cargoParts ? '+' + m.cargoParts + 'p ' : '') : m.state === 'follow' ? (m.dock ? 'charging ' : 'ready ') : 'moving ') + pips(m)).join(' ');
       if (hud.motes.dataset.h !== html) { hud.motes.innerHTML = html; hud.motes.dataset.h = html; }
       if (hud.motes.classList.contains('tut') !== !!run.tut) hud.motes.classList.toggle('tut', !!run.tut); } /* s40: no tap chevron while the tutorial runs */
     hud.toast.innerHTML = run.toasts.map(t => `<div style="opacity:${Math.min(1, t.t)}">${t.txt}</div>`).join('');
@@ -5690,7 +5714,7 @@ if (HAS_DOM) {
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (R) R.view = { w: vw / (R.zoom || 1), h: vh / (R.zoom || 1) / viewT(R) };
+    if (R) R.view = { w: vw / viewZ(R), h: vh / viewZ(R) / viewT(R) };
     { const hb = el('xpbar').getBoundingClientRect().bottom; if (hb > 0) { const y = Math.round(hb + 8); if (y !== MM_Y) { MM_Y = y; document.documentElement.style.setProperty('--mm-bottom', (MM_Y + MM + 10) + 'px'); } } }
     if (R && screen === 'run' && !R.over && R.tipQ.length) showTip(R.tipQ[0]);
     if (R && screen === 'run') update(R, R.aim ? dt * AIM_TIMESCALE : dt);
@@ -5702,7 +5726,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>

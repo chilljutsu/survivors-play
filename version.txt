@@ -1,2 +1,2 @@
-playtest 2026-10-12 s43
-ares@dd5c841+78bad65 (s43 game.js, key texts from 78bad65)
+playtest 2026-10-12 s44
+ares@6cd078c
