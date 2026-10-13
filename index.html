@@ -132,6 +132,7 @@
   .rrow { border:1px solid var(--line); border-radius:6px; padding:6px 10px 5px; display:grid; grid-template-columns:1fr auto; gap:4px 8px; align-items:baseline; text-align:left; }
   .rrow b { font-weight:500; font-size:14px; } .rrow em { font-style:normal; color:var(--cyan); font-size:12px; margin-left:8px; }
   .rrow small { color:var(--dim); font-size:12px; text-align:right; white-space:nowrap; }
+  .rtop small { color:var(--dim); font-size:12px; }
   .rrow .qbar { grid-column:1 / span 2; height:3px; background:var(--line); border-radius:2px; overflow:hidden; } .rrow .qbar i { display:block; height:100%; background:var(--amber); }
   .rtop { display:flex; justify-content:space-between; align-items:center; font-size:14px; } .rnote { margin:0; font-size:12px; color:var(--dim); }
   .rprof { font-size:12px; padding:5px 12px; width:auto; }
@@ -221,6 +222,11 @@
   select option { background:#0f1420; }
   .liftrow { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; border-top:1px solid var(--line); padding-top:8px; }
   .liftrow select { grid-column:1 / span 3; }
+  .fsearch3 { grid-template-columns:auto 1fr auto; } .fmealpick { width:auto; max-width:118px; padding:8px 6px; font-size:14px; }
+  #f-add > .fmealpick { margin-bottom:4px; }
+  .phbtns { display:grid; grid-template-columns:1fr auto; gap:8px; }
+  .fown-row b { color:var(--cyan); }
+  .lfgold { color:var(--amber); font-size:14px; margin:4px 0 0; }
   .logrow { display:flex; gap:10px; align-items:center; border:1px solid var(--line); border-radius:6px; padding:9px 10px; }
   .logrow div { flex:1; display:flex; flex-direction:column; gap:2px; font-size:14px; }
   .logrow b { font-weight:500; } .logrow span { color:var(--dim); font-size:13px; } .logrow em { font-style:normal; color:var(--cyan); font-size:12px; }
@@ -396,6 +402,7 @@
 <div id="logform" class="screen"><div class="col">
   <h2 id="lf-title"></h2>
   <div id="lf-fields" class="col"></div>
+  <p id="lf-gold" class="lfgold"></p>
   <p id="lf-note"></p>
   <button class="primary" id="btn-lf-save">Log it</button>
   <button id="btn-lf-cancel">Cancel</button>
@@ -1126,20 +1133,37 @@ function latSellBlock(id) {
 }
 const latUnlocks = id => Object.keys(LAT_LINKS).filter(d => LAT_LINKS[d].some(([k]) => k === id)).map(d => latName(d));
 
-const WORKOUTS = [
-  { id: 'cindy', name: 'Cindy (20 min AMRAP)', gold: 300 },
-  { id: 'gym',   name: 'Gym lifting session', gold: 400 },
-  { id: 'run',   name: 'Run',                 gold: 200 },
-  { id: 'dance', name: 'Dance practice',      gold: 250 },
-  { id: 'bjj',   name: 'BJJ class',           gold: 500 },
-  { id: 'bw',    name: 'Bodyweight',          gold: 150 }, // s42 (Lance 10-12: "I just did 30 pushups but that can't be logged anywhere?")
+const WORKOUTS = [ // s45: gold comes from effortGold, not a fixed price per type
+  { id: 'cindy', name: 'Cindy (20 min AMRAP)' },
+  { id: 'gym',   name: 'Gym lifting session' },
+  { id: 'run',   name: 'Run' },
+  { id: 'dance', name: 'Dance practice' },
+  { id: 'bjj',   name: 'BJJ class' },
+  { id: 'bw',    name: 'Bodyweight' }, // s42 (Lance 10-12: "I just did 30 pushups but that can't be logged anywhere?")
 ];
 const BW_MOVES = { pushup: 'Push-ups', pullup: 'Pull-ups', chinup: 'Chin-ups', dip: 'Dips', situp: 'Sit-ups', squat: 'Air squats', burpee: 'Burpees', plank: 'Plank (seconds)' };
+/* s45 (Lance 10-13: "not all workouts are equal, the scale should be different"; he chose pay by effort). Gold is 10 per
+   effort-minute, at least 20 and at most 1200 a log, before the streak payout. Effort-minutes per type come from what the
+   form already asks; a log with no details counts as a plain short session of its type. */
+const EFFORT = { gold: 10, min: 20, max: 1200, set: 3, heavyReps: 6, heavy: 1.2, mile: 10, pace: [10, 0.5, 1.6], bjj: 1.2, roll: 1, dance: 0.9, cindy: [20, 30],
+  typical: { pushup: 20, pullup: 8, chinup: 8, dip: 12, situp: 25, squat: 25, burpee: 12, plank: 60 }, bwSet: 2, bwCap: 4,
+  plain: { run: 15, gym: 25, bjj: 45, dance: 20, cindy: 20, bw: 3 } };
+function effortMin(id, d) {
+  const E = EFFORT; d = d || {};
+  if (id === 'run') { if (d.min > 0) return d.min * clamp(d.mi > 0 ? E.pace[0] / (d.min / d.mi) : 1, E.pace[1], E.pace[2]); if (d.mi > 0) return d.mi * E.mile; } /* faster than 10:00/mi counts more */
+  if (id === 'gym' && d.lifts && d.lifts.length) return d.lifts.reduce((a, x) => a + (x.sets || 1) * E.set * (x.reps <= E.heavyReps ? E.heavy : 1), 0);
+  if (id === 'bw' && d.moves && d.moves.length) return d.moves.reduce((a, x) => a + (x.sets || 1) * Math.min(E.bwCap, E.bwSet * x.reps / (E.typical[x.ex] || 15)), 0);
+  if (id === 'bjj' && d.min > 0) return d.min * E.bjj + (d.rolls || 0) * E.roll;
+  if (id === 'dance' && d.min > 0) return d.min * E.dance;
+  if (id === 'cindy' && d.rounds != null) return E.cindy[0] * (1 + (+d.rounds + (+d.extra || 0) / 30) / E.cindy[1]);
+  return E.plain[id] || 10;
+}
+const effortGold = (id, d) => Math.round(clamp(effortMin(id, d) * EFFORT.gold, EFFORT.min, EFFORT.max));
 const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rust window, so nothing already lost is touched)
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-12 s44';
+const BUILD_ID = 'playtest 2026-10-13 s45';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1173,6 +1197,7 @@ const WHATS_NEW = [
   { s: 42, items: ['Workouts can be logged for earlier days: use the arrows at the top of the Workout ledger (up to a week back).', 'A day you fill in later (a workout or food) counts for upkeep: if it had cost a grace day or rusted a level, that is put right.', 'New workout: Bodyweight (push-ups, pull-ups, chin-ups, dips, sit-ups, air squats, burpees, plank) with reps and sets.'] },
   { s: 43, items: ['Food, Add, Photo: take or pick up to 6 photos (labels, plates, captions), add a note if you like, and Claude lists what you ate. Check it and log. Each goes on the day and meal its photo was taken.', 'Photo logging needs your own Anthropic API key, added once in Settings, Food keys. It stays on this phone and is never in a backup.'] },
   { s: 44, items: ['Drone battery, as you asked on 10-08: flying uses charge (following you too), perching uses a quarter as much, perched on you it charges, on the base twice as fast. Below a quarter, a Drone settles on your shoulder to charge and flies ahead again when full.', '2.5D is zoomed out like your Looks page, and the edge of what you see fades softly instead of a hard ring.'] },
+  { s: 45, items: ['Your Oct 10 run can go in now: days before the Start over were refused by mistake, with the wrong message.', 'Workouts pay by effort: miles and pace for a run, reps for push-ups and pull-ups, sets for the gym, minutes for BJJ and dance. The form shows about how much as you type.', 'Ratings rate everything (push-ups, pull-ups, dips, plank, run distance, BJJ and dance minutes), show a level from 1 to 10 and about how many people you beat, and the overall counts only what you trained lately.', 'Food Add is one screen: photos on top, then one search box for foods, restaurants, supplements or a barcode, with the meal beside it, and Make your own at the end.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1340,14 +1365,13 @@ function bestBands(logs) { // highest band reached per lift across a log list
 }
 
 function logWorkout(id, now, detail, at) {
-  now = now || new Date();
-  const w = WORKOUTS.find(x => x.id === id);
+  now = now || new Date(); if (!WORKOUTS.some(x => x.id === id)) return null;
   const today = dayKey(at || now), back = !!at && today !== dayKey(now); /* s42: a day you fill in later */
-  if (back && (daysBetween(today, dayKey(now)) > LOG_BACK || daysBetween(today, dayKey(now)) < 0 || (SAVE.resetAt && daysBetween(dayKey(new Date(SAVE.resetAt)), today) < 0))) return null; /* not before a fresh start */
+  if (back && (daysBetween(today, dayKey(now)) > LOG_BACK || daysBetween(today, dayKey(now)) < 0)) return null; /* s45: a day before the s37 reset logs too (Lance's Oct 10 run was refused); the streak and upkeep already ignore those days */
   const wasKept = keptDay(SAVE, today);
   const note = back ? '' : stepDay(SAVE, today);
   const mult = streakMult(SAVE.streak);
-  const gold = Math.round(w.gold * mult);
+  const gold = Math.round(effortGold(id, detail) * mult); /* s45: pays by effort */
   // first time reaching a strength band pays a bonus
   const before = bestBands(SAVE.logs), lines = [];
   let bonus = 0;
@@ -1421,6 +1445,9 @@ const GOALS = {
     press: { name: 'Overhead press, est. 1 rep max (lb)' }, clean: { name: 'Power clean, est. 1 rep max (lb)' },
     run_mi: { name: 'Run distance in one run (mi)' }, run_pace: { name: 'Run pace (minutes per mile)', less: true }, cindy: { name: 'Cindy rounds' },
     bjj_n: { name: 'BJJ sessions', count: 'bjj' }, dance_n: { name: 'Dance sessions', count: 'dance' },
+    bjj_m: { name: 'BJJ minutes', sum: 'bjj' }, dance_m: { name: 'Dance minutes', sum: 'dance' }, /* s45: rated on minutes */
+    bw_pushup: { name: 'Push-ups in one set', move: 'pushup' }, bw_pullup: { name: 'Pull-ups in one set', move: 'pullup' },
+    bw_dip: { name: 'Dips in one set', move: 'dip' }, bw_plank: { name: 'Plank (seconds)', move: 'plank' },
   },
 };
 const MODS = [ // one per calendar day, opt in on the zone screen
@@ -1479,12 +1506,15 @@ function addGoal(ex, target, period, now) {
 function goalBest(g) { // best value logged for this goal's exercise inside its window
   let best = null; const better = (v) => { if (v == null || !isFinite(v)) return; if (best == null || (GOALS.ex[g.ex].less ? v < best : v > best)) best = v; };
   const cnt = GOALS.ex[g.ex].count; if (cnt) return SAVE.logs.filter(l => l.id === cnt && l.ts >= g.from && l.ts < g.until).length; // sessions in the window
+  const sum = GOALS.ex[g.ex].sum; if (sum) return SAVE.logs.filter(l => l.id === sum && l.ts >= g.from && l.ts < g.until).reduce((a, l) => a + ((l.detail && +l.detail.min) || RATINGS.plainMin[sum]), 0); // minutes in the window
+  const mv = GOALS.ex[g.ex].move;
   for (const l of SAVE.logs) {
     if (!l.ts || l.ts < g.from || l.ts >= g.until || !l.detail) continue; const d = l.detail;
     if (LIFTS[g.ex]) for (const x of d.lifts || []) if (x.lift === g.ex) better(e1rm(x.w, x.reps));
     if (g.ex === 'run_mi' && l.id === 'run') better(+d.mi);
     if (g.ex === 'run_pace' && l.id === 'run' && (g.auto ? d.mi >= RATINGS.pace.minMi : d.mi > 0) && d.min > 0) better(d.min / d.mi); // dealt goals: a mile or more, as in Ratings
     if (g.ex === 'cindy' && l.id === 'cindy') better(+d.rounds + (+d.extra || 0) / 30); // 30 reps a round, as in the history chart
+    if (mv && l.id === 'bw') for (const x of d.moves || []) if (x.ex === mv) better(+x.reps); // the best single set
   }
   return best;
 }
@@ -1503,9 +1533,33 @@ const RATINGS = {
   age: { from: 40, per: 0.01, max: 0.3 },
   step: { lift: 0.025, cindy: 1, pace: 10 / 60 }, // the weekly PR step: +2.5% est. 1RM, +1 round, 10 s/mi faster
   keep: 7, // days a dealt goal stays listed after it ends
+  /* s45 (Lance 10-13: "rankings should be better"; he picked all four: rate everything, a percentile against people,
+     finer levels, a fair overall). The five band bars sit at these population percentiles (approximate: strength-standard
+     tables for lifts, Army/ACSM tables for push-ups, pull-ups and plank, running pace tables), with 1% and 99.5% past the
+     ends; a value between bars is placed in a straight line between them. The score is that percentile, 0-100, and the
+     level is its tens (1-10). Overall is the average score of what you trained in the last 90 days. */
+  anchors: [5, 20, 50, 80, 95], ends: [1, 99.5], recent: 90,
+  bw: { // best single set
+    pushup: { male: [10, 20, 35, 50, 70], female: [3, 10, 20, 30, 45] },
+    pullup: { male: [1, 5, 10, 15, 22], female: [1, 2, 5, 9, 14] },
+    dip:    { male: [3, 10, 20, 30, 40], female: [1, 4, 10, 16, 24] },
+    plank:  { male: [30, 60, 120, 180, 300], female: [30, 60, 110, 170, 280] }, // seconds
+  },
+  dist: { male: [1, 2, 4, 6.2, 13.1], female: [1, 2, 3.5, 6.2, 13.1] }, // longest run (mi)
+  mins: [30, 60, 120, 180, 300], // BJJ or dance minutes a week, over the last 4 weeks
+  plainMin: { bjj: 60, dance: 30 }, // a session logged without minutes
 };
-const RATED = [...Object.keys(LIFTS), 'run', 'cindy', 'bjj', 'dance'];
-const RATED_NAME = { run: 'Run pace', cindy: 'Cindy', bjj: 'BJJ', dance: 'Dance' };
+const RATED = [...Object.keys(LIFTS), 'run', 'run_dist', 'cindy', 'bw_pushup', 'bw_pullup', 'bw_dip', 'bw_plank', 'bjj', 'dance'];
+const RATED_NAME = { run: 'Run pace', run_dist: 'Run distance', cindy: 'Cindy', bjj: 'BJJ', dance: 'Dance', bw_pushup: 'Push-ups', bw_pullup: 'Pull-ups', bw_dip: 'Dips', bw_plank: 'Plank' };
+// where a value sits among people: the band bars at RATINGS.anchors, straight lines between, 1% and 99.5% past the ends
+function pctOf(bars, v, less) {
+  const A = RATINGS.anchors, [p0, p1] = RATINGS.ends, n = bars.length;
+  const xs = [less ? bars[0] * 1.5 : 0, ...bars, bars[n - 1] + (bars[n - 1] - bars[n - 2])], ps = [p0, ...A, p1], dir = less ? -1 : 1;
+  if (dir * (v - xs[0]) <= 0) return p0;
+  for (let i = 0; i < xs.length - 1; i++) if (dir * (v - xs[i + 1]) <= 0) return ps[i] + (ps[i + 1] - ps[i]) * (v - xs[i]) / (xs[i + 1] - xs[i]);
+  return p1;
+}
+const scoreLevel = sc => Math.min(10, Math.floor(sc / 10) + 1); // 1-10
 const profileSex = () => (SAVE.profile && SAVE.profile.sex) || 'male';
 const ageEase = () => { const a = SAVE.profile && +SAVE.profile.age, A = RATINGS.age; return a > A.from ? Math.min(A.max, (a - A.from) * A.per) : 0; };
 const liftBars = lift => (profileSex() === 'female' ? LIFTS[lift].female : LIFTS[lift].bands).map(t => t * (1 - ageEase()));
@@ -1518,24 +1572,31 @@ function ratingOf(key, now) {
     for (const l of logs) for (const x of (l.detail && l.detail.lifts) || []) if (x.lift === key && x.w > 0) { const bw = l.detail.bw || SAVE.bodyweight, one = e1rm(x.w, x.reps); if (bw > 0 && (!best || one / bw > best.ratio)) best = { ratio: one / bw, one, bw }; }
     if (!best) return r;
     const bw = SAVE.bodyweight || best.bw, rb = liftBars(key);
-    Object.assign(r, { value: best.one, bars: rb.map(t => t * bw), goalEx: key, level: rb.reduce((b, t, i) => (best.ratio >= t ? i : b), -1) }); // the lift as logged; level by its own bodyweight, bars at today's
+    Object.assign(r, { value: best.one, bars: rb.map(t => t * bw), goalEx: key, level: rb.reduce((b, t, i) => (best.ratio >= t ? i : b), -1), pct: pctOf(rb, best.ratio) }); // the lift as logged; level by its own bodyweight, bars at today's
+    r.recent = logs.some(l => l.ts >= T - RATINGS.recent * 864e5 && ((l.detail && l.detail.lifts) || []).some(x => x.lift === key));
   } else {
     if (key === 'run') { for (const l of logs) if (l.id === 'run' && l.detail && l.detail.mi >= RATINGS.pace.minMi && l.detail.min > 0) { const p = l.detail.min / l.detail.mi; if (r.value == null || p < r.value) r.value = p; } r.bars = RATINGS.pace[sex].map(t => t * (1 + ease)); r.goalEx = 'run_pace'; }
     else if (key === 'cindy') { for (const l of logs) if (l.id === 'cindy' && l.detail && l.detail.rounds != null) { const v = +l.detail.rounds + (+l.detail.extra || 0) / 30; if (r.value == null || v > r.value) r.value = v; } r.bars = RATINGS.cindy[sex].map(t => t * (1 - ease)); r.goalEx = 'cindy'; }
-    else if (logs.some(l => l.id === key)) { /* trained in the last year */ r.value = logs.filter(l => l.id === key && l.ts >= T - RATINGS.weeks * 7 * 864e5).length / RATINGS.weeks; r.bars = RATINGS.weekly; r.goalEx = key + '_n'; }
+    else if (key === 'run_dist') { for (const l of logs) if (l.id === 'run' && l.detail && l.detail.mi > 0 && (r.value == null || +l.detail.mi > r.value)) r.value = +l.detail.mi; r.bars = RATINGS.dist[sex].map(t => t * (1 - ease)); r.goalEx = 'run_mi'; }
+    else if (key.startsWith('bw_')) { const ex = key.slice(3); for (const l of logs) if (l.id === 'bw') for (const x of (l.detail && l.detail.moves) || []) if (x.ex === ex && x.reps > 0 && (r.value == null || x.reps > r.value)) r.value = +x.reps; r.bars = RATINGS.bw[ex][sex].map(t => t * (1 - ease)); r.goalEx = key; }
+    else if (logs.some(l => l.id === key)) { /* trained in the last year: minutes a week (s45; sessions before) */ r.value = logs.filter(l => l.id === key && l.ts >= T - RATINGS.weeks * 7 * 864e5).reduce((a, l) => a + ((l.detail && +l.detail.min) || RATINGS.plainMin[key]), 0) / RATINGS.weeks; r.bars = RATINGS.mins; r.goalEx = key + '_m'; }
     if (r.value == null) return r;
+    r.pct = pctOf(r.bars, r.value, r.less);
+    const kind = key === 'run_dist' ? 'run' : key.startsWith('bw_') ? 'bw' : key; r.recent = logs.some(l => l.id === kind && l.ts >= T - RATINGS.recent * 864e5 && (kind !== 'bw' || ((l.detail && l.detail.moves) || []).some(x => x.ex === key.slice(3))));
     r.level = r.bars.reduce((b, t, i) => ((r.less ? r.value <= t : r.value >= t) ? i : b), -1);
   }
   const next = r.level < 4 ? r.bars[r.level + 1] : null, lo = r.level >= 0 ? r.bars[r.level] : r.less ? r.bars[0] * 1.25 : 0;
   r.prog = next == null ? 1 : clamp(r.less ? (lo - r.value) / (lo - next) : (r.value - lo) / (next - lo), 0, 1);
+  r.score = Math.round(r.pct); r.lv = scoreLevel(r.pct); r.lvProg = r.pct >= 99.5 ? 1 : (r.pct % 10) / 10; /* s45: finer levels */
   return r;
 }
 const hasProfile = () => !!(SAVE.profile && SAVE.profile.sex); // nothing is rated or dealt before the profile says which standards apply
-function overallLevel(now) { // floor of the average level over everything rated
+function overallLevel(now, given) { // s45: the average score of what you trained in the last 90 days (all rated, if none is recent)
   if (!hasProfile()) return null;
-  const rs = RATED.map(k => ratingOf(k, now)).filter(r => r.value != null); if (!rs.length) return null;
-  const lv = Math.floor(rs.reduce((a, r) => a + r.level, 0) / rs.length + 1e-9);
-  return { level: lv, name: lv >= 0 ? BAND_NAMES[lv] : 'Getting started', n: rs.length };
+  const all = (given || RATED.map(k => ratingOf(k, now))).filter(r => r.value != null); if (!all.length) return null;
+  const rs = all.some(r => r.recent) ? all.filter(r => r.recent) : all, sc = rs.reduce((a, r) => a + r.pct, 0) / rs.length;
+  const lv = RATINGS.anchors.reduce((b, a, i) => (sc >= a - 1e-9 ? i : b), -1); // the band the average score sits in
+  return { level: lv, name: lv >= 0 ? BAND_NAMES[lv] : 'Getting started', n: rs.length, score: Math.round(sc), lv10: scoreLevel(sc) };
 }
 const GOAL_DAYS = { week: 7, month: 30, year: 365 };
 function periodStart(period, now) { const y = now.getFullYear(), m = now.getMonth(); return (period === 'week' ? new Date(y, m, now.getDate() - ((now.getDay() + 6) % 7)) : period === 'month' ? new Date(y, m, 1) : new Date(y, 0, 1)).getTime(); }
@@ -1547,14 +1608,19 @@ function goalTarget(r, period, now) {
     const rate = period === 'week' ? clamp(Math.round(v) + 1, 1, 6) : period === 'month' ? Math.ceil(Math.max(v + 0.5, next != null ? (v + next) / 2 : v + 1) * 4) : Math.ceil((next != null ? next : v + 1) * 48);
     return { t: Math.max(rate, inPeriod + 1), why: period === 'week' ? 'One more than your usual week' : period === 'month' ? (up ? `Halfway to ${up}` : 'Past Elite') : (up ? `${up} pace for a year` : 'Past Elite') };
   }
-  const less = r.less, step = r.key === 'cindy' ? S.cindy : less ? S.pace : v * S.lift, dir = less ? -1 : 1, by = k => v + dir * step * k;
+  if (GOALS.ex[r.goalEx].sum) { // s45: minutes inside the period, at a weekly rate
+    const per = { week: 1, month: 4, year: 48 }[period], rate = period === 'week' ? v + 15 : next != null ? Math.max(v + 15, period === 'month' ? (v + next) / 2 : next) : v + 30;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), done = SAVE.logs.filter(l => l.id === r.key && l.ts >= today && l.ts <= now.getTime()).reduce((a, l) => a + ((l.detail && +l.detail.min) || RATINGS.plainMin[r.key]), 0); /* already done today counts toward it, so ask past that */
+    return { t: Math.max(Math.ceil(rate * per / 15) * 15, Math.ceil((done + 15) / 15) * 15), why: period === 'week' ? '15 minutes more than your usual week' : up ? (period === 'month' ? `Halfway to ${up}` : `${up} for a year`) : 'Past Elite' };
+  }
+  const bwK = r.key.startsWith('bw_'), less = r.less, step = r.key === 'cindy' ? S.cindy : bwK ? (r.key === 'bw_plank' ? 10 : 1) : r.key === 'run_dist' ? 0.25 : less ? S.pace : v * S.lift, dir = less ? -1 : 1, by = k => v + dir * step * k;
   const beyond = (a, b) => (less ? Math.min(a, b) : Math.max(a, b)), gap = next == null ? 0 : Math.abs(next - v);
   let t, why;
   if (period === 'week') { t = by(1); why = 'A small step past your best'; }
   else if (period === 'month') { t = next != null ? beyond(by(2), v + (next - v) / 2) : by(2); why = !up ? 'Past Elite' : (less ? t <= next : t >= next) ? `Reach ${up}` : `Halfway to ${up}`; } // always past the week's step
   else if (next != null && after != null && gap < 2 * step) { t = after; why = `Two levels up: ${BAND_NAMES[L + 2]}`; }
   else { t = next != null ? beyond(next, by(1)) : by(4); why = up ? `Reach ${up}` : 'Past Elite'; }
-  t = r.key === 'cindy' ? Math.ceil(t - 1e-9) : less ? Math.floor(t * 12 + 1e-9) / 12 : Math.ceil(t / 5 - 1e-9) * 5; // whole rounds, 5 s/mi, 5 lb
+  t = r.key === 'cindy' || (bwK && r.key !== 'bw_plank') ? Math.ceil(t - 1e-9) : r.key === 'run_dist' ? Math.ceil(t * 4 - 1e-9) / 4 : less ? Math.floor(t * 12 + 1e-9) / 12 : Math.ceil(t / 5 - 1e-9) * 5; // whole rounds and reps, a quarter mile, 5 s/mi, 5 lb or 5 s
   return { t, why };
 }
 function dealGoals(now) { // one goal per week, month and year from what you actually log; each runs a full 7, 30 or 365 days from the day it is dealt
@@ -1613,7 +1679,7 @@ const NUT = Object.fromEntries(NUTRIENTS.map(n => [n.k, n]));
 const FOOD = {
   fdc: 'https://api.nal.usda.gov/fdc/v1/', off: 'https://world.openfoodfacts.org/api/v2/product/', dsld: 'https://api.ods.od.nih.gov/dsld/v9/',
   offSearch: 'https://world.openfoodfacts.org/cgi/search.pl', nix: 'https://trackapi.nutritionix.com/v2/',
-  demoKey: 'DEMO_KEY', timeout: 9000, results: 8, shown: 6, cap: 400, keepDays: 400, proteinPerLb: 0.7,
+  demoKey: 'DEMO_KEY', timeout: 9000, results: 8, shown: 6, suppShown: 3, cap: 400, keepDays: 400, proteinPerLb: 0.7,
   meals: ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Supplements'],
   // supplement label names to nutrients; IU converts to the nutrient's unit (vitamin D 0.025 µg, A 0.3 µg RAE, E 0.67 mg)
   supp: [[/vitamin\s*d/i, 'vitD', 0.025], [/vitamin\s*c|ascorbic/i, 'vitC'], [/vitamin\s*a|retinol|beta.?carotene/i, 'vitA', 0.3], [/vitamin\s*e|tocopherol/i, 'vitE', 0.67],
@@ -1775,6 +1841,7 @@ function logFood(foodId, meal, n, now, at) {
    stuff"; he chose "Snap in the app"; "shouldn't u be reading the filename and metadata for that info"). Photos go to
    Claude with his own API key (kept on this phone, never in a backup); it reads labels or estimates portions and returns
    one item per food; he checks the list and logs it. Each photo's camera time (EXIF) decides its day and meal. */
+const CLAUDE_KEY = { re: /^sk-ant-[A-Za-z0-9_-]{20,}$/, bad: 'That does not look like an Anthropic API key (it starts with sk-ant-).' }; // s45: one check for Settings and the Food page
 const LOCAL_ONLY_KEYS = ['fdcKey', 'nixId', 'nixKey', 'claudeKey']; // API keys: never in a backup, kept through a restore
 const PHOTO = { url: 'https://api.anthropic.com/v1/messages', model: 'claude-opus-5-5', maxPhotos: 6, edge: 1568, quality: 0.85, timeout: 120000,
   nut: ['kcal', 'protein', 'carbs', 'fat', 'fiber', 'sugars', 'satfat', 'chol', 'sodium', 'potassium', 'calcium', 'iron'] };
@@ -1936,6 +2003,21 @@ async function lookupBarcode(code) { // USDA branded foods by UPC, then Open Foo
   try { const j = await getJSON(`${FOOD.fdc}foods/search?api_key=${encodeURIComponent(fdcKey())}&query=${code}&dataType=Branded&pageSize=5`); const hit = (j.foods || []).filter(f => String(f.gtinUpc || '').replace(/^0+/, '') === code.replace(/^0+/, '')).map(parseFdc); if (hit.length) return hit; } catch (e) { /* try the next source */ }
   let o; try { o = await getJSON(`${FOOD.off}${code}.json?fields=product_name,brands,serving_size,serving_quantity,nutriments`); } catch (e) { if (/HTTP 404/.test(String(e))) return []; throw e; } // OFF answers an unknown code with 404
   return o && o.status === 1 && o.product ? [parseOff(o.product, code)] : [];
+}
+/* s45 (Lance 10-13: "the food entry page should be consolidated"): one search box for everything. A number is a barcode;
+   words search foods and restaurants and supplements together (supplements first when the meal is Supplements or the words
+   name one). */
+const SUPP_WORDS = /vitamin|supplement|creatine|magnesium|zinc|fish oil|omega|probiotic|melatonin|multivit|protein powder|whey|collagen|iron|calcium|b12|electrolyte/i;
+async function searchAll(q, suppFirst) {
+  if (/^\d{6,14}$/.test(String(q).replace(/\s/g, ''))) return lookupBarcode(q); /* UPC-E is 6 digits */
+  const supp = suppFirst || SUPP_WORDS.test(q); /* supplements only when the meal or the words ask for them, or nothing else turns up */
+  let [fo, su] = await Promise.allSettled([searchFoods(q), supp ? searchSupps(q) : Promise.resolve([])]);
+  if (!supp && (fo.status === 'rejected' || !fo.value.length)) [su] = await Promise.allSettled([searchSupps(q)]);
+  if (fo.status === 'rejected' && su.status === 'rejected') throw fo.reason;
+  const foods = fo.status === 'fulfilled' ? fo.value : [], supps = su.status === 'fulfilled' ? su.value.slice(0, FOOD.suppShown) : [];
+  const all = (supp ? [...supps, ...foods] : [...foods, ...supps]).slice(0, FOOD.shown + FOOD.suppShown);
+  all.failed = [...(foods.failed || []), ...(fo.status === 'rejected' ? ['USDA'] : []), ...(su.status === 'rejected' ? ['NIH supplements'] : [])]; all.usdaBusy = !!foods.usdaBusy || (fo.status === 'rejected' && /HTTP (429|403)/.test(String(fo.reason)));
+  return all;
 }
 async function searchSupps(q) { // NIH DSLD: search, then each label's ingredient rows
   const j = await getJSON(`${FOOD.dsld}search-filter?q=${encodeURIComponent(q)}&size=${FOOD.results}`);
@@ -2641,7 +2723,7 @@ const TIPS = {
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a survival plus the boss: 3 minutes for a world\'s first zone, up to 10 for its last. Later zones send more enemies and more evolved forms. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
   fitness:  { group: 'Between runs', title: 'Fitness progress', body: 'Your training week by week for the last 12 weeks: workouts, pounds lifted, run miles, your best squat + bench + deadlift against 1000 lb, your rating, bodyweight and protein. Pick one above the chart; tap the chart to read a week.' },
-  food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. Search the USDA food database, type the number under a barcode, find vitamins and supplements in the NIH label database, or make your own. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
+  food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. On Add: snap photos and Claude lists what you ate, or search one box for foods, restaurant meals, supplements or a barcode number, or make your own. The meal comes from the time of day; change it beside the search. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
   world3:   { group: 'Between runs', title: 'Worlds 3 to 10', body: 'Every five zones is a new world: more enemies, more evolved forms and faster hives. From Zone 19 Elite forms (two rings, far tougher) join in, and from Zone 20 the boss is the Apex. Enemies never get secretly tougher: what you see is what you fight.' },
@@ -4685,7 +4767,7 @@ if (HAS_DOM) {
       const pips = (n, c) => { const cw = ZONES[Math.min(n, ZONES.length - 1)].world || 1; return `<b class="zw">${c ? 'Hard, ' : ''}${WORLDS[cw].name.replace(/: .*/, '')}</b>` + ZONES.map((z, i) => (z.world || 1) !== cw ? '' : `<i class="zp${i < n ? ' on ' + c : ''}"></i>`).join(''); }; // cleared zones as marks, not words (Lance 10-07)
       el('m-cleared').innerHTML = `<span class="zpips" aria-label="${SAVE.cleared} zones cleared">${pips(SAVE.cleared, '')}</span>` + (SAVE.clearedHard ? `<span class="zpips" aria-label="${SAVE.clearedHard} Hard zones cleared">${pips(SAVE.clearedHard, 'hard')}</span>` : ''); }
     el('m-ver').textContent = BUILD_ID;
-    { const ov = overallLevel(); el('m-level').hidden = !ov; if (ov) el('m-level').innerHTML = `Athlete level: <b>${ov.name}</b>`; }
+    { const ov = overallLevel(); el('m-level').hidden = !ov; if (ov) el('m-level').innerHTML = `Athlete level: <b>${ov.lv10}, ${ov.name}</b>`; }
     ensureQuests(); dealGoals(); el('btn-quests').classList.toggle('pts', anyClaimable()); // amber dot: a reward is waiting
   };
   const hardOpen = i => i < SAVE.cleared || SAVE.playtest;
@@ -4746,22 +4828,24 @@ if (HAS_DOM) {
     };
   }
   UI.profile = () => { UI.go('profile'); profileForm(el('pf-box'), () => UI.settings('Profile saved.')); };
-  const rNum = (r, v) => r.goalEx === 'run_pace' ? fmtPace(v) : LIFTS[r.key] ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
-  const rUnit = r => r.goalEx.endsWith('_n') ? ' a week' : r.key === 'cindy' ? ' rounds' : r.goalEx === 'run_pace' ? '/mi' : ' lb';
+  const rNum = (r, v) => r.goalEx === 'run_pace' ? fmtPace(v) : LIFTS[r.key] || r.key.startsWith('bw_') || r.goalEx.endsWith('_m') ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+  const rUnit = r => r.goalEx.endsWith('_m') ? ' min a week' : r.key === 'cindy' ? ' rounds' : r.goalEx === 'run_pace' ? '/mi' : r.key === 'run_dist' ? ' mi' : r.key === 'bw_plank' ? ' s' : r.key.startsWith('bw_') ? ' reps' : ' lb';
+  const ofWhom = () => { const P = SAVE.profile || {}; return (P.sex === 'female' ? 'women' : 'men') + (P.age ? ' your age' : ''); };
+  const pctText = r => r.pct >= 99.5 ? 'top half a percent' : r.pct < 1.5 ? 'just starting' : `better than about ${Math.round(r.pct)}% of ${ofWhom()}`;
   const fmtRating = (r, v) => rNum(r, v) + rUnit(r);
   function ratingsPage(box) {
     if (!SAVE.profile || !SAVE.profile.sex) { profileForm(box, () => UI.quests('Profile saved.')); return; }
-    const rs = RATED.map(k => ratingOf(k)), rated = rs.filter(r => r.value != null), ov = overallLevel();
-    box.innerHTML = `<div class="rtop"><span>Overall: <b>${ov ? ov.name : 'not rated yet'}</b></span></div>`;
+    const rs = RATED.map(k => ratingOf(k)), rated = rs.filter(r => r.value != null), ov = overallLevel(undefined, rs);
+    box.innerHTML = `<div class="rtop"><span>Overall: <b>${ov ? `Level ${ov.lv10}, ${ov.name}` : 'not rated yet'}</b>${ov ? `<small> score ${ov.score} of 100, from ${ov.n} trained lately. The % is how many ${ofWhom()} you beat (approximate).</small>` : ''}</span></div>`;
     const pb = document.createElement('button'); pb.className = 'rprof'; pb.textContent = 'Profile'; pb.onclick = () => profileForm(box, () => UI.quests('Profile saved.')); box.firstChild.appendChild(pb);
     for (const r of rated) { // one line each (tap for the full sentence): name, level, now -> next level's number
       const next = r.level < 4 ? r.bars[r.level + 1] : null, lv = r.level >= 0 ? BAND_NAMES[r.level] : 'Below Beginner', d = document.createElement('button'); d.className = 'rrow';
-      d.innerHTML = `<span><b>${r.name}</b><em>${lv}</em></span><small>${next != null ? `${rNum(r, r.value)} → ${fmtRating(r, next)}` : `${fmtRating(r, r.value)}, top`}</small><div class="qbar"><i style="width:${Math.round(r.prog * 100)}%"></i></div>`;
-      d.onclick = () => { el('q-msg').textContent = `${r.name}: ${lv}, ${fmtRating(r, r.value)}${next != null ? `. ${fmtRating(r, next)} reaches ${BAND_NAMES[r.level + 1]}.` : '. That is the top level.'}`; };
+      d.innerHTML = `<span><b>${r.name}</b><em>Level ${r.lv}, ${lv}</em></span><small>${fmtRating(r, r.value)} · ${r.recent ? '' : 'old, '}${Math.round(r.pct)}%</small><div class="qbar"><i style="width:${Math.round(r.lvProg * 100)}%"></i></div>`; /* s45: level 1-10 and where you stand among people */
+      d.onclick = () => { el('q-msg').textContent = `${r.name}: ${fmtRating(r, r.value)}, ${pctText(r)} (approximate standards). Level ${r.lv} of 10, ${lv}${next != null ? `; ${fmtRating(r, next)} reaches ${BAND_NAMES[r.level + 1]}` : ', the top band'}.`; };
       box.appendChild(d);
     }
     const un = rs.filter(r => r.value == null);
-    if (un.length) { const p = document.createElement('p'); p.className = 'rnote'; p.textContent = rated.length ? `Not rated yet: ${un.map(r => r.name).join(', ')}.` : 'Log a lift, a run of a mile or more, Cindy, BJJ or dance to get rated.'; box.appendChild(p); }
+    if (un.length) { const p = document.createElement('p'); p.className = 'rnote'; p.textContent = rated.length ? `Not rated yet: ${un.map(r => r.name).join(', ')}.` : 'Log a lift, a run, Cindy, push-ups, pull-ups, dips, a plank, BJJ or dance to get rated.'; box.appendChild(p); }
   }
   swipeTabs(el('quests'), dir => { questTab = cycle(Q_TABS, questTab, dir); UI.quests(); slideIn(el('q-pages'), dir); });
   UI.quests = (msg, fromMenu) => {
@@ -4787,7 +4871,7 @@ if (HAS_DOM) {
       const ex = GOALS.ex[g.ex], best = goalBest(g), met = goalMet(g), over = now >= g.until && !met;
       const shown = best == null ? 'Nothing logged yet' : `Best ${fmtGoal(g.ex, best)}`, left = Math.max(0, Math.ceil((g.until - now) / 864e5));
       const prog = best == null ? 0 : ex.less ? (met ? 1 : Math.min(0.99, g.target / best)) : Math.min(1, best / g.target);
-      const cnt = ex.count ? `${best} of ${g.target}` : shown;
+      const cnt = ex.count ? `${best} of ${g.target}` : ex.sum ? `${Math.round(best)} of ${g.target} min` : shown;
       const d = row(`${ex.name}: ${fmtGoal(g.ex, g.target)}`, ex.count ? Math.min(1, best / g.target) : prog, 1, g.reward, g.claimed, () => { const r = claimGoal(i); if (r) { SFX.quest(); SFX.win(); UI.quests(`Goal reached: +${r} gold`); } },
         (g.auto && g.why ? `This ${g.period}: ${g.why[0].toLowerCase() + g.why.slice(1)}. ` : '') + (over ? `Missed (${cnt}).${g.auto ? '' : ' Hold Remove to clear it.'}` : `${cnt}, ${left} day${left === 1 ? '' : 's'} left`));
       if (!g.auto && (over || g.claimed)) { const hs = holdSell('Hold to remove', () => { SAVE.goals.splice(i, 1); persist(SAVE); UI.quests(); }); d.appendChild(hs); }
@@ -4798,8 +4882,8 @@ if (HAS_DOM) {
   };
   /* Food and nutrients (s11): Today by meal, Add (USDA search, a barcode number, NIH supplements, your own), Nutrients
      against the daily values with a 30-day trend per nutrient. One screen each, swipe between tabs. */
-  const F_TABS = ['Today', 'Add', 'Nutrients'], ADD_MODES = ['Photo', 'Search', 'Barcode', 'Supplements', 'Your own']; /* s43: Photo first, it is the easy one */
-  let foodTab = 'Today', foodDay = 0, foodMeal = null, addMode = 'Photo', nutGroup = 'Macros', nutScope = 'Day', foodQ = '', foodResults = null, foodBusy = false;
+  const F_TABS = ['Today', 'Add', 'Nutrients'];
+  let foodTab = 'Today', foodDay = 0, foodMeal = null, addView = 'main', /* s45: one Add screen; 'own' is the make-your-own form */ nutGroup = 'Macros', nutScope = 'Day', foodQ = '', foodResults = null, foodBusy = false;
   const inClaude = () => /claude/i.test(location.hostname); // the claude.ai copy cannot reach outside sites
   const fday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate() + foodDay, 12); };
   const fmtN = (v, n) => (n.unit === 'kcal' || v >= 100 ? Math.round(v) : round1(v)) + ' ' + n.unit;
@@ -4821,7 +4905,7 @@ if (HAS_DOM) {
   swipeTabs(el('food'), dir => { foodTab = cycle(F_TABS, foodTab, dir); el('f-sheet').hidden = true; UI.food(); slideIn(el('f-pages'), dir); });
   const FOOD_BACK = 60; // days the switcher goes back
   el('f-prev').onclick = () => { if (foodDay > -FOOD_BACK) { foodDay--; UI.food(); } }; el('f-next').onclick = () => { if (foodDay < 0) { foodDay++; UI.food(); } };
-  el('btn-food').onclick = () => { foodDay = 0; foodTab = 'Today'; foodMeal = null; /* the meal follows the time of day again */ el('f-sheet').hidden = true; UI.food(); };
+  el('btn-food').onclick = () => { foodDay = 0; foodTab = 'Today'; foodMeal = null; addView = 'main'; foodResults = null; foodQ = ''; ph.keyAsk = false; ph.noteOpen = false; /* s45: Add opens clean */ /* the meal follows the time of day again */ el('f-sheet').hidden = true; UI.food(); };
   UI.food = msg => {
     UI.go('food'); inlineTip('it-food', 'food');
     renderTabs(el('f-tabs'), F_TABS, foodTab, t => { foodTab = t; el('f-sheet').hidden = true; UI.food(); });
@@ -4836,7 +4920,7 @@ if (HAS_DOM) {
     for (const meal of FOOD.meals) {
       const es = ms.filter(m => m.meal === meal), kc = es.reduce((a, m) => a + ((F[m.food] && F[m.food].per.kcal) || 0) * m.n, 0), b = document.createElement('button'); b.className = 'row fmeal';
       b.innerHTML = `<b>${meal}</b><em>${es.length ? (meal === 'Supplements' ? es.length + ' taken' : Math.round(kc) + ' kcal') : 'Add'}</em><span>${es.length ? esc(es.map(m => (F[m.food] ? F[m.food].name : 'Removed food') + (m.n !== 1 ? ' x' + m.n : '')).join(', ')) : 'Nothing yet'}</span>`;
-      b.onclick = () => { if (es.length) mealSheet(key, meal); else { foodMeal = meal; foodTab = 'Add'; UI.food(); } };
+      b.onclick = () => { if (es.length) mealSheet(key, meal); else { foodMeal = meal; foodTab = 'Add'; addView = 'main'; UI.food(); } };
       box.appendChild(b);
     }
   }
@@ -4849,36 +4933,45 @@ if (HAS_DOM) {
       const x = document.createElement('button'); x.className = 'fx'; x.textContent = 'Remove'; x.onclick = () => { setServings(m.id, 0); foodToday(key); if (mealsOn(key).some(q => q.meal === meal)) mealSheet(key, meal); else s.hidden = true; }; r.appendChild(x);
       s.appendChild(r);
     }
-    const add = document.createElement('button'); add.className = 'primary'; add.textContent = `Add to ${meal}`; add.onclick = () => { s.hidden = true; foodMeal = meal; foodTab = 'Add'; UI.food(); }; s.appendChild(add);
+    const add = document.createElement('button'); add.className = 'primary'; add.textContent = `Add to ${meal}`; add.onclick = () => { s.hidden = true; foodMeal = meal; foodTab = 'Add'; addView = 'main'; UI.food(); }; s.appendChild(add);
     closeBtn(s);
   }
+  /* s45 (Lance 10-13: "the food entry page should be consolidated"): one Add screen. Photos on top, then which meal and one
+     search box (foods, restaurants, supplements, or a barcode number), then favorites and recent, then Make your own. */
   function foodAdd() {
     const box = el('f-add'); foodMeal = foodMeal || mealNow(); box.innerHTML = '';
-    if (addMode !== 'Photo') chipRow(box, FOOD.meals, foodMeal, t => { foodMeal = t; foodAdd(); }); /* Photo: each item gets the meal of its photo's time */
-    chipRow(box, ADD_MODES, addMode, t => { addMode = t; foodResults = null; foodQ = ''; el('f-msg').textContent = ''; foodAdd(); }).classList.add('modes');
-    if (addMode === 'Your own') { ownForm(box); return; }
-    if (addMode === 'Photo') { photoPanel(box); return; }
+    if (addView === 'own') { const b = document.createElement('button'); b.id = 'f-own-back'; b.textContent = 'Back to search'; b.onclick = () => { addView = 'main'; foodAdd(); }; box.appendChild(b); mealPick(box, true); ownForm(box); return; }
+    photoPanel(box);
+    if (ph.items && ph.items.length || ph.imgs.length || ph.loading || ph.busy || ph.keyAsk || ph.noteOpen) return; /* photos in hand: they have the screen until read or cleared */
     const f = document.createElement('form'); f.className = 'fsearch';
-    f.innerHTML = `<input type="text" inputmode="${addMode === 'Barcode' ? 'numeric' : 'search'}" enterkeyhint="search" placeholder="${addMode === 'Barcode' ? 'The number under the barcode' : addMode === 'Supplements' ? 'Vitamin D, creatine, a brand' : 'Chicken breast, oats, a brand'}"><button class="primary">${foodBusy ? '...' : 'Go'}</button>`;
-    f.querySelector('input').value = foodQ; f.onsubmit = ev => { ev.preventDefault(); runSearch(f.querySelector('input').value); }; box.appendChild(f);
-    if (inClaude()) note(box, 'The claude.ai copy cannot reach the food databases. Search works in the app; Your own works everywhere.');
-    const list = foodResults || recentFoods(addMode === 'Supplements' ? 'supp' : addMode === 'Search' ? 'food' : null);
+    f.innerHTML = `<input type="text" inputmode="search" enterkeyhint="search" placeholder="Search or barcode"><button class="primary">${foodBusy ? '...' : 'Go'}</button>`;
+    f.querySelector('input').value = foodQ; f.onsubmit = ev => { ev.preventDefault(); runSearch(f.querySelector('input').value); }; f.classList.add('fsearch3'); f.prepend(mealPick()); box.appendChild(f);
+    if (inClaude()) note(box, 'The claude.ai copy cannot reach the food databases. Search works in the app; Make your own works everywhere.');
+    const list = foodResults || recentFoods(foodMeal === 'Supplements' ? 'supp' : null);
     if (!foodResults && list.length) note(box, 'Favorites and recent');
-    for (const it of list.slice(0, FOOD.shown)) {
+    for (const it of list.slice(0, foodResults ? FOOD.shown + FOOD.suppShown : FOOD.shown)) {
       const b = document.createElement('button'); b.className = 'row frow';
       b.innerHTML = `<b>${esc(it.name)}${it.fav ? ' ★' : ''}</b><em>${it.per.kcal != null ? Math.round(it.per.kcal) + ' kcal' : it.kind === 'supp' ? 'supplement' : ''}</em><span>${esc([it.brand, it.serving, it.src].filter(Boolean).join(' · '))}</span>`;
       b.onclick = () => foodSheet(it); box.appendChild(b);
     }
+    const own = document.createElement('button'); own.className = 'row frow fown-row'; own.id = 'f-own'; own.innerHTML = `<b>Make your own</b><em>${foodMeal === 'Supplements' ? 'a supplement' : 'any food'}</em><span>Type in the name and what is on the label</span>`;
+    own.onclick = () => { addView = 'own'; foodAdd(); }; box.appendChild(own);
+  }
+  function mealPick(box, own) { // which meal it goes in: from the time of day, one tap to change
+    const w = document.createElement('select'); w.id = 'f-meal'; w.className = 'fmealpick'; w.setAttribute('aria-label', 'Add to which meal'); w.innerHTML = FOOD.meals.map(m => `<option${m === foodMeal ? ' selected' : ''}>${m}</option>`).join('');
+    w.onchange = e => { const was = foodMeal === 'Supplements'; foodMeal = e.target.value;
+      if (own && was === (foodMeal === 'Supplements')) { const b = el('f-add').querySelector('.fown button'); if (b) b.textContent = `Save and add to ${foodMeal}`; return; } /* keep what was typed; only food vs supplement changes the fields */
+      foodAdd(); }; if (box) box.appendChild(w); return w;
   }
   async function runSearch(q) {
-    q = String(q || '').trim(); if (!q || foodBusy) return; foodQ = q; foodBusy = true; el('f-msg').textContent = 'Searching...'; const mode = addMode;
-    try { foodResults = mode === 'Barcode' ? await lookupBarcode(q) : mode === 'Supplements' ? await searchSupps(q) : await searchFoods(q);
+    q = String(q || '').trim(); if (!q && !foodBusy) { foodResults = null; foodQ = ''; el('f-msg').textContent = ''; foodAdd(); return; } /* an empty search goes back to favorites and recent */ if (!q || foodBusy) return; foodQ = q; foodBusy = true; el('f-msg').textContent = 'Searching...';
+    try { foodResults = await searchAll(q, foodMeal === 'Supplements');
       const off = [...new Set(foodResults.failed || [])];
       const demo = foodResults.usdaBusy && !SAVE.fdcKey ? 'The free USDA demo key is used up for now; add your own free key in Settings.' : '';
       el('f-msg').textContent = !foodResults.length ? (demo || 'Nothing found. Try other words, or make your own.') : demo ? demo + ' Showing the rest.' : off.length && !inClaude() ? `${off.join(' and ')} did not answer${off.includes('Nutritionix') ? ' (check the key in Settings)' : ''}; showing the rest.` : ''; }
-    catch (e) { foodResults = []; const busy = /HTTP (429|403)/.test(String(e)), usda = mode !== 'Supplements';
-      el('f-msg').textContent = busy && usda && !SAVE.fdcKey ? 'The free demo key is used up for now. Add your own free key in Settings.' : busy ? 'The database is busy. Try again in a minute.' : 'Could not reach the food database' + (inClaude() ? ': the claude.ai copy cannot reach outside sites, use the app.' : '. Check your connection.'); }
-    foodBusy = false; if (addMode !== mode) foodResults = null; if (curScreen === 'food' && foodTab === 'Add') foodAdd();
+    catch (e) { foodResults = []; const busy = /HTTP (429|403)/.test(String(e));
+      el('f-msg').textContent = busy && !SAVE.fdcKey ? 'The free demo key is used up for now. Add your own free key in Settings.' : busy ? 'The database is busy. Try again in a minute.' : 'Could not reach the food database' + (inClaude() ? ': the claude.ai copy cannot reach outside sites, use the app.' : '. Check your connection.'); }
+    foodBusy = false; if (curScreen === 'food' && foodTab === 'Add') foodAdd();
   }
   function foodSheet(base) {
     let n = 1, f = base, fav = null; const s = sheet(), tok = s.dataset.tok = String(Math.random()); // the sheet element is reused: a late reply for another food is dropped
@@ -4906,7 +4999,7 @@ if (HAS_DOM) {
     s.appendChild(add); s.appendChild(fav); closeBtn(s); draw();
   }
   /* s43: photos to a checked list to the log */
-  const ph = { imgs: [], note: '', items: null, busy: false, loading: false, gen: 0, msg: '' };
+  const ph = { imgs: [], note: '', items: null, busy: false, loading: false, gen: 0, msg: '', keyAsk: false, noteOpen: false };
   const shrink = file => new Promise((res, rej) => { const url = URL.createObjectURL(file), im = new Image();
     im.onload = () => { const k = Math.min(1, PHOTO.edge / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); const d = c.toDataURL('image/jpeg', PHOTO.quality);
@@ -4915,23 +5008,35 @@ if (HAS_DOM) {
     im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('not an image')); }; im.src = url; });
   const dayLabel = d => { const k = dayKey(d), t = dayKey(new Date()), y = dayKey(new Date(Date.now() - 864e5)); return k === t ? 'Today' : k === y ? 'Yesterday' : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); };
   function photoPanel(box) {
-    if (!SAVE.claudeKey) { note(box, 'Photo logging sends your photos to Claude, which reads the labels and portions and lists what you ate for you to check. It needs your own Anthropic API key (console.anthropic.com, a cent or two a photo). It stays on this phone.');
-      const b = document.createElement('button'); b.className = 'primary'; b.textContent = 'Add my Claude key'; b.onclick = () => UI.fdckey(); box.appendChild(b); return; }
+    if (!SAVE.claudeKey) { /* s45: the key goes in right here, not on another screen */
+      const b = document.createElement('button'); b.className = ph.keyAsk ? '' : 'primary'; b.id = 'ph-add'; b.textContent = ph.keyAsk ? 'Not now' : 'Snap or pick photos'; b.onclick = () => { ph.keyAsk = !ph.keyAsk; ph.msg = ''; foodAdd(); }; box.appendChild(b);
+      if (!ph.keyAsk) return;
+      note(box, 'Claude reads your photos (labels, plates, portions) and lists what you ate for you to check. It needs your own Anthropic API key from console.anthropic.com (a cent or two a photo; a separate key with a low monthly limit is safest). It stays on this phone and is never in a backup.');
+      const f = document.createElement('form'); f.className = 'fsearch'; f.innerHTML = `<input id="ph-key" type="password" autocomplete="off" placeholder="sk-ant-..."><button class="primary" id="ph-key-save">Save</button>`;
+      f.onsubmit = ev => { ev.preventDefault(); const k = f.querySelector('input').value.trim();
+        if (!CLAUDE_KEY.re.test(k)) { ph.msg = CLAUDE_KEY.bad; foodAdd(); return; }
+        SAVE.claudeKey = k; persist(SAVE); ph.keyAsk = false; ph.msg = 'Key saved on this phone. Snap or pick your photos.'; foodAdd(); };
+      box.appendChild(f); if (ph.msg) note(box, ph.msg); return; }
     if (inClaude()) note(box, 'The claude.ai copy cannot send photos out. Use the app for this.');
     if (ph.items && ph.items.length) { photoReview(box); return; } /* the list comes first; Start over brings the photos back */
     const pick = document.createElement('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true; pick.hidden = true; pick.id = 'ph-pick'; box.appendChild(pick);
-    const add = document.createElement('button'); add.className = ph.imgs.length ? '' : 'primary'; add.id = 'ph-add'; add.textContent = ph.imgs.length ? `Change photos (${ph.imgs.length})` : `Take or pick photos (up to ${PHOTO.maxPhotos})`; add.onclick = () => pick.click(); box.appendChild(add);
+    const open = ph.imgs.length || ph.loading || ph.busy || ph.noteOpen; /* s45: until then it is one row above the search */
+    const top = document.createElement('div'); top.className = 'phbtns'; box.appendChild(top);
+    const add = document.createElement('button'); add.className = ph.imgs.length ? '' : 'primary'; add.id = 'ph-add'; add.textContent = ph.imgs.length ? `Change photos (${ph.imgs.length})` : `Snap or pick photos (up to ${PHOTO.maxPhotos})`; add.onclick = () => pick.click(); top.appendChild(add);
+    const side = document.createElement('button'); side.id = open ? 'ph-clear' : 'ph-describe'; side.textContent = open ? 'Back to search' : 'Describe it';
+    side.onclick = () => { if (open) { ph.gen++; ph.imgs = []; ph.note = ''; ph.loading = false; ph.busy = false; ph.noteOpen = false; } /* a read still running is dropped (gen) */ else ph.noteOpen = true; ph.msg = ''; foodAdd(); }; top.appendChild(side);
     pick.onchange = async () => { const all = [...pick.files], files = all.slice(0, PHOTO.maxPhotos), gen = ++ph.gen; ph.imgs = []; ph.items = null; ph.loading = files.length > 0; ph.msg = files.length ? 'Reading photos...' : ''; foodAdd();
       const got = await Promise.all(files.map(f => Promise.all([f.slice(0, 131072).arrayBuffer(), shrink(f)]).then(([buf, sm]) => Object.assign(sm, { when: exifDate(buf) || (f.lastModified ? new Date(f.lastModified) : null) })).catch(() => null))); /* EXIF sits in the first bytes */
       if (gen !== ph.gen) return; /* a newer pick replaced this one */
       ph.imgs = got.filter(Boolean); ph.loading = false; const skipped = files.length - ph.imgs.length;
       ph.msg = [skipped ? `${skipped} could not be opened (only JPEG and PNG photos work).` : '', all.length > PHOTO.maxPhotos ? `Only the first ${PHOTO.maxPhotos} are used.` : ''].filter(Boolean).join(' '); foodAdd(); };
+    if (!open) { if (ph.msg) note(box, ph.msg); return; }
     if (ph.imgs.length) { const row = document.createElement('div'); row.className = 'phrow';
       row.innerHTML = ph.imgs.map((im, i) => `<figure><img src="${im.thumb}" alt="photo ${i + 1}"><figcaption>${i + 1}. ${im.when ? esc(dayLabel(im.when)) + ' ' + im.when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : 'no time'}</figcaption></figure>`).join(''); box.appendChild(row); }
     const go = document.createElement('button'), can = () => !ph.busy && !ph.loading && (ph.imgs.length > 0 || ph.note.trim() !== '');
     const ta = document.createElement('textarea'); ta.id = 'ph-note'; ta.rows = 2; ta.placeholder = 'Anything the photos do not show: "and a banana", "3 slices", "half the bag"'; ta.value = ph.note; ta.oninput = () => { ph.note = ta.value; go.disabled = !can(); }; box.appendChild(ta);
     go.className = 'primary'; go.id = 'ph-read'; go.disabled = !can(); go.textContent = ph.busy ? 'Claude is reading them...' : ph.loading ? 'Reading photos...' : 'Read with Claude';
-    go.onclick = async () => { ph.busy = true; ph.msg = ''; foodAdd(); const r = await readPhotos(ph.imgs, ph.note.trim(), SAVE.claudeKey); ph.busy = false;
+    go.onclick = async () => { ph.busy = true; ph.msg = ''; const gen = ph.gen; foodAdd(); const r = await readPhotos(ph.imgs, ph.note.trim(), SAVE.claudeKey); if (gen !== ph.gen) return; /* cancelled */ ph.busy = false;
       const inRange = w => w && daysBetween(dayKey(w), dayKey(new Date())) >= 0 && daysBetween(dayKey(w), dayKey(new Date())) <= FOOD_BACK; /* only days the Food page can show */
       if (r.error) ph.msg = r.error; else { const base = (ph.imgs[0] && inRange(ph.imgs[0].when) && ph.imgs[0].when) || fday(); ph.items = r.items.map(it => { const pw = it.photo > 0 && ph.imgs[it.photo - 1] && ph.imgs[it.photo - 1].when, w = inRange(pw) ? pw : base; return Object.assign({ on: true, when: w, meal: foodDay || ph.imgs.length ? mealAt(w) : foodMeal }, it); }); if (!ph.items.length) ph.msg = 'Claude did not find any food in these.'; }
       if (curScreen === 'food' && foodTab === 'Add') foodAdd(); };
@@ -4942,7 +5047,7 @@ if (HAS_DOM) {
     {
       const top = document.createElement('div'); top.className = 'phtop';
       const log = document.createElement('button'); log.className = 'primary'; log.id = 'ph-log'; log.textContent = 'Log the checked ones';
-      const again = document.createElement('button'); again.id = 'ph-again'; again.textContent = 'Start over'; again.onclick = () => { ph.items = null; ph.imgs = []; ph.note = ''; ph.msg = ''; foodAdd(); };
+      const again = document.createElement('button'); again.id = 'ph-again'; again.textContent = 'Start over'; again.onclick = () => { ph.items = null; ph.imgs = []; ph.note = ''; ph.msg = ''; ph.noteOpen = false; foodAdd(); };
       top.append(log, again); box.appendChild(top);
       note(box, 'Check each one, fix the servings, then log. Each goes on the day its photo was taken.');
       ph.items.forEach((it, i) => { const r = document.createElement('div'); r.className = 'phitem';
@@ -4955,7 +5060,7 @@ if (HAS_DOM) {
         box.appendChild(r); });
       log.onclick = () => { const done = {}; let n = 0;
         for (const it of ph.items.filter(x => x.on)) { const kept = saveFood(photoFood(it)); if (logFood(kept.id, it.meal, it.servings, new Date(), it.when)) { n++; const d = dayLabel(it.when); done[d] = (done[d] || 0) + 1; } }
-        const want = ph.items.filter(x => x.on).length; ph.imgs = []; ph.items = null; ph.note = ''; foodTab = 'Today'; beep(880, 0.08, 'triangle', 0.05);
+        const want = ph.items.filter(x => x.on).length; ph.imgs = []; ph.items = null; ph.note = ''; ph.noteOpen = false; foodTab = 'Today'; beep(880, 0.08, 'triangle', 0.05);
         UI.food((n ? `Logged ${n} from your photos: ` + Object.entries(done).map(([d, c]) => `${c} on ${d}`).join(', ') + '.' : 'Nothing was checked.') + (want > n ? ` ${want - n} could not be logged.` : '')); };
     }
   }
@@ -4966,7 +5071,7 @@ if (HAS_DOM) {
       + `<div class="fogrid">${fields.map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any"></label>`).join('')}</div><button class="primary">Save and add to ${foodMeal}</button>`;
     f.onsubmit = ev => { ev.preventDefault(); const name = f.querySelector('.fo-name').value.trim(); if (!name) { el('f-msg').textContent = 'Give it a name.'; return; }
       const vals = {}; f.querySelectorAll('[data-k]').forEach(i => { if (+i.value > 0) vals[i.dataset.k] = +i.value; });
-      const kept = saveFood(myFood(name, supp ? 'supp' : 'food', f.querySelector('.fo-serv').value.trim(), vals)); logFood(kept.id, foodMeal, 1, new Date(), foodDay ? fday() : null); foodTab = 'Today'; UI.food(`Saved ${name} and added it to ${foodMeal}.`); };
+      const kept = saveFood(myFood(name, supp ? 'supp' : 'food', f.querySelector('.fo-serv').value.trim(), vals)); logFood(kept.id, foodMeal, 1, new Date(), foodDay ? fday() : null); foodTab = 'Today'; addView = 'main'; UI.food(`Saved ${name} and added it to ${foodMeal}.`); };
     box.appendChild(f);
   }
   function foodNut(key) {
@@ -5009,7 +5114,7 @@ if (HAS_DOM) {
     el('nk-id').value = SAVE.nixId || ''; el('nk-key').value = SAVE.nixKey || ''; el('nk-msg').textContent = nmsg || (hasNix() ? 'Restaurant search is on.' : 'Off. Chick-fil-A is built in either way.');
   };
   el('btn-ck-save').onclick = () => { const k = el('ck-in').value.trim(); if (SAVE.claudeKey && k === SAVE.claudeKey.slice(0, 10) + '...') return; /* unchanged */
-    if (k && !/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(k)) { el('ck-msg').textContent = 'That does not look like an Anthropic API key (it starts with sk-ant-).'; return; }
+    if (k && !CLAUDE_KEY.re.test(k)) { el('ck-msg').textContent = CLAUDE_KEY.bad; return; }
     if (k) SAVE.claudeKey = k; else delete SAVE.claudeKey; persist(SAVE); UI.fdckey(); el('ck-msg').textContent = k ? 'Saved on this phone. Photo logging is on.' : 'Cleared.'; };
   el('btn-nk-save').onclick = () => { const id = el('nk-id').value.trim(), k = el('nk-key').value.trim();
     if ((id || k) && !(/^[A-Za-z0-9]{6,40}$/.test(id) && /^[A-Za-z0-9]{16,64}$/.test(k))) { el('nk-msg').textContent = 'Paste both: the app ID and the app key from your Nutritionix account (letters and digits).'; return; }
@@ -5091,6 +5196,7 @@ if (HAS_DOM) {
   }
   let logDay = 0; // s42: 0 today, -1 yesterday, back to -LOG_BACK
   const lday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate() + logDay, 12); };
+  const ldayLower = () => logDay >= -1 ? ldayName().toLowerCase() : ldayName(); /* "yesterday", but "Sat, Oct 10" keeps its capitals */
   const ldayName = () => logDay === 0 ? 'Today' : logDay === -1 ? 'Yesterday' : lday().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   el('l-prev').onclick = () => { if (logDay > -LOG_BACK) { logDay--; UI.log(); } }; el('l-next').onclick = () => { if (logDay < 0) { logDay++; UI.log(); } };
   UI.log = (msg) => {
@@ -5101,7 +5207,7 @@ if (HAS_DOM) {
     const box = el('log-list'); box.innerHTML = '';
     for (const w of WORKOUTS) {
       const d = document.createElement('button'); d.className = 'row';
-      d.innerHTML = `<b>${w.name}</b><em>+${Math.round(w.gold * streakMult(SAVE.streak))} gold${logDay ? ', ' + ldayName().toLowerCase() : ''}</em>`;
+      d.innerHTML = `<b>${w.name}</b><em>pays by effort${logDay ? ', ' + ldayLower() : ''}</em>`; /* s45 */
       d.onclick = () => UI.logForm(w.id);
       box.appendChild(d);
     }
@@ -5111,7 +5217,7 @@ if (HAS_DOM) {
 
   UI.logForm = id => {
     UI.go('logform');
-    el('lf-title').textContent = wName(id) + (logDay ? ', ' + ldayName().toLowerCase() : ''); /* which day it goes on, said plainly */
+    el('lf-title').textContent = wName(id) + (logDay ? ', ' + ldayLower() : ''); /* which day it goes on, said plainly */
     const box = el('lf-fields'); box.innerHTML = '';
     const field = (f, val) => `<label>${f.label}<input data-k="${f.k}" ${f.text ? 'type="text"' : `type="number" inputmode="decimal" min="0" step="${f.step || '1'}"`} placeholder="${f.ph || ''}" value="${val ?? ''}"></label>`;
     if (id === 'gym') {
@@ -5134,17 +5240,25 @@ if (HAS_DOM) {
       addRow(); el('lf-add').onclick = addRow;
     } else box.innerHTML = FORMS[id].map(f => field(f)).join('');
     el('lf-note').textContent = id === 'gym' ? 'Strength bands use built-in bodyweight-ratio standards (StrengthLevel has no public API), so treat them as an estimate. Reaching a new band pays +100 gold.' : 'Details are optional but feed your history charts.';
-    el('btn-lf-save').onclick = () => {
+    const readDetail = () => { // the form as a log's detail (also feeds the live gold estimate)
       const num = (root, k) => { const e = root.querySelector(`[data-k="${k}"]`); const v = e ? parseFloat(e.value) : NaN; return isFinite(v) ? v : null; };
-      let detail = {};
+      const detail = {};
       if (id === 'gym') {
         const bw = num(box, 'bw'); if (bw) detail.bw = bw;
         detail.lifts = [...box.querySelectorAll('.liftrow')].map(r => ({ lift: r.querySelector('[data-k="lift"]').value, w: num(r, 'w'), reps: num(r, 'reps') || 1, sets: num(r, 'sets') || 1 })).filter(x => x.w);
       } else if (id === 'bw') {
         detail.moves = [...box.querySelectorAll('.liftrow')].map(r => ({ ex: r.querySelector('[data-k="ex"]').value, reps: num(r, 'reps'), sets: num(r, 'sets') || 1 })).filter(x => x.reps > 0);
-        if (!detail.moves.length) { el('lf-note').textContent = 'Put in the reps (or seconds for a plank) first.'; return; }
       } else for (const f of FORMS[id]) { const e = box.querySelector(`[data-k="${f.k}"]`); const v = f.text ? e.value.trim() : num(box, f.k); if (v !== null && v !== '') detail[f.k] = v; }
-      const r = logWorkout(id, new Date(), Object.keys(detail).length ? detail : null, logDay ? lday() : null);
+      return Object.keys(detail).length ? detail : null;
+    };
+    const estimate = () => { /* s45: the streak as the log will see it (today's first log steps it first) */
+      const st = { streak: SAVE.streak, freezes: SAVE.freezes, lastLog: SAVE.lastLog }; if (!logDay) stepDay(st, dayKey(new Date())); const m = streakMult(st.streak);
+      el('lf-gold').textContent = `About ${Math.round(effortGold(id, readDetail()) * m)} gold for this (pays by effort${st.streak ? `, streak x${m.toFixed(2)}` : ''}).`; };
+    box.oninput = box.onchange = estimate; estimate();
+    el('btn-lf-save').onclick = () => {
+      const detail = readDetail();
+      if (id === 'bw' && !(detail && detail.moves && detail.moves.length)) { el('lf-note').textContent = 'Put in the reps (or seconds for a plank) first.'; return; }
+      const r = logWorkout(id, new Date(), detail, logDay ? lday() : null);
       if (!r) { el('lf-note').textContent = `Workouts can be filled in up to ${LOG_BACK} days back.`; return; }
       beep(880, 0.12, 'triangle', 0.06); buzz(30);
       UI.log([`Logged${r.back ? ' for ' + r.back : ''}. +${r.gold} gold at x${r.mult.toFixed(2)}. ${esc(r.note)}`, ...r.lines.map(esc), r.bonus ? `<b>New strength band: +${r.bonus} gold.</b>` : ''].filter(Boolean).join('<br>'));
@@ -5726,7 +5840,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
