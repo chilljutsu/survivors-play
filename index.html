@@ -72,7 +72,7 @@
   #hud-dock { position:absolute; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(16px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:6px; pointer-events:none; }
   .hud-grid { display:flex; flex-direction:row-reverse; flex-wrap:wrap-reverse; gap:6px; }
   .hud-grid button { pointer-events:auto; flex:0 0 calc((100% - 18px) / 4); width:auto; min-width:0; height:40px; padding:0 2px; font-size:min(12px, 3.1vw); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:rgba(15,20,32,0.72); border-color:var(--line); }
-  #hud-units { display:none; } #hud-units.on { display:contents; } /* unit buttons join the same grid, so 12 buttons make 3 full rows */
+  #hud-units { display:none; } #hud-units.on { display:contents; } /* unit buttons join the same grid, 4 a row (with every bot learned it takes 4 rows, late game only) */
   #h-motes { font-size:12px; color:var(--cyan); text-align:right; } /* s40: a quick tap on it (seen by the canvas, so a thumb starting here still steers) opens the Drones page */
   #h-motes::before { content:"Drones: "; color:var(--dim); }
   #h-motes::after { content:" \203A"; color:var(--dim); font-size:14px; } #h-motes.tut::after { content:none; }
@@ -249,7 +249,7 @@
   <div id="toasts"></div>
   <div id="hud-dock">
     <div id="h-motes"></div>
-    <div class="hud-grid" id="hud-core"><button id="btn-pause">Pause</button><button id="btn-recall">Recall</button><button id="btn-shell">Shell 4</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-extractor">Extractor 20</button><button id="btn-mast">Mast 35</button><button id="btn-outpost">Outpost 40</button><div class="units" id="hud-units"><button id="btn-tow">Ammo tow 15</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-haul">Hauler 15</button></div></div>
+    <div class="hud-grid" id="hud-core"><button id="btn-pause">Pause</button><button id="btn-recall">Recall</button><button id="btn-shell">Shell 4</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-extractor">Extractor 20</button><button id="btn-mast">Mast 35</button><button id="btn-outpost">Outpost 40</button><div class="units" id="hud-units"><button id="btn-tow">Ammo tow 15</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-guard">Guard 30</button><button id="btn-raider">Raider 20</button><button id="btn-haul">Hauler 15</button></div></div>
   </div>
 </div>
 
@@ -1337,7 +1337,7 @@ const DRONE_TIERS = [
 ];
 LATTICE.push({ id: 'autoshell', name: 'Auto artillery', base: 350, max: 3, per: 1, fmt: v => `A perched Drone calls a shell by itself every ${AUTO_SHELL.every[v]} s` });
 LATTICE.push({ id: 'fortify', name: 'Fortify', base: 250, max: 3, per: 1, fmt: v => `Base turret +${v * FORTIFY.gun * 100}% damage and range, base +${Math.round(v * FORTIFY.hp * 100)}% HP` });
-for (const [id, base] of [['gun', 300], ['tow', 200], ['scav', 200], ['fix', 250], ['turret', 250], ['jammer', 200], ['eng', 400], ['ext', 150], ['haul', 150], ['factory', 400], ['mount', 600]]) LATTICE.push({ id, name: { gun: 'Drone gun', tow: 'Ammo tow', mount: 'Gun mount', scav: 'Scavenger', fix: 'Repair bot', turret: 'Turret', jammer: 'Jammer', eng: 'Engineer', ext: 'Extractor', haul: 'Hauler', factory: 'Factory' }[id], base, max: 1, per: 1, fmt: v => (v ? (id === 'factory' ? 'Unlocked: set its orders from the pause screen' : 'Unlocked: learn it in a run') : 'Locked'), unlock: true });
+for (const [id, base] of [['gun', 300], ['tow', 200], ['scav', 200], ['fix', 250], ['turret', 250], ['jammer', 200], ['eng', 400], ['ext', 150], ['haul', 150], ['factory', 400], ['mount', 600], ['guard', 350], ['raider', 400]]) LATTICE.push({ id, name: { gun: 'Drone gun', tow: 'Ammo tow', mount: 'Gun mount', scav: 'Scavenger', fix: 'Repair bot', turret: 'Turret', jammer: 'Jammer', eng: 'Engineer', guard: 'Guard', raider: 'Raider', ext: 'Extractor', haul: 'Hauler', factory: 'Factory' }[id], base, max: 1, per: 1, fmt: v => (v ? (id === 'factory' ? 'Unlocked: set its orders from the pause screen' : 'Unlocked: learn it in a run') : 'Locked'), unlock: true });
 LATTICE.push({ id: 'tier', name: 'Drone autonomy', base: 300, max: 3, per: 1, fmt: v => `Tier ${v}: ${DRONE_TIERS[v].name}` });
 // Drone intel (Lance 10-07: "after gps the branch opens up... adjust what my drones target... call an artillery strike
 // on certain targets autonomously"). Targets are chosen on the Drones page (Targets tab) and used by Auto artillery,
@@ -1364,6 +1364,8 @@ const LATTICE_INFO = {
   turret:    ['Base', 'Unlocks the Turret in the skill tree (Base). Levels add damage, reach and HP.'],
   jammer:    ['Base', 'Unlocks the Jammer in the skill tree (Base). Levels widen its ring.'],
   eng:       ['Bots', 'Unlocks the Engineer in the skill tree (Bots): a ground bot that walls the base in with barricades.'],
+  guard:     ['Bots', 'Unlocks the Guard in the skill tree (Bots): an armored ground bot at your side that shoots and stops shots.'],
+  raider:    ['Bots', 'Unlocks the Raider in the skill tree (Bots): a fast, fragile ground bot that attacks the core of a hive you have found.'],
   ext:       ['Base', 'Every run starts with one Extractor on the nearest deposit. This unlocks more of them in the skill tree (Base): build on a deposit for 20 parts; levels mine faster and hold more.'],
   factory:   ['Base', 'The base builds for you: set standing orders under Pause, then Factory, such as haulers running, turrets at the base and at each extractor, a repair threshold and a parts reserve. It follows them every run.'],
   haul:      ['Bots', 'Every run starts with one Hauler. This unlocks more in the skill tree (Bots): 15 parts each; levels carry more and drive faster.'],
@@ -1384,7 +1386,7 @@ const LAT_TIER = { gain: ['You', 3], magnet: ['You', 3], salvage: ['You', 3], re
 const LAT_TABS = ['Drones', 'Bots', 'Base', 'You'];
 const LAT_POS = {
   Drones: { gun: [0.2, 0.3], battery: [0.5, 0.3], tier: [0.8, 0.3], motes: [0.3, 0.72], autoshell: [0.7, 0.72] },
-  Bots:   { tow: [0.2, 0.3], haul: [0.5, 0.3], scav: [0.8, 0.3], fix: [0.2, 0.72], eng: [0.5, 0.72], mount: [0.8, 0.72] },
+  Bots:   { tow: [0.2, 0.22], haul: [0.5, 0.22], scav: [0.8, 0.22], fix: [0.2, 0.55], eng: [0.5, 0.55], mount: [0.8, 0.55], guard: [0.35, 0.86], raider: [0.65, 0.86] },
   Base:   { turret: [0.2, 0.3], jammer: [0.5, 0.3], ext: [0.8, 0.3], fortify: [0.35, 0.72], factory: [0.65, 0.72] },
   You:    { signal: [0.2, 0.2], capacitor: [0.5, 0.2], clock: [0.8, 0.2], gain: [0.2, 0.55], magnet: [0.5, 0.55], pslot: [0.8, 0.55], salvage: [0.35, 0.87], rerolls: [0.65, 0.87] },
 };
@@ -1397,7 +1399,7 @@ const latClusterLevels = (branch, minusId) => latRowLevels(new Proxy({}, { get: 
 /* s33 (Lance 10-08: "I shouldn't have everything unlocked like this by world 3, but it should just barely be possible by
    world 10 to have a system that can basically bootstrap and build itself"): Workshop items open world by world. A number
    is the world its first level opens in; an array gives each level's world. Anything not listed is open from World 1. */
-const LAT_WORLD = { gun: 2, tow: 2, mount: 6, battery: 2, motes: 3, fix: 3, ext: 3, haul: 4, scav: 4, fortify: 4, jammer: 5, tier: [5, 6, 8], eng: 6, factory: 7, autoshell: 8, pslot: [9, 10] };
+const LAT_WORLD = { gun: 2, tow: 2, mount: 6, battery: 2, motes: 3, fix: 3, ext: 3, haul: 4, scav: 4, fortify: 4, jammer: 5, tier: [5, 6, 8], eng: 6, factory: 7, autoshell: 8, pslot: [9, 10], guard: 5, raider: 7 };
 const CHAIN_WORLD = 3; // the free Extractor and Hauler at run start
 const worldOf = cleared => Math.min(10, 1 + Math.floor((cleared || 0) / 5));
 const worldReached = () => (SAVE.playtest ? 10 : worldOf(SAVE.cleared)); // zones cleared (Hard clears count too; playtest wins past your progress do not)
@@ -1462,7 +1464,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-16 s50';
+const BUILD_ID = 'playtest 2026-10-16 s51';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1502,6 +1504,7 @@ const WHATS_NEW = [
   { s: 48, items: ['Endurance has no edge: walk as far as you like and new ground appears in the terrain of the world you are in. Places stay the same when you come back.', 'Build a town as you go: up to 12 constructions in Endurance, and Outposts (40 parts), small bases where you reload, heal and perch a Drone. What you built waits for you while you are away, and so does the map you saw.', 'Hives keep growing in around you (at least four alive), rival hives fight where their units meet, and each world takes 4 hives instead of 2, so the journey is longer.', 'Your base sits on the edge of the minimap when it is far off. Nothing attacks it while you are away.'] },
   { s: 49, items: ['Endurance saves itself: whenever you pause or leave the app, the journey is kept. Save and leave (on the pause screen) takes you to the menu, and the Endurance row then says Resume. End the journey ends it for good.'] },
   { s: 50, items: ['Perches on building corners, trees in the Forest and four on the base are on your phone now (s47), with endless Endurance (s48) and Endurance saves (s49).', 'Enemy shots do half damage to Drones in the air (6, was 12). Flying enemies still knock them down until Onboard compute.', 'Perches are easier to see: a ring with a light on top. Tapping scenery (the pylons and poles) says so.', 'More perches in most worlds: 34 a map (was 26), 36 in the Forest. The desert stays sparse.'] },
+  { s: 51, items: ['Two new ground bots from Robo-Sport, in the Workshop under Bots: the Guard (World 5, 30 parts), armored, at your side toward the nearest enemy, shooting and stopping shots, never knocked out by a shot; and the Raider (World 7, 20 parts), fast and fragile, which runs at the core of a hive you have found.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -3072,6 +3075,8 @@ const TIPS = {
   chain_raid: { group: 'Units', title: 'Raid on your extractor', body: 'Enemies are wearing down an Extractor. If it falls, its deposit is free again and you will need 20 parts to rebuild. Turrets or an Engineer near your extractors keep the chain running.' },
   factory:   { group: 'Units', title: 'The Factory', body: 'Your base is following its standing orders: it builds haulers and turrets from incoming parts, above the reserve you set. Change the orders any time: Pause, then Factory.' },
   u_haul:    { group: 'Units', title: 'Hauler', body: 'A ground bot that drives extractor stock home (the amber fill is its load). It spills its load if it is destroyed. Every run starts with one.' },
+  u_guard:   { group: 'Units', title: 'Guard', body: 'An armored ground bot at your side. It turns toward the nearest enemy, shoots what it sees and stands in the way of shots. A shot never knocks it out; enough contact stops it until you walk over it.' },
+  u_raider:  { group: 'Units', title: 'Raider', body: 'Fast and fragile: it runs at the core of a hive you have found and cuts at it. Find a hive first (see it with you or a Drone); until then it waits at your side.' },
   u_eng:     { group: 'Units', title: 'Engineer', body: 'A slow, armored ground bot. It walls your base in with six barricades for 6 parts each, leaving gaps you can walk through, rebuilds any that fall and repairs barricades, turrets and jammers. Bullets do half damage to it. One at a time.' },
   barricade: { group: 'Units', title: 'Barricades', body: 'Low walls with HP. They stop enemies and enemy shots, but you see and shoot over them, so raiders funnel through the gaps where your turrets can hit them. Enemies leaning on them and enemy bullets wear them down; the Engineer rebuilds them.' },
   eng_down:  { group: 'Units', title: 'Engineer stopped', body: 'At 0 HP the Engineer does not break, it stops. Walk over it and it gets back up at half HP.' },
@@ -3266,7 +3271,7 @@ function endlessShift(run, dx, dy) { // the window slides (dx, dy); what is in i
   run.anchors = run.anchors.filter(a => { if (keep(a)) return true; if (a.mote) { a.mote.anchor = null; a.mote = null; } if (a.base || a.kind === 'mast') stash('anchor', a, a.x, a.y); return false; });
   run.builds = run.builds.filter(c => { c.vis = null; if (keep(c)) return true; stash('build', c, c.x, c.y); return false; });
   run.deposits = run.deposits.filter(d => { if (keep(d)) return true; stash('dep', d, d.x, d.y); return false; });
-  run.units = run.units.filter(u => { u.wp = null; u.wpGoal = -1; u.tgt = null; /* it picks a new job from what is still here */ if (keep(u)) return true; if (u.kind === 'haul' || u.kind === 'eng') { stash('unit', u, u.x, u.y); return false; } u.x = p.x; u.y = p.y + 30; return true; }); /* bots at your side catch up */
+  run.units = run.units.filter(u => { u.wp = null; u.wpGoal = -1; u.tgt = null; /* it picks a new job from what is still here */ if (keep(u)) return true; if (u.kind === 'haul' || u.kind === 'eng' || u.down) { stash('unit', u, u.x, u.y); return false; } /* a stopped Guard waits where it stopped */ u.x = p.x; u.y = p.y + 30; return true; }); /* bots at your side catch up */
   let lost = 0; for (const m of run.motes) if (!keep(m) || (m.state === 'perched' && !m.anchor) || (m.anchor && !m.anchor.me && !run.anchors.includes(m.anchor))) { /* a Drone left far behind flies back to you */
     if (m.anchor) { m.anchor.mote = null; m.anchor = null; } if (m.state === 'dimmed') { m.hp = 60; m.bat = Math.max(m.bat, m.maxBat * 0.5); lost++; }
     m.state = 'returning'; m.jammed = false; m.auto = false; m.x = clamp(m.x, 20, WORLD - 20); m.y = clamp(m.y, 20, WORLD - 20); }
@@ -4103,6 +4108,13 @@ const TREE_LINKS = { 'a:homing': [['a:lead', 1]], 'd:dwall': [['d:dshield', 2]] 
 const BASE_SIGHT = 380; // s41: the base sees as far as its turret reaches (Fortify widens both), and the turret shoots only what is seen
 const baseSight = run => BASE_SIGHT * (1 + FORTIFY.gun * lat('fortify'));
 const AMMO_BASE = 240, TOW = { gap: 34, armor: 0.5 }; // each ammo tow adds AMMO_BASE to your ammo cap
+/* s51: Robo-Sport's ground bots (docs/ROBO_SPORT_rundown.md). The Guard is its Soldier and the armored bot Lance kept for
+   ground bots (10-08: "a block never knocking it down is too unrealistic. save that for ground bots only"): at your side
+   toward the nearest enemy, it shoots what it sees and stops shots; a blocked shot never takes it below 1 HP. Contact
+   can stop it (it waits until you walk over it, like the Engineer). The Raider is its Ninja: fast and fragile, it runs
+   at the core of a hive you have found and cuts at it. */
+const GUARD = { gap: 46, armor: 0.4, range: 240, every: 0.45, dmg: 9, spd: 460, life: 0.6, wakeR: 26, wakeHp: 0.5, regen: 8, calm: 3 }; // regen HP a second after `calm` s untouched
+const RAIDER = { dps: 22, reach: 6 };
 const DRONE_GUN = { range: 260, dmg: 7, spd: 480, life: 0.7 };
 const MOUNT = { range: 200, every: 0.8, dmg: 4, spd: 420, life: 0.6, kinds: [[], ['haul', 'tow'], ['haul', 'tow', 'scav', 'fix'], ['haul', 'tow', 'scav', 'fix', 'eng']] };
 const UNITS = {
@@ -4111,6 +4123,8 @@ const UNITS = {
   fix:  { name: 'Repair bot', cost: 15, hp: 50, spd: 170, r: 8, reviveT: 1.5, healBuild: 40, healBase: 25, near: 26 },
   haul: { name: 'Hauler', cost: 15, hp: 120, spd: 120, r: 10, ground: true },
   eng:  { name: 'Engineer', cost: 30, hp: 140, spd: 110, r: 10, ground: true },
+  guard: { name: 'Guard', cost: 30, hp: 260, spd: 175, r: 11, ground: true },
+  raider: { name: 'Raider', cost: 20, hp: 45, spd: 270, r: 7, ground: true },
 };
 /* The Engineer (s17, the first ground bot; Lance 10-08: "Is there no way to build defenses? maybe that's what the first
    ground bot could be in charge of doing"). It walls the base in with six barricades (gaps at the corners and the middle
@@ -4142,6 +4156,10 @@ const BOTS = { /* s38 (Lance 10-11): one tab per platform. Drones: your own Dron
             desc: l => ['Up to 2 extractors (20 parts each, built on a deposit).', 'Up to 3 extractors; they mine 40% faster and hold 45.', 'Up to 5 extractors; they mine 80% faster and hold 60.'][l] },
   haul:   { sky: 'Bots',   name: 'Hauler',     max: 3, count: [1, 2, 3, 4], load: [10, 10, 15, 20], spd: [1, 1, 1.15, 1.3],
             desc: l => ['Up to 2 haulers (15 parts each).', 'Up to 3 haulers carrying 15 each, a little faster.', 'Up to 4 haulers carrying 20 each, faster.'][l] },
+  guard:  { sky: 'Bots',   name: 'Guard',      max: 3, count: [0, 1, 1, 2], dmg: [0, 1, 1.4, 1.8],
+            desc: l => ['Lets you build a Guard (30 parts): an armored ground bot at your side that shoots and stops shots.', 'Guard guns hit 40% harder.', 'A second Guard, and they hit 80% harder.'][l] },
+  raider: { sky: 'Bots',   name: 'Raider',     max: 3, count: [0, 1, 2, 3], dmg: [0, 1, 1.5, 2],
+            desc: l => ['Lets you build a Raider (20 parts): fast and fragile, it attacks the core of a hive you have found.', 'Up to 2 Raiders; they cut 50% harder.', 'Up to 3 Raiders; they cut twice as hard.'][l] },
   eng:    { sky: 'Bots',   name: 'Engineer',   max: 3, barHp: [0, 300, 400, 520], buildT: [0, 2, 1.5, 1.1], heal: [0, 30, 40, 55],
             desc: l => ['Lets you build an Engineer (30 parts): it walls the base in.', 'Barricades 400 HP; it builds and repairs faster.', 'Barricades 520 HP; it builds and repairs fastest.'][l] },
 };
@@ -4197,7 +4215,7 @@ const SWIPE = { minPx: 50, ratio: 1.5, maxMs: 700 }; // a quick horizontal drag 
 const TREE_TIERS = {
   Weapons: [{ keys: ['w:pulse', 'w:orbit', 'w:lance', 'a:lead'], need: 0 }, { keys: ['w:nova', 'w:field', 'a:homing'], need: 3 }, { keys: ['e:orbit', 'e:nova', 'e:pulse', 'e:field', 'e:lance'], need: 0, evo: true }],
   Drones: [{ keys: ['b:gun', 'd:dmag', 'd:demp'], need: 0 }, { keys: ['d:drone', 'd:dshield', 'd:dstrike'], need: 3 }, { keys: ['d:dwall'], need: 3 }],
-  Bots: [{ keys: ['b:tow', 'b:scav', 'b:fix', 'b:haul'], need: 0 }, { keys: ['b:eng', 'b:mount'], need: 3 }],
+  Bots: [{ keys: ['b:tow', 'b:scav', 'b:fix', 'b:haul'], need: 0 }, { keys: ['b:eng', 'b:guard', 'b:mount'], need: 3 }, { keys: ['b:raider'], need: 3 }],
   Base: [{ keys: ['b:turret', 'b:jammer', 'b:ext'], need: 0 }],
   You: [{ keys: ['p:signal', 'p:capacitor', 'p:clock'], need: 0 }, { keys: ['p:gain', 'p:aperture', 'p:magnet'], need: 3 }], /* s38: every tier opens after 3 points in the tier below */
 };
@@ -4207,7 +4225,7 @@ const TREE_SKY = {
   Weapons: { 'w:orbit': [0.08, 0.9], 'w:pulse': [0.32, 0.9], 'a:lead': [0.56, 0.9], 'w:lance': [0.82, 0.9], 'w:nova': [0.2, 0.58], 'a:homing': [0.56, 0.58], 'w:field': [0.75, 0.58],
     'e:orbit': [0.1, 0.22], 'e:nova': [0.3, 0.22], 'e:pulse': [0.5, 0.22], 'e:field': [0.7, 0.22], 'e:lance': [0.9, 0.22] },
   Drones: { 'b:gun': [0.2, 0.85], 'd:dmag': [0.5, 0.85], 'd:demp': [0.8, 0.85], 'd:drone': [0.2, 0.52], 'd:dstrike': [0.5, 0.52], 'd:dshield': [0.8, 0.52], 'd:dwall': [0.8, 0.18] },
-  Bots: { 'b:tow': [0.12, 0.8], 'b:haul': [0.37, 0.8], 'b:scav': [0.62, 0.8], 'b:fix': [0.88, 0.8], 'b:eng': [0.3, 0.38], 'b:mount': [0.7, 0.38] },
+  Bots: { 'b:tow': [0.12, 0.8], 'b:haul': [0.37, 0.8], 'b:scav': [0.62, 0.8], 'b:fix': [0.88, 0.8], 'b:eng': [0.18, 0.48], 'b:guard': [0.5, 0.48], 'b:mount': [0.82, 0.48], 'b:raider': [0.5, 0.16] },
   Base: { 'b:turret': [0.2, 0.6], 'b:jammer': [0.5, 0.6], 'b:ext': [0.8, 0.6] },
   You: { 'p:signal': [0.2, 0.85], 'p:capacitor': [0.5, 0.85], 'p:clock': [0.8, 0.85], 'p:gain': [0.2, 0.45], 'p:aperture': [0.5, 0.45], 'p:magnet': [0.8, 0.45] },
 };
@@ -4240,6 +4258,8 @@ const SKILL_INFO = {
   'b:turret': 'Turrets shoot anything within reach that they have a clear line to, no Drone needed. Build with 30 parts where you stand; levels add damage, reach and HP, standing turrets included.',
   'b:jammer': 'Jammers blind every enemy in their ring: they wander and cannot dash or shoot. Build with 25 parts; levels widen the ring and add HP.',
   'b:eng': 'The Engineer is a slow armored ground bot that walls the base in with six low barricades (6 parts each) and repairs them and your builds. Build with 30 parts; levels make barricades tougher and the work faster.',
+  'b:guard': 'The Guard is an armored ground bot that stays at your side, toward the nearest enemy. It shoots what it sees and stops enemy shots; a shot it blocks never knocks it out. Enough contact stops it until you walk over it. Build with 30 parts; levels hit harder and add a second Guard.',
+  'b:raider': 'Raiders are fast, fragile ground bots that run at the core of a hive you have found and cut at it, guards and all. With no hive found they wait at your side. Build with 20 parts; levels add Raiders and cut harder.',
   'b:ext': 'Extractors mine parts from deposits (glowing ore) into their own stock; haulers bring it home. Every run starts with one. Learn it to build more, 20 parts each, standing on a free deposit; levels mine faster and hold more.',
   'b:haul': 'Haulers drive extractor stock home along the paths enemies use, so guard the route. Every run starts with one; learn it for more (15 parts each), bigger loads and speed.',
   'd:dwall': 'Your shielding Drone blocks bullets from 120px instead of 80px, and it only takes bullets heading your way, and each block costs half the health. Enough hits still knock it down (walk over it to recover).',
@@ -4548,12 +4568,17 @@ function autoArtillery(run, dt) {
 const ammoCap = run => { run.maxAmmo = AMMO_BASE * (1 + run.units.filter(u => u.kind === 'tow').length); }; // s38: each ammo tow carries another load
 function mountGun(run, u, dt) { // s38 Gun mount: a small gun on bots, by level (MOUNT.kinds)
   const l = botLvl(run, 'mount'); if (!l || u.down || !MOUNT.kinds[l].includes(u.kind)) return;
-  if ((u.mcd = (u.mcd || 0) - dt) > 0) return;
-  let t = null, bd = MOUNT.range * MOUNT.range;
+  unitShoot(run, u, dt, 'mcd', MOUNT, MOUNT.dmg * (l >= 3 ? 1.5 : 1), 2.5);
+}
+// a bot's gun (s51: shared by the Gun mount and the Guard): the nearest enemy it has a clear line to and that you or a
+// Drone can see (a hive core once found), led like your own shots; G: { range, every, spd, life }
+function unitShoot(run, u, dt, key, G, dmg, r) {
+  if ((u[key] = (u[key] || 0) - dt) > 0) return;
+  let t = null, bd = G.range * G.range;
   for (const e of run.enemies) { if (e.isCore && !(e.hive && e.hive.found)) continue; const d = dist2(e.x, e.y, u.x, u.y); if (d < bd && losClear(run, u.x, u.y, e.x, e.y) && visibleTo(run, e.x, e.y)) { bd = d; t = e; } }
-  if (!t) { u.mcd = 0.25; return; }
-  u.mcd = MOUNT.every; const an = aimAt(run, u.x, u.y, t, MOUNT.spd, MOUNT.life);
-  run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * MOUNT.spd, vy: Math.sin(an) * MOUNT.spd, r: 2.5, dmg: MOUNT.dmg * (l >= 3 ? 1.5 : 1) * run.p.dmgMult, pierce: 0, t: MOUNT.life, hit: new Set(), turret: true });
+  if (!t) { u[key] = 0.25; return; }
+  u[key] = G.every; const an = aimAt(run, u.x, u.y, t, G.spd, G.life);
+  run.bullets.push({ x: u.x, y: u.y, vx: Math.cos(an) * G.spd, vy: Math.sin(an) * G.spd, r, dmg: dmg * run.p.dmgMult, pierce: 0, t: G.life, hit: new Set(), turret: true });
 }
 function droneGun(run, m, dt) { // s38 Drone gun (was the gun drone): your own Drones shoot what they see
   const l = botLvl(run, 'gun'); if (!l || run.tut || m.jammed || m.state === 'dimmed' || m.state === 'diving') return;
@@ -4597,6 +4622,7 @@ function updateUnits(run, dt) {
   const p = run.p, b = run.base;
   ammoCap(run); /* s39: the cap always matches the tows you have */
   if (run.units.some(u => u.kind === 'tow') && (run.towT = (run.towT || 0) - dt) <= 0) { run.towT = 0.25; let g = null, gd = 420 * 420; for (const e of run.enemies) if (e.type === 'harmonic') { const d = dist2(e.x, e.y, p.x, p.y); if (d < gd && visibleTo(run, e.x, e.y)) { gd = d; g = e; } } run.towG = g; } /* the Gunner tows stand in front of */
+  const byKind = { guard: run.units.filter(q => q.kind === 'guard' && !q.down), raider: run.units.filter(q => q.kind === 'raider') }; /* s51: worked out once a frame */
   for (let i = run.units.length - 1; i >= 0; i--) {
     const u = run.units[i], U = UNITS[u.kind];
     mountGun(run, u, dt);
@@ -4645,6 +4671,21 @@ function updateUnits(run, dt) {
         if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + bot(run, 'eng', 'heal') * dt);
         u.job = kind;
       }
+    } else if (u.kind === 'guard') { // s51 Guard: at your side toward the nearest enemy you can see, shooting
+      if (u.down) { tx = u.x; ty = u.y; u.foe = null; if (dist2(u.x, u.y, p.x, p.y) < GUARD.wakeR * GUARD.wakeR) { u.down = false; u.hp = U.hp * GUARD.wakeHp; toast(run, 'Guard back up'); SFX.mote(); } }
+      else {
+        if ((u.look = (u.look || 0) - dt) <= 0) { u.look = 0.25; let t = null, bd = 420 * 420; for (const e of run.enemies) { if (e.isCore) continue; const d = dist2(e.x, e.y, p.x, p.y); if (d < bd && visibleTo(run, e.x, e.y)) { bd = d; t = e; } } u.foe = t; }
+        const gs = byKind.guard, k = gs.indexOf(u), off = (k - (gs.length - 1) / 2) * 0.7, f = u.foe && u.foe.hp > 0 ? u.foe : null; /* the Guards still up share the line to the foe */
+        const a = (f ? Math.atan2(f.y - p.y, f.x - p.x) : p.ang - Math.PI / 2) + off; tx = p.x + Math.cos(a) * GUARD.gap; ty = p.y + Math.sin(a) * GUARD.gap;
+        unitShoot(run, u, dt, 'gcd', GUARD, GUARD.dmg * bot(run, 'guard', 'dmg'), 3);
+        if ((u.hurtT = (u.hurtT || 0) - dt) <= 0 && u.hp < U.hp) u.hp = Math.min(U.hp, u.hp + GUARD.regen * dt); /* armor plates: it mends when nothing has touched it for a while */
+      }
+    } else if (u.kind === 'raider') { // s51 Raider: at the core of the nearest hive you have found
+      let core = u.tgt && u.tgt.isCore && u.tgt.hp > 0 && !u.tgt.hive.dead ? u.tgt : null; /* a core that died has hp 0; one left behind by a slide was cleared there */
+      if (!core && (u.look = (u.look || 0) - dt) <= 0) { u.look = 0.5; let bd = 1e12; for (const h of run.hives) if (!h.dead && h.found && h.core && run.enemies.includes(h.core)) { const d = dist2(h.x, h.y, u.x, u.y); if (d < bd) { bd = d; core = h.core; } } }
+      u.tgt = core;
+      if (core) { tx = core.x; ty = core.y; if (dist2(u.x, u.y, core.x, core.y) < (core.r + u.r + RAIDER.reach) ** 2) { damageEnemy(run, core, RAIDER.dps * bot(run, 'raider', 'dmg') * run.p.dmgMult * dt, 0, 0, false); /* a bot, not your own weapon: no Light shaft boost */ u.cutting = true; } else u.cutting = false; }
+      else { const rs = byKind.raider, k = rs.indexOf(u), a = p.ang + Math.PI + (k - (rs.length - 1) / 2) * 0.6; tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 40; u.cutting = false; }
     } else { // scavenger: flee what it sees, otherwise fetch and carry home
       let threat = false; for (const e of run.enemies) if (!e.isCore && dist2(e.x, e.y, u.x, u.y) < U.flee * U.flee) { threat = true; break; }
       if (!threat && !u.carry) {
@@ -4672,9 +4713,10 @@ function updateUnits(run, dt) {
     }
     // enemies wear units down on contact, enemy bullets hit them
     if (u.down) continue; // a stopped Engineer: nothing more to lose
-    const arm = u.kind === 'eng' ? ENG.armor : u.kind === 'tow' ? TOW.armor : 1; // armored ground bots
-    for (const e of run.enemies) if (!e.isCore && dist2(e.x, e.y, u.x, u.y) < (e.r + u.r) * (e.r + u.r)) u.hp -= 25 * arm * dt;
-    for (const q of run.ebullets) if (q.t > 0 && dist2(q.x, q.y, u.x, u.y) < (q.r + u.r) * (q.r + u.r)) { u.hp -= q.dmg * arm; q.t = 0; }
+    const arm = u.kind === 'eng' ? ENG.armor : u.kind === 'tow' ? TOW.armor : u.kind === 'guard' ? GUARD.armor : 1; // armored ground bots
+    for (const e of run.enemies) if (!e.isCore && dist2(e.x, e.y, u.x, u.y) < (e.r + u.r) * (e.r + u.r)) { u.hp -= 25 * arm * dt; u.hurtT = GUARD.calm; }
+    for (const q of run.ebullets) if (q.t > 0 && dist2(q.x, q.y, u.x, u.y) < (q.r + u.r) * (q.r + u.r)) { u.hp = u.kind === 'guard' ? Math.max(Math.min(u.hp, 1), u.hp - q.dmg * arm) : u.hp - q.dmg * arm; u.hurtT = GUARD.calm; q.t = 0; } /* s51: a block never knocks a Guard out */
+    if (u.hp <= 0 && u.kind === 'guard') { u.hp = 0; u.down = true; toast(run, 'Guard stopped: walk over it to bring it back'); continue; }
     if (u.hp <= 0 && u.kind === 'eng') { u.hp = 0; u.down = true; u.work = 0; toast(run, 'Engineer stopped: walk over it to bring it back'); tip(run, 'eng_down', { at: u }); continue; }
     if (u.hp <= 0) {
       if (u.carry && u.carry.cache) run.caches.push({ x: u.x, y: u.y, taken: false }); // drops what it carried: a whole cache stays a cache
@@ -4808,6 +4850,9 @@ function drawUnit(ctx, u) {
   if (tow) { ctx.fillStyle = '#3f6f63'; ctx.fillRect(u.x - 10, u.y - 7, 20, 14); ctx.fillStyle = '#ffd166'; ctx.fillRect(u.x - 8, u.y - 5, 16, 10); }
   else if (u.kind === 'fix') { ctx.strokeStyle = '#7dff9a'; ctx.beginPath(); ctx.moveTo(u.x - 7, u.y); ctx.lineTo(u.x + 7, u.y); ctx.moveTo(u.x, u.y - 7); ctx.lineTo(u.x, u.y + 7); ctx.stroke(); ctx.beginPath(); ctx.arc(u.x, u.y, 8, 0, 6.283); ctx.stroke(); }
   else if (u.kind === 'haul') { ctx.fillStyle = u.jam ? '#5a3f78' : '#3f6f63'; ctx.fillRect(u.x - 10, u.y - 7, 20, 14); ctx.fillStyle = '#ffb347'; ctx.fillRect(u.x - 8, u.y - 5, 16 * Math.min(1, (u.load || 0) / (u.cap || 10)), 10); ctx.strokeStyle = '#5ad1a0'; ctx.lineWidth = 1.5; ctx.strokeRect(u.x - 10, u.y - 7, 20, 14); }
+  else if (u.kind === 'guard') { const a = u.foe && u.foe.hp > 0 ? Math.atan2(u.foe.y - u.y, u.foe.x - u.x) : 0; ctx.fillStyle = u.down ? '#5a5f6a' : '#4f7fa8'; poly(ctx, u.x, u.y, 11, 6, 0); ctx.fill(); ctx.strokeStyle = u.down ? '#3a3f4a' : '#cfe8ff'; poly(ctx, u.x, u.y, 11, 6, 0); ctx.stroke(); /* s51: a hex hull with a plate turned to its foe */
+    ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(u.x, u.y, 15, a - 0.7, a + 0.7); ctx.stroke(); ctx.lineWidth = 2; }
+  else if (u.kind === 'raider') { const a = u.tgt ? Math.atan2(u.tgt.y - u.y, u.tgt.x - u.x) : 0; ctx.fillStyle = u.cutting ? '#ff8a3d' : '#d9e3f0'; ctx.beginPath(); ctx.moveTo(u.x + Math.cos(a) * 11, u.y + Math.sin(a) * 11); ctx.lineTo(u.x + Math.cos(a + 2.5) * 7, u.y + Math.sin(a + 2.5) * 7); ctx.lineTo(u.x + Math.cos(a - 2.5) * 7, u.y + Math.sin(a - 2.5) * 7); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#1b1f2b'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 2; } /* a dart, orange while cutting, outlined so it shows on any ground */
   else if (u.kind === 'eng') { ctx.fillStyle = u.down ? '#5a5f6a' : '#ffb347'; ctx.fillRect(u.x - 10, u.y - 7, 20, 14); ctx.fillStyle = '#1b1f2b'; ctx.fillRect(u.x - 10, u.y - 2, 20, 4); /* treads and a blade */
     if (u.work) { ctx.strokeStyle = '#ffe37a'; ctx.beginPath(); ctx.arc(u.x, u.y, 15, -1.571, -1.571 + 6.283 * u.work / (u.workMax || 2)); ctx.stroke(); } }
   else { ctx.strokeStyle = '#ffd166'; ctx.beginPath(); ctx.arc(u.x, u.y, 7, 0, 6.283); ctx.stroke(); if (u.carry) { ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(u.x, u.y, 3, 0, 6.283); ctx.fill(); } }
@@ -6165,6 +6210,8 @@ if (HAS_DOM) {
   el('btn-scav').onclick = () => { if (R && screen === 'run') buildUnit(R, 'scav'); };
   el('btn-fix').onclick = () => { if (R && screen === 'run') buildUnit(R, 'fix'); };
   el('btn-eng').onclick = () => { if (R && screen === 'run') buildUnit(R, 'eng'); };
+  el('btn-guard').onclick = () => { if (R && screen === 'run') buildUnit(R, 'guard'); };
+  el('btn-raider').onclick = () => { if (R && screen === 'run') buildUnit(R, 'raider'); };
   el('btn-haul').onclick = () => { if (R && screen === 'run') buildUnit(R, 'haul'); };
   el('btn-extractor').onclick = () => { if (R && screen === 'run') build(R, 'extractor'); };
   el('btn-jammer').onclick = () => { if (R && screen === 'run') build(R, 'jammer'); };
@@ -6436,8 +6483,8 @@ if (HAS_DOM) {
     el('btn-pause').classList.toggle('pts', run.points >= 1); // amber dot: saved skill points waiting in the tree
     const haulOn = !run.tut && run.units.filter(u => u.kind === 'haul').length < bot(run, 'haul', 'count'); /* the free allowance needs no learning */
     const extOn = !run.tut && run.builds.filter(c => c.kind === 'extractor').length < bot(run, 'ext', 'count') && (run.deposits || []).some(d => !d.ext && run.fog.mapped[cellIdx(d.x, d.y)]);
-    run.unitsOpen = !run.tut && (['tow', 'scav', 'fix', 'eng'].some(k => botLvl(run, k)) || run.units.some(u => u.kind !== 'haul') || haulOn); // the row shows once you have learned or own a unit (the free hauler alone needs no row)
-    for (const k of ['tow', 'scav', 'fix', 'eng', 'turret', 'jammer', 'haul', 'extractor', 'mast', 'outpost']) { const b = el('btn-' + k), on = k === 'haul' ? haulOn : k === 'extractor' ? extOn : k === 'mast' ? mastOn(run) : k === 'outpost' ? !!run.endless && !run.tut : botLvl(run, k) > 0 && !run.tut; if (b.style.display !== (on ? '' : 'none')) b.style.display = on ? '' : 'none'; }
+    run.unitsOpen = !run.tut && (['tow', 'scav', 'fix', 'eng', 'guard', 'raider'].some(k => botLvl(run, k)) || run.units.some(u => u.kind !== 'haul') || haulOn); // the row shows once you have learned or own a unit (the free hauler alone needs no row)
+    for (const k of ['tow', 'scav', 'fix', 'eng', 'guard', 'raider', 'turret', 'jammer', 'haul', 'extractor', 'mast', 'outpost']) { const b = el('btn-' + k), on = k === 'haul' ? haulOn : k === 'extractor' ? extOn : k === 'mast' ? mastOn(run) : k === 'outpost' ? !!run.endless && !run.tut : botLvl(run, k) > 0 && !run.tut; if (b.style.display !== (on ? '' : 'none')) b.style.display = on ? '' : 'none'; }
     el('hud-units').classList.toggle('on', !!run.unitsOpen && !run.aim);
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
@@ -6467,7 +6514,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { TREE_SKY, GUARD, RAIDER, runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
