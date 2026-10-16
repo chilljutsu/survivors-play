@@ -249,7 +249,7 @@
   <div id="toasts"></div>
   <div id="hud-dock">
     <div id="h-motes"></div>
-    <div class="hud-grid" id="hud-core"><button id="btn-pause">Pause</button><button id="btn-recall">Recall</button><button id="btn-shell">Shell 4</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-extractor">Extractor 20</button><button id="btn-mast">Mast 35</button><button id="btn-outpost">Outpost 40</button><div class="units" id="hud-units"><button id="btn-tow">Ammo tow 15</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-guard">Guard 30</button><button id="btn-raider">Raider 20</button><button id="btn-haul">Hauler 15</button></div></div>
+    <div class="hud-grid" id="hud-core"><button id="btn-pause">Pause</button><button id="btn-recall">Recall</button><button id="btn-shell">Shell 4</button><button id="btn-turret">Turret 30</button><button id="btn-jammer">Jammer 25</button><button id="btn-extractor">Extractor 20</button><button id="btn-mast">Mast 35</button><button id="btn-outpost">Outpost 40</button><button id="btn-belt">Belt</button><div class="units" id="hud-units"><button id="btn-tow">Ammo tow 15</button><button id="btn-scav">Scavenger 15</button><button id="btn-fix">Repair bot 15</button><button id="btn-eng">Engineer 30</button><button id="btn-guard">Guard 30</button><button id="btn-raider">Raider 20</button><button id="btn-haul">Hauler 15</button></div></div>
   </div>
 </div>
 
@@ -1464,7 +1464,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-16 s52';
+const BUILD_ID = 'playtest 2026-10-16 s53';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1506,6 +1506,7 @@ const WHATS_NEW = [
   { s: 50, items: ['Perches on building corners, trees in the Forest and four on the base are on your phone now (s47), with endless Endurance (s48) and Endurance saves (s49).', 'Enemy shots do half damage to Drones in the air (6, was 12). Flying enemies still knock them down until Onboard compute.', 'Perches are easier to see: a ring with a light on top. Tapping scenery (the pylons and poles) says so.', 'More perches in most worlds: 34 a map (was 26), 36 in the Forest. The desert stays sparse.'] },
   { s: 51, items: ['Two new ground bots from Robo-Sport, in the Workshop under Bots: the Guard (World 5, 30 parts), armored, at your side toward the nearest enemy, shooting and stopping shots, never knocked out by a shot; and the Raider (World 7, 20 parts), fast and fragile, which runs at the core of a hive you have found.'] },
   { s: 52, items: ['Feedback notes in the app: it says plainly that this app cannot send notes to Claude, and Copy new notes copies just the ones Claude has not had yet, ready to paste in your chat.'] },
+  { s: 53, items: ['Belts: with the Engineer at level 2, the Belt button has it lay a belt from an extractor to your base (2 parts a piece). Parts ride home on it by themselves; enemies walking over it can cut it, and the Engineer repairs it. Haulers keep serving extractors without a belt.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -3076,6 +3077,8 @@ const TIPS = {
   chain_raid: { group: 'Units', title: 'Raid on your extractor', body: 'Enemies are wearing down an Extractor. If it falls, its deposit is free again and you will need 20 parts to rebuild. Turrets or an Engineer near your extractors keep the chain running.' },
   factory:   { group: 'Units', title: 'The Factory', body: 'Your base is following its standing orders: it builds haulers and turrets from incoming parts, above the reserve you set. Change the orders any time: Pause, then Factory.' },
   u_haul:    { group: 'Units', title: 'Hauler', body: 'A ground bot that drives extractor stock home (the amber fill is its load). It spills its load if it is destroyed. Every run starts with one.' },
+  belt:      { group: 'Units', title: 'Belts', body: 'Your Engineer lays a belt from an extractor to the base, one piece a cell (2 parts each), along the same paths enemies walk. Once it runs, parts ride home on their own, steadily, and haulers leave that extractor alone.' },
+  belt_cut:  { group: 'Units', title: 'A belt was cut', body: 'Enemies walking over a belt wear it down; a cut piece (red) stops everything behind it. Your Engineer repairs it when it can. Turrets along the route keep it running.' },
   u_guard:   { group: 'Units', title: 'Guard', body: 'An armored ground bot at your side. It turns toward the nearest enemy, shoots what it sees and stands in the way of shots. A shot never knocks it out; enough contact stops it until you walk over it.' },
   u_raider:  { group: 'Units', title: 'Raider', body: 'Fast and fragile: it runs at the core of a hive you have found and cuts at it. Find a hive first (see it with you or a Drone); until then it waits at your side.' },
   u_eng:     { group: 'Units', title: 'Engineer', body: 'A slow, armored ground bot. It walls your base in with six barricades for 6 parts each, leaving gaps you can walk through, rebuilds any that fall and repairs barricades, turrets and jammers. Bullets do half damage to it. One at a time.' },
@@ -3241,7 +3244,7 @@ function endTile(run, tx, ty) {
   if (cr < 0.12 && !E.taken.has(key)) { const x = x0 + 60 + cu * (T - 120), y = y0 + 60 + cv * (T - 120);
     if (!inWall(run, x, y) && !run.walls.some(o => x > o.x - 30 && x < o.x + o.w + 30 && y > o.y - 30 && y < o.y + o.h + 30) && dist2(x, y, b.x, b.y) > 500 * 500) run.caches.push({ x, y, taken: false, tile: key }); }
 }
-const AWAY_LIST = { build: 'builds', dep: 'deposits', unit: 'units', wall: 'walls', anchor: 'anchors' };
+const AWAY_LIST = { build: 'builds', dep: 'deposits', unit: 'units', wall: 'walls', anchor: 'anchors', belt: 'belts' };
 function endlessShift(run, dx, dy) { // the window slides (dx, dy); what is in it moves (-dx, -dy)
   const E = run.endless, p = run.p, T = ENDLESS.tile, n = WORLD / T; E.shifts++;
   { const m = run.fog.mapped; for (let i = 0; i < m.length; i++) if (m[i]) { const k = cellKey(i % COLS + OX / CELL, Math.floor(i / COLS) + OY / CELL); E.mapped.delete(k); E.mapped.add(k); } } /* the map you saw stays yours (latest last) */
@@ -3251,7 +3254,7 @@ function endlessShift(run, dx, dy) { // the window slides (dx, dy); what is in i
   // everything with a place moves, once each (refs are shared: a hive's core is an enemy, a perch holds a Drone)
   const done = new Set(), mv = o => { if (o && typeof o === 'object' && typeof o.x === 'number' && !done.has(o)) { done.add(o); o.x -= dx; o.y -= dy; } };
   const deep = o => { mv(o); for (const k in o) { const v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v) && !ArrayBuffer.isView(v) && !(v instanceof Map) && !(v instanceof Set)) mv(v); } };
-  mv(p); mv(run.cam); mv(run.base); mv(run.me); if (run.tut && run.tut.spot) mv(run.tut.spot);
+  mv(p); mv(run.cam); mv(run.base); mv(run.me); for (const bt of run.belts || []) moveBelt(bt, -dx, -dy); /* s53: a belt's pieces, which deep() does not reach */ if (run.tut && run.tut.spot) mv(run.tut.spot);
   for (const k of ['enemies', 'bullets', 'ebullets', 'gems', 'motes', 'anchors', 'particles', 'novas', 'beams', 'strikes', 'walls', 'caches', 'builds', 'units', 'deposits', 'hives', 'spills', 'engSlots', 'marks']) for (const o of run[k] || []) deep(o);
   for (const q of run.tipQ || []) mv(q.at);
   for (const h of run.hives) for (const v of h.known.values()) mv(v);
@@ -3272,6 +3275,7 @@ function endlessShift(run, dx, dy) { // the window slides (dx, dy); what is in i
   run.anchors = run.anchors.filter(a => { if (keep(a)) return true; if (a.mote) { a.mote.anchor = null; a.mote = null; } if (a.base || a.kind === 'mast') stash('anchor', a, a.x, a.y); return false; });
   run.builds = run.builds.filter(c => { c.vis = null; if (keep(c)) return true; stash('build', c, c.x, c.y); return false; });
   run.deposits = run.deposits.filter(d => { if (keep(d)) return true; stash('dep', d, d.x, d.y); return false; });
+  if (run.belts) run.belts = run.belts.filter(bt => { if (run.builds.includes(bt.ext)) return true; moveBelt(bt, OX, OY); E.away.push({ k: 'belt', o: bt, ax: bt.ext.x + OX, ay: bt.ext.y + OY }); return false; }); /* it waits with its extractor, its pieces kept in map coordinates */
   run.units = run.units.filter(u => { u.wp = null; u.wpGoal = -1; u.tgt = null; /* it picks a new job from what is still here */ if (keep(u)) return true; if (u.kind === 'haul' || u.kind === 'eng' || u.down) { stash('unit', u, u.x, u.y); return false; } /* a stopped Guard waits where it stopped */ u.x = p.x; u.y = p.y + 30; return true; }); /* bots at your side catch up */
   let lost = 0; for (const m of run.motes) if (!keep(m) || (m.state === 'perched' && !m.anchor) || (m.anchor && !m.anchor.me && !run.anchors.includes(m.anchor))) { /* a Drone left far behind flies back to you */
     if (m.anchor) { m.anchor.mote = null; m.anchor = null; } if (m.state === 'dimmed') { m.hp = 60; m.bat = Math.max(m.bat, m.maxBat * 0.5); lost++; }
@@ -3279,6 +3283,7 @@ function endlessShift(run, dx, dy) { // the window slides (dx, dy); what is in i
   if (lost) toast(run, lost > 1 ? 'Drones you left behind are flying back' : 'A Drone you left behind is flying back');
   // what is back in the window comes back
   E.away = E.away.filter(a => { const x = a.ax - OX, y = a.ay - OY, o = a.o, cx = a.k === 'wall' ? x + o.w / 2 : x, cy = a.k === 'wall' ? y + o.h / 2 : y; if (!inWin(cx, cy)) return true;
+    if (a.k === 'belt') { moveBelt(o, -OX, -OY); (run.belts || (run.belts = [])).push(o); return false; }
     o.x = x; o.y = y; if (a.k === 'hive') reviveHive(run, o); else run[AWAY_LIST[a.k]].push(o); return false; });
   // new ground where the window moved to
   const tn = { x: OX / T, y: OY / T }, was = (tx, ty) => tx >= t0.x && ty >= t0.y && tx < t0.x + n && ty < t0.y + n;
@@ -3518,7 +3523,7 @@ function updateBase(run, dt) {
   for (const c of run.caches) if (!c.taken && over(c.x, c.y)) { c.taken = true; cacheReward(run, 'Cache'); }
   if (run.spills) for (let i = run.spills.length - 1; i >= 0; i--) { const c = run.spills[i]; if (over(c.x, c.y)) { const take = Math.min(c.ammo, run.maxAmmo - run.ammo); if (take > 0) { run.ammo += take; c.ammo -= take; toast(run, `Picked up ${Math.round(take)} spilled ammo`); } if (c.ammo <= 0) run.spills.splice(i, 1); } } /* what you cannot carry stays on the ground */
   if (!run.chainInit && !run.tut) startChain(run);
-  updateFactory(run, dt); updateEndurance(run, dt); if (run.endless) updateOutposts(run, dt);
+  updateFactory(run, dt); updateEndurance(run, dt); if (run.endless) updateOutposts(run, dt); updateBelts(run, dt);
   // constructions
   for (let i = run.builds.length - 1; i >= 0; i--) {
     const c = run.builds[i];
@@ -4516,6 +4521,73 @@ function buildExtractor(run) { // on the free deposit you stand on, up to your a
   run.parts -= BUILDS.extractor.cost; placeExtractor(run, d); toast(run, 'Extractor placed: your haulers will collect from it'); SFX.mote(); return true;
 }
 function placeExtractor(run, d) { const c = { kind: 'extractor', x: d.x, y: d.y, hp: CHAIN.extHp, maxhp: CHAIN.extHp, cd: 0, dep: d, stock: 0, ring: 0 }; d.ext = c; run.builds.push(c); return c; }
+/* s53: transport belts (Lance 10-08: "there's no pipeline system to automate the collection and building of parts";
+   10-16 chose belts alongside haulers). With the Engineer at level 2, the Belt button has it lay a belt from an
+   extractor to the base along the walkable cells (the same paths enemies use), one 2-part piece a cell. A finished belt
+   pulls the extractor's stock steadily and parts ride home on it. Enemies touching a piece wear it; a cut piece stops
+   everything behind it until the Engineer repairs it. Haulers serve extractors that have no working belt. */
+const BELT = { cost: 2, layT: 0.5, rate: 1.2, spd: 90, hp: 60, wear: 20, gap: 12, every: 0.25, touch: 8 };
+const beltOn = run => mastOn(run); // the Engineer at level 2, not in the tutorial (mastOn is defined further down)
+const beltWorks = bt => !!bt && bt.laid >= bt.segs.length && bt.segs.every(s => s.hp > 0);
+function beltPath(run, from) { // cell centres from `from` down the field to the base, then the base itself; null if cut off
+  const f = fieldTo(run, cellIdx(run.base.x, run.base.y)); let cur = cellIdx(from.x, from.y); if (f[cur] < 0) return null;
+  const pts = [{ x: from.x, y: from.y }];
+  for (let n = 0; f[cur] > 0 && n < COLS * COLS; n++) { let nx = -1; forNeighbours(run.blocked, cur, j => { if (nx < 0 && f[j] >= 0 && f[j] === f[cur] - 1) nx = j; }); if (nx < 0) return null; cur = nx; pts.push({ x: (cur % COLS) * CELL + CELL / 2, y: Math.floor(cur / COLS) * CELL + CELL / 2 }); }
+  pts.push({ x: run.base.x, y: run.base.y });
+  return pts;
+}
+function orderBelt(run) { // the Belt button: the Engineer lays one from the beltless extractor nearest the base
+  if (!beltOn(run)) { toast(run, `Belts need the Engineer at level ${MAST.engLvl}`); return false; }
+  if (!run.units.some(u => u.kind === 'eng')) { toast(run, 'Build an Engineer first: it lays the belt'); return false; }
+  if (run.base.away) { toast(run, 'Belts run to your base: go back to it first'); return false; }
+  if ((run.belts || []).concat(run.endless ? run.endless.away.filter(a => a.k === 'belt').map(a => a.o) : []).some(bt => bt.laid < bt.segs.length)) { toast(run, 'The Engineer is still laying a belt'); return false; } /* one at a time, a half-laid one left behind included */
+  const b = run.base, ex = run.builds.filter(c => c.kind === 'extractor' && !c.belt).sort((x, y) => dist2(x.x, x.y, b.x, b.y) - dist2(y.x, y.y, b.x, b.y));
+  if (!ex.length) { toast(run, 'Every extractor has a belt'); return false; }
+  for (const c of ex) { const pts = beltPath(run, c); if (!pts) continue;
+    const segs = []; for (let i = 0; i + 1 < pts.length; i++) { const a = pts[i], z = pts[i + 1]; segs.push({ ax: a.x, ay: a.y, bx: z.x, by: z.y, x: (a.x + z.x) / 2, y: (a.y + z.y) / 2, len: Math.hypot(z.x - a.x, z.y - a.y), hp: BELT.hp, maxhp: BELT.hp }); }
+    const bt = { ext: c, segs, laid: 0, pk: [], pullT: 0, len: segs.reduce((s, q) => s + q.len, 0) }; c.belt = bt; (run.belts || (run.belts = [])).push(bt);
+    toast(run, `The Engineer will lay a belt: ${segs.length} pieces, ${BELT.cost} parts each`); tip(run, 'belt', { at: c }); SFX.mote(); return true; }
+  toast(run, 'No path from an extractor to the base'); return false;
+}
+function updateBelts(run, dt) {
+  if (!run.belts || !run.belts.length) return;
+  const wear = (run.beltT = (run.beltT || 0) - dt) <= 0; if (wear) run.beltT = BELT.every;
+  for (let i = run.belts.length - 1; i >= 0; i--) {
+    const bt = run.belts[i];
+    if (!run.builds.includes(bt.ext)) { bt.ext.belt = null; run.belts.splice(i, 1); continue; } /* its extractor fell: the belt goes too (one left off the map waits in E.away instead) */
+    if (wear) for (let k = 0; k < bt.laid; k++) { const s = bt.segs[k]; if (s.hp <= 0) continue; const x0 = Math.min(s.ax, s.bx) - 30, x1 = Math.max(s.ax, s.bx) + 30, y0 = Math.min(s.ay, s.by) - 30, y1 = Math.max(s.ay, s.by) + 30;
+      for (const e of run.enemies) { if (e.isCore || e.x < x0 || e.x > x1 || e.y < y0 || e.y > y1) continue; if (segDist2(e.x, e.y, s) < (e.r + BELT.touch) ** 2) { s.hp = Math.max(0, s.hp - BELT.wear * BELT.every); if (s.hp <= 0) { toast(run, 'A belt was cut'); tip(run, 'belt_cut', { at: { x: s.x, y: s.y } }); } break; } } }
+    if (bt.laid < bt.segs.length || run.base.away) continue; /* s48: with the base off the map nothing arrives, as with haulers */
+    let cut = Infinity, acc = 0; for (let k = 0; k < bt.segs.length; k++) { const s = bt.segs[k]; if (s.hp <= 0) { cut = acc; break; } acc += s.len; } /* where the first cut starts */
+    if ((bt.pullT -= dt) <= 0 && bt.ext.stock >= 1 && (!bt.pk.length || bt.pk[bt.pk.length - 1] >= BELT.gap) && cut > BELT.gap) { bt.pullT = 1 / BELT.rate; bt.ext.stock -= 1; bt.pk.push(0); }
+    let ahead = Infinity;
+    for (let k = 0; k < bt.pk.length; k++) { const d = bt.pk[k], lim = Math.min(d < cut ? cut - 1 : Infinity, ahead - BELT.gap); bt.pk[k] = Math.max(d, Math.min(d + BELT.spd * dt, lim)); ahead = bt.pk[k]; } /* a part past a cut rides on; one behind it waits; none goes backwards */
+    while (bt.pk.length && bt.pk[0] >= bt.len) { bt.pk.shift(); run.parts += 1; run.hauled = (run.hauled || 0) + 1; }
+  }
+}
+const segDist2 = (x, y, s) => { const vx = s.bx - s.ax, vy = s.by - s.ay, L = vx * vx + vy * vy || 1, t = clamp(((x - s.ax) * vx + (y - s.ay) * vy) / L, 0, 1); return dist2(x, y, s.ax + vx * t, s.ay + vy * t); };
+function beltAt(bt, d) { for (const s of bt.segs) { if (d <= s.len) { const t = d / (s.len || 1); return { x: s.ax + (s.bx - s.ax) * t, y: s.ay + (s.by - s.ay) * t }; } d -= s.len; } const s = bt.segs[bt.segs.length - 1]; return { x: s.bx, y: s.by }; }
+function moveBelt(bt, dx, dy) { for (const s of bt.segs) { s.ax += dx; s.ay += dy; s.bx += dx; s.by += dy; s.x += dx; s.y += dy; } }
+function beltJob(run, u) { // the Engineer's belt work: a cut or worn piece with no enemy on it first, then the next piece to lay
+  const rb = repairBelow(run); let job = null, worst = rb;
+  for (const bt of run.belts || []) for (let k = 0; k < bt.laid; k++) { const s = bt.segs[k]; if (s.hp / s.maxhp < worst && !run.enemies.some(e => !e.isCore && dist2(e.x, e.y, s.x, s.y) < 200 * 200)) { worst = s.hp / s.maxhp; job = { kind: 'belt-fix', seg: s, x: s.bx, y: s.by }; } } /* it never drives into the enemies that cut it */
+  if (job) return job;
+  for (const bt of run.belts || []) if (bt.laid < bt.segs.length) { const s = bt.segs[bt.laid]; return { kind: 'belt-lay', bt, seg: s, x: s.bx, y: s.by }; } /* it works from the piece's end: a walkable cell centre (a midpoint can sit on a sliver of wall) */
+  return null;
+}
+const beltSpare = run => run.parts - (factoryOn(run) ? orders().reserve : 0); // what laying may spend: never below the Factory reserve
+function drawBelts(ctx, run, now, mapped) {
+  const ac = LKT.accent || '#7ff5ff';
+  for (const bt of run.belts || []) {
+    for (let i = 0; i < bt.segs.length; i++) { const s = bt.segs[i]; if (!mapped[cellIdx(s.x, s.y)]) continue;
+      const laid = i < bt.laid, cut = laid && s.hp <= 0;
+      ctx.strokeStyle = !laid ? 'rgba(255,227,122,0.35)' : cut ? 'rgba(255,90,74,0.85)' : 'rgba(20,26,38,0.85)'; ctx.lineWidth = laid ? 9 : 3; if (!laid) ctx.setLineDash([6, 8]);
+      ctx.beginPath(); ctx.moveTo(s.ax, s.ay); ctx.lineTo(s.bx, s.by); ctx.stroke(); ctx.setLineDash([]);
+      if (laid && !cut) { ctx.strokeStyle = ac; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.5; const ux = (s.bx - s.ax) / (s.len || 1), uy = (s.by - s.ay) / (s.len || 1), ph = (now * BELT.spd) % 20; /* chevrons ride toward the base */
+        ctx.beginPath(); for (let d = ph; d < s.len; d += 20) { const cx = s.ax + ux * d, cy = s.ay + uy * d; ctx.moveTo(cx - ux * 4 - uy * 3, cy - uy * 4 + ux * 3); ctx.lineTo(cx, cy); ctx.lineTo(cx - ux * 4 + uy * 3, cy - uy * 4 - ux * 3); } ctx.stroke(); ctx.globalAlpha = 1; } }
+    ctx.fillStyle = '#ffb347'; for (const d of bt.pk) { const q = beltAt(bt, d); if (mapped[cellIdx(q.x, q.y)]) ctx.fillRect(q.x - 3, q.y - 3, 6, 6); }
+  }
+}
 function startChain(run) { // the free pair: an extractor on the deposit nearest the base and one hauler
   run.chainInit = true; const b = run.base, d = run.deposits.slice().sort((a, c) => dist2(a.x, a.y, b.x, b.y) - dist2(c.x, c.y, b.x, b.y))[0];
   if (!d) return;
@@ -4643,9 +4715,9 @@ function updateUnits(run, dt) {
     } else if (u.kind === 'haul') { // hauler: fill up at the extractor with the most stock, drive it home, repeat
       if ((u.jamT = (u.jamT || 0) - dt) <= 0) { u.jamT = 0.25; u.jam = run.enemies.some(e => e.type === 'null' && !e.isCore && dist2(e.x, e.y, u.x, u.y) < JAM_R(e, run) ** 2); if (u.jam) tip(run, 'haul_jam', { at: u }); } /* a Jammer's ring slows haulers to a crawl */
       const cap = u.cap = bot(run, 'haul', 'load');
-      if (u.tgt && (!run.builds.includes(u.tgt) || u.load >= cap)) u.tgt = null;
+      if (u.tgt && (!run.builds.includes(u.tgt) || u.load >= cap || beltWorks(u.tgt.belt))) u.tgt = null; /* s53: its belt took over */
       if (!u.tgt && !u.home && (u.look = (u.look || 0) - dt) <= 0) { u.look = 0.5; let best = null, bs = 2; /* stock not already spoken for by other haulers */
-        for (const c of run.builds) if (c.kind === 'extractor') { let free = c.stock; for (const o of run.units) if (o !== u && o.tgt === c) free -= (o.cap || cap) - o.load; if (free >= bs) { bs = free; best = c; } } u.tgt = best; }
+        for (const c of run.builds) if (c.kind === 'extractor' && !beltWorks(c.belt)) { let free = c.stock; /* s53: a working belt serves it */ for (const o of run.units) if (o !== u && o.tgt === c) free -= (o.cap || cap) - o.load; if (free >= bs) { bs = free; best = c; } } u.tgt = best; }
       if (u.tgt) { tx = u.tgt.x; ty = u.tgt.y + 18;
         if (dist2(u.x, u.y, tx, ty) < 26 * 26) { const take = Math.min(u.tgt.stock, cap - u.load, CHAIN.loadRate * dt); u.tgt.stock -= take; u.load += take; if (u.load >= cap - 1e-6 || u.tgt.stock < 0.5) { u.tgt = null; u.home = u.load >= 1; } } }
       else if (b.away) { tx = u.x; ty = u.y; } /* s48: the base is far off: wait where it is */
@@ -4660,14 +4732,17 @@ function updateUnits(run, dt) {
         const rb = repairBelow(run);
         if (!job) { let worst = rb; for (const sl of slots) if (sl.wall && sl.wall.hp / sl.wall.maxhp < worst) { worst = sl.wall.hp / sl.wall.maxhp; job = sl; kind = 'fix'; }
           for (const c of run.builds) if (c.hp / c.maxhp < worst && (c.kind !== 'extractor' || dist2(c.x, c.y, b.x, b.y) < 600 * 600)) { /* far extractors are not its job */ worst = c.hp / c.maxhp; job = c; kind = 'build-fix'; } }
+        if (!job && !b.away) { const bj = beltJob(run, u); if (bj && (bj.kind === 'belt-fix' || beltSpare(run) >= BELT.cost)) { job = bj; kind = bj.kind; } } /* s53: belts, after barricades and builds */
         if (!job && factoryOn(run) && !(b.alarm > 0) && botLvl(run, 'turret') && run.parts - orders().reserve >= BUILDS.turret.cost) { const g = guardJob(run); if (g) { job = g; kind = 'guard'; } } /* standing order, after repairs and never while the base is hit */
         const st = kind === 'build' || kind === 'fix' ? engStand(job) : job ? job : b.away ? { x: u.x, y: u.y } : { x: b.x, y: b.y + 36 };
         tx = st.x; ty = st.y;
-        const there = dist2(u.x, u.y, st.x, st.y) < (kind === 'build-fix' ? 26 * 26 : kind === 'guard' ? 20 * 20 : 14 * 14);
-        if (job !== u.jobAt) { u.jobAt = job; u.work = 0; } /* progress belongs to one slot */
+        const there = dist2(u.x, u.y, st.x, st.y) < (kind === 'build-fix' || kind === 'belt-fix' || kind === 'belt-lay' ? 26 * 26 : kind === 'guard' ? 20 * 20 : 14 * 14);
+        if (!(job === u.jobAt || (job && job.seg && u.jobAt && u.jobAt.seg === job.seg))) { u.jobAt = job; u.work = 0; } /* progress belongs to one slot (a belt job is a fresh object each frame: same piece, same job) */
         if (kind === 'build' && there) { if (slotClear(run, job, true)) { if ((u.work = (u.work || 0) + dt) >= (u.workMax = bot(run, 'eng', 'buildT'))) { u.work = 0; placeBarricade(run, job); tip(run, 'barricade', { at: job.wall ? { x: job.x + job.w / 2, y: job.y + job.h / 2 } : u }); } } }
         else if (kind === 'guard' && there) { if ((u.work = (u.work || 0) + dt) >= (u.workMax = bot(run, 'eng', 'buildT'))) { u.work = 0; if (placeTurretAt(run, job.x, job.y)) { toast(run, 'Engineer built a turret at an extractor'); run.factMsg = 'Engineer guarding an extractor'; } } }
+        else if (kind === 'belt-lay' && there) { if ((u.work = (u.work || 0) + dt) >= (u.workMax = BELT.layT)) { u.work = 0; if (beltSpare(run) >= BELT.cost) { run.parts -= BELT.cost; job.bt.laid++; if (job.bt.laid >= job.bt.segs.length) { toast(run, 'Belt running: parts ride home on it'); SFX.mote(); } } } }
         else u.work = 0;
+        if (kind === 'belt-fix' && there) job.seg.hp = Math.min(job.seg.maxhp, job.seg.hp + bot(run, 'eng', 'heal') * dt);
         if (kind === 'fix' && there) job.wall.hp = Math.min(job.wall.maxhp, job.wall.hp + bot(run, 'eng', 'heal') * dt);
         if (kind === 'build-fix' && there) job.hp = Math.min(job.maxhp, job.hp + bot(run, 'eng', 'heal') * dt);
         u.job = kind;
@@ -4782,6 +4857,7 @@ function drawMinimap(ctx, run, vw, vh) {
   for (let i = 0; i < run.enemies.length; i += 2) { const e = run.enemies[i]; if (e.vis) ctx.fillRect(e.x * k - 1, e.y * k - 1, 2, 2); }
   ctx.fillStyle = '#ffe37a'; for (const c of run.caches) if (!c.taken && mapped[cellIdx(c.x, c.y)]) ctx.fillRect(c.x * k - 1.5, c.y * k - 1.5, 3, 3);
   ctx.fillStyle = '#5ad1a0'; for (const d of run.deposits || []) if (mapped[cellIdx(d.x, d.y)]) ctx.fillRect(d.x * k - 1, d.y * k - 1, 2, 2);
+  ctx.strokeStyle = 'rgba(255,179,71,0.6)'; ctx.lineWidth = 1; for (const bt of run.belts || []) { ctx.beginPath(); bt.segs.slice(0, bt.laid).forEach((s, i) => { if (!i) ctx.moveTo(s.ax * k, s.ay * k); ctx.lineTo(s.bx * k, s.by * k); }); ctx.stroke(); } /* s53 */
   for (const c of run.builds) { ctx.fillStyle = c.kind === 'turret' ? '#ffb347' : c.kind === 'extractor' ? '#5ad1a0' : c.kind === 'outpost' ? '#7ff5ff' : '#a86bff'; ctx.fillRect(c.x * k - 1.5, c.y * k - 1.5, 3, 3); }
   const b = run.base; ctx.strokeStyle = b.breached ? '#5a3a3a' : b.alarm > 0 ? '#ff5a4a' : '#7ff5ff'; ctx.lineWidth = 1; ctx.strokeRect(clamp(b.x * k, 3, MM - 3) - 3, clamp(b.y * k, 3, MM - 3) - 3, 6, 6); /* s48: a base far off sits on the edge, toward home */
   for (const m of run.motes) if (m.state !== 'dimmed') { ctx.fillStyle = m.jammed ? '#a86bff' : '#7ff5ff'; ctx.fillRect(m.x * k - 1.5, m.y * k - 1.5, 3, 3); }
@@ -4939,7 +5015,8 @@ function drawGround(ctx, run, now, mapped, tilt) {
       ctx.beginPath(); ctx.arc(b.x, b.y, 14, 0, 6.283); ctx.stroke(); }
   }
   if (!run.endless) { ctx.strokeStyle = '#3a4a66'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, WORLD, WORLD); } // world border (Endurance has none: s48)
-  for (const d of run.deposits || []) if (d.ext && mapped[cellIdx(d.x, d.y)]) { ctx.strokeStyle = 'rgba(90,209,160,0.22)'; ctx.lineWidth = 2; ctx.setLineDash([6, 10]); ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(run.base.x, run.base.y); ctx.stroke(); ctx.setLineDash([]); } /* the route home */
+  drawBelts(ctx, run, now, mapped); /* s53 */
+  for (const d of run.deposits || []) if (d.ext && !d.ext.belt && mapped[cellIdx(d.x, d.y)]) { ctx.strokeStyle = 'rgba(90,209,160,0.22)'; ctx.lineWidth = 2; ctx.setLineDash([6, 10]); ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(run.base.x, run.base.y); ctx.stroke(); ctx.setLineDash([]); } /* the route home */
 }
 /* things you tap or pick up: base building and bar, perches, deposits, caches, pickups. place(x, y), given in 2.5D,
    stands each one up at its ground point so it is not squashed (Lance 10-08: "markers on the ground all appear stretched") */
@@ -6218,10 +6295,11 @@ if (HAS_DOM) {
   el('btn-jammer').onclick = () => { if (R && screen === 'run') build(R, 'jammer'); };
   el('btn-mast').onclick = () => { if (R && screen === 'run') buildMast(R); };
   el('btn-outpost').onclick = () => { if (R && screen === 'run') buildOutpost(R); };
+  el('btn-belt').onclick = () => { if (R && screen === 'run') orderBelt(R); };
   el('btn-end-menu').onclick = () => { R = null; UI.menu(); };
 
   function resumeEndurance() { unlockAudio(); const r = endLoadRun(); if (!r) { UI.zones(); return; }
-    try { update(r, 0.001); } catch (e) { endClearSave(); UI.zones(); return; } /* a save this build cannot play is dropped, never a frozen game */
+    try { update(endLoadRun(), 0.001); } catch (e) { endClearSave(); UI.zones(); return; } /* a save this build cannot play is dropped, never a frozen game; the trial runs on a copy, so the journey itself is untouched */
     R = r; screen = 'run'; UI.go(null); togglePause(); el('pause-msg').textContent = 'Your journey, as you left it.' + (r.points >= 1 ? ` ${fmtPts(r.points)} skill point${r.points === 1 ? '' : 's'} to spend in the Skill tree.` : ''); }
   function startRun(i, mode, endurance) {
     unlockAudio(); R = newRun(i, mode); if (endurance) startEndurance(R); SAVE.carryParts = 0; persist(SAVE); screen = 'run'; UI.go(null);
@@ -6496,7 +6574,7 @@ if (HAS_DOM) {
     const haulOn = !run.tut && run.units.filter(u => u.kind === 'haul').length < bot(run, 'haul', 'count'); /* the free allowance needs no learning */
     const extOn = !run.tut && run.builds.filter(c => c.kind === 'extractor').length < bot(run, 'ext', 'count') && (run.deposits || []).some(d => !d.ext && run.fog.mapped[cellIdx(d.x, d.y)]);
     run.unitsOpen = !run.tut && (['tow', 'scav', 'fix', 'eng', 'guard', 'raider'].some(k => botLvl(run, k)) || run.units.some(u => u.kind !== 'haul') || haulOn); // the row shows once you have learned or own a unit (the free hauler alone needs no row)
-    for (const k of ['tow', 'scav', 'fix', 'eng', 'guard', 'raider', 'turret', 'jammer', 'haul', 'extractor', 'mast', 'outpost']) { const b = el('btn-' + k), on = k === 'haul' ? haulOn : k === 'extractor' ? extOn : k === 'mast' ? mastOn(run) : k === 'outpost' ? !!run.endless && !run.tut : botLvl(run, k) > 0 && !run.tut; if (b.style.display !== (on ? '' : 'none')) b.style.display = on ? '' : 'none'; }
+    for (const k of ['tow', 'scav', 'fix', 'eng', 'guard', 'raider', 'turret', 'jammer', 'haul', 'extractor', 'mast', 'outpost', 'belt']) { const b = el('btn-' + k), on = k === 'haul' ? haulOn : k === 'extractor' ? extOn : k === 'mast' ? mastOn(run) : k === 'belt' ? beltOn(run) && run.builds.some(c => c.kind === 'extractor' && !c.belt) && run.units.some(u => u.kind === 'eng') : k === 'outpost' ? !!run.endless && !run.tut : botLvl(run, k) > 0 && !run.tut; if (b.style.display !== (on ? '' : 'none')) b.style.display = on ? '' : 'none'; }
     el('hud-units').classList.toggle('on', !!run.unitsOpen && !run.aim);
     { const on = !!run.aim && screen === 'run', f = on ? perchedFeeds(run) : []; el('aim').classList.toggle('on', on);
       if (on) { el('aim-text').textContent = `Drone feed ${(run.aim.i % f.length) + 1} of ${f.length}${f[run.aim.i % f.length] && f[run.aim.i % f.length].anchor && f[run.aim.i % f.length].anchor.base ? ' (base)' : ''}: tap a spot this Drone sees.`; el('aim-next').style.display = f.length > 1 ? '' : 'none'; } }
@@ -6526,7 +6604,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { TREE_SKY, GUARD, RAIDER, runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { BELT, orderBelt, beltPath, beltWorks, updateBelts, TREE_SKY, GUARD, RAIDER, runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
