@@ -1464,7 +1464,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-16 s51';
+const BUILD_ID = 'playtest 2026-10-16 s52';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1505,6 +1505,7 @@ const WHATS_NEW = [
   { s: 49, items: ['Endurance saves itself: whenever you pause or leave the app, the journey is kept. Save and leave (on the pause screen) takes you to the menu, and the Endurance row then says Resume. End the journey ends it for good.'] },
   { s: 50, items: ['Perches on building corners, trees in the Forest and four on the base are on your phone now (s47), with endless Endurance (s48) and Endurance saves (s49).', 'Enemy shots do half damage to Drones in the air (6, was 12). Flying enemies still knock them down until Onboard compute.', 'Perches are easier to see: a ring with a light on top. Tapping scenery (the pylons and poles) says so.', 'More perches in most worlds: 34 a map (was 26), 36 in the Forest. The desert stays sparse.'] },
   { s: 51, items: ['Two new ground bots from Robo-Sport, in the Workshop under Bots: the Guard (World 5, 30 parts), armored, at your side toward the nearest enemy, shooting and stopping shots, never knocked out by a shot; and the Raider (World 7, 20 parts), fast and fragile, which runs at the core of a hive you have found.'] },
+  { s: 52, items: ['Feedback notes in the app: it says plainly that this app cannot send notes to Claude, and Copy new notes copies just the ones Claude has not had yet, ready to paste in your chat.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -6374,34 +6375,43 @@ if (HAS_DOM) {
   window.addEventListener('resize', () => { if (el('dial').classList.contains('on') && dialTab === 'Formation') drawDial(); });
 
   /* feedback notes: saved on the phone, and sent to the artifact's database when it is available */
-  let dbP = null, noteBack = 'menu';
-  const getDb = () => dbP || (dbP = (window.claude && window.claude.use) ? window.claude.use('db').catch(() => null) : Promise.resolve(null));
+  let dbP = null, noteBack = 'menu', dbOk = false;
+  const getDb = () => dbP || (dbP = ((window.claude && window.claude.use) ? window.claude.use('db').catch(() => null) : Promise.resolve(null)).then(db => { dbOk = !!db; return db; }));
+  const canSend = () => dbOk; // s52: only the claude.ai copy, with its database open, can send notes; the app (APK) keeps them on the phone
+  const freshNotes = () => SAVE.notes.filter(n => !n.sent && !n.copied); // what Claude has not had yet, by send or by copy
+  const notesHere = () => `${SAVE.notes.length} note${SAVE.notes.length === 1 ? '' : 's'} on this phone`;
   async function sendNote(n) {
     if (n.sent || n.sending) return !!n.sent;
     n.sending = true; // guards the notes screen's resend while the save's own send is still in flight
     try { const db = await getDb(); if (!db) return false; await db.collection('notes').add({ at: n.at, ctx: n.ctx, text: n.text, build: n.build }); n.sent = true; return true; }
     catch (e) { return false; }
-    finally { delete n.sending; persist(SAVE); }
+    finally { delete n.sending; if (dbOk) persist(SAVE); } /* nothing changed when there is no database */
   }
   const noteCtx = () => !R ? 'menu' : `${R.z.name} ${R.M.name}, ${fmtT(R.t)} in, level ${R.p.level}, ${R.kills} kills, HP ${Math.round(R.p.hp)}/${R.p.maxhp}, ammo ${Math.floor(R.ammo)}${R.over ? (R.result === 'win' ? ', cleared' : ', died') : ''}${R.over && R.summary && R.summary.report ? '. ' + reportLines(R.summary.report).join(' ') : ''}`; /* a note written after a run carries its report */
   const noteLine = n => `[${n.at.slice(0, 16).replace('T', ' ')}] ${n.ctx}\n${n.text}`;
   UI.note = back => { noteBack = back; UI.go('note'); el('note-ctx').textContent = noteCtx(); el('note-text').value = ''; setTimeout(() => el('note-text').focus(), 60); };
   const noteReturn = msg => { if (noteBack === 'pause') { UI.go('pause'); el('pause-msg').textContent = msg || ''; } else if (noteBack === 'end') UI.go('end'); else UI.notes(msg); };
+  const SAVED_HERE = 'Note saved on this phone. To give it to Claude: Feedback notes, then Copy new notes, and paste.';
   el('btn-note-save').onclick = () => {
     const text = el('note-text').value.trim(); if (!text) { noteReturn(); return; }
     const n = { at: new Date().toISOString(), ctx: noteCtx(), text, build: BUILD_ID };
     SAVE.notes.push(n); persist(SAVE); beep(880, 0.08, 'triangle', 0.04);
-    noteReturn('Note saved.');
-    sendNote(n).then(ok => { if (ok && noteBack === 'pause') el('pause-msg').textContent = 'Note saved and sent.'; });
+    getDb().then(() => {
+      noteReturn(dbOk ? 'Note saved.' : SAVED_HERE);
+      if (dbOk) sendNote(n).then(ok => { const pm = el('pause-msg'); if (noteBack === 'pause' && pm.textContent === 'Note saved.') pm.textContent = ok ? 'Note saved and sent.' : 'Note saved; sending failed. Open Feedback notes to try again.'; }); /* only over its own message */
+    });
   };
   el('btn-note-cancel').onclick = () => noteReturn();
   UI.notes = msg => {
     UI.go('notes');
-    const unsent = SAVE.notes.filter(n => !n.sent).length;
-    el('notes-status').textContent = msg || (SAVE.notes.length ? `${SAVE.notes.length} note${SAVE.notes.length === 1 ? '' : 's'} on this phone${SAVE.notes.length - unsent ? `, ${SAVE.notes.length - unsent} already sent to Claude` : ''}.` : 'No notes yet. Pause during a run and tap Write a feedback note.');
-    el('notes-all').value = SAVE.notes.map(noteLine).join('\n\n');
-    el('btn-notes-clear').textContent = 'Delete all notes'; el('btn-notes-clear').dataset.arm = '';
-    Promise.all(SAVE.notes.filter(n => !n.sent).map(sendNote)).then(r => { if (r.some(Boolean) && !msg) el('notes-status').textContent = `${SAVE.notes.length} notes, ${SAVE.notes.filter(n => n.sent).length} sent to Claude.`; });
+    const draw = () => {
+      const unsent = SAVE.notes.filter(n => !n.sent).length, fresh = freshNotes().length;
+      el('btn-notes-copy').textContent = !dbOk && fresh ? `Copy ${fresh} new note${fresh === 1 ? '' : 's'} for Claude` : 'Copy all notes';
+      el('notes-status').textContent = msg || (SAVE.notes.length ? (dbOk ? `${notesHere()}${SAVE.notes.length - unsent ? `, ${SAVE.notes.length - unsent} already sent to Claude` : ''}.` : `${notesHere()}. This app cannot send them to Claude itself: copy them and paste them in your chat.`) : 'No notes yet. Pause during a run and tap Write a feedback note.');
+      el('notes-all').value = SAVE.notes.map(noteLine).join('\n\n');
+    };
+    draw(); el('btn-notes-clear').textContent = 'Delete all notes'; el('btn-notes-clear').dataset.arm = '';
+    getDb().then(() => { draw(); if (!dbOk) return; Promise.all(SAVE.notes.filter(n => !n.sent).map(sendNote)).then(r => { if (r.some(Boolean) && !msg) el('notes-status').textContent = `${SAVE.notes.length} notes, ${SAVE.notes.filter(n => n.sent).length} sent to Claude.`; }); });
   };
   el('btn-notes').onclick = () => UI.notes();
   /* backup / restore: the save as one line of text, for moving between installs */
@@ -6426,9 +6436,11 @@ if (HAS_DOM) {
   };
   el('btn-notes-new').onclick = () => UI.note('notes');
   el('btn-notes-copy').onclick = () => {
-    const ta = el('notes-all'), txt = ta.value; if (!txt) return;
-    const fallback = () => { ta.focus(); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ } el('notes-status').textContent = ok ? 'Copied. Paste it to Claude.' : 'Text selected: long-press it and choose Copy.'; };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { el('notes-status').textContent = 'Copied. Paste it to Claude.'; }, fallback); else fallback();
+    const ta = el('notes-all'), fresh = dbOk ? [] : freshNotes(), txt = fresh.length ? fresh.map(noteLine).join('\n\n') : ta.value; if (!txt) return;
+    if (fresh.length) ta.value = txt;
+    const done = () => { for (const n of fresh) n.copied = true; if (fresh.length) persist(SAVE); el('notes-status').textContent = `Copied${fresh.length ? ` ${fresh.length} new note${fresh.length === 1 ? '' : 's'}` : ''}. Paste it to Claude.`; el('btn-notes-copy').textContent = 'Copy all notes'; ta.value = SAVE.notes.map(noteLine).join('\n\n'); }; /* s52: marked only once the copy worked */
+    const fallback = () => { ta.focus(); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ } if (ok) done(); else el('notes-status').textContent = 'Text selected: long-press it and choose Copy.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fallback); else fallback();
   };
   el('btn-notes-clear').onclick = () => {
     const b = el('btn-notes-clear');
