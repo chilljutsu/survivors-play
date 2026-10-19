@@ -1,2 +1,2 @@
-playtest 2026-10-16 s53
-ares@34f587b
+playtest 2026-10-19 s54
+ares@dc57962

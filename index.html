@@ -235,6 +235,30 @@
   .chips:empty { display:none; }
   .chip { width:auto; padding:7px 11px; font-size:13px; border-radius:16px; }
   .chip.on { border-color:var(--cyan); color:var(--cyan); }
+  /* s54 Languages */
+  .lshead { display:flex; align-items:center; gap:10px; } .lshead button { width:auto; padding:8px 12px; font-size:13px; color:var(--dim); }
+  .lsbar { flex:1; height:8px; background:var(--line); border-radius:4px; overflow:hidden; } .lsbar i { display:block; height:100%; width:0; background:var(--cyan); transition:width 0.2s; }
+  .lsask { font-size:18px; font-weight:500; color:var(--ink); margin:4px 0 0; } .lsask small { font-size:12px; color:var(--amber); font-weight:400; }
+  .lsword { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 0; } .lsword b { font-size:26px; font-weight:500; color:var(--ink); text-align:center; }
+  .lsword.big b { font-size:64px; line-height:1.1; } .lsword small { color:var(--dim); font-size:15px; } .lsword small.ro, small.ro { font-style:italic; }
+  .lsen { font-size:17px; color:var(--ink); text-align:center; }
+  .lsopts { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .lsopts button { text-align:center; min-height:56px; font-size:16px; padding:8px; }
+  .lsopts button small, .lsmatch button small { display:block; font-size:12px; color:var(--dim); } .lsopts button.on { border-color:var(--cyan); color:var(--cyan); }
+  .lsopts button.right { border-color:#7fd88f; color:#9be8a8; } .lsopts button:disabled { opacity:0.3; }
+  .lsans { min-height:92px; border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; padding:6px 0; }
+  .lsbank { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; padding-top:8px; }
+  .tile { width:auto; padding:9px 12px; font-size:17px; border-radius:8px; background:rgba(255,255,255,0.04); } .tile.gone { visibility:hidden; }
+  .lsfoot { display:flex; flex-direction:column; gap:8px; flex:none; } .lsgo { text-align:center; font-size:16px; }
+  .lsfb { border-radius:8px; padding:10px 12px; font-size:14px; } .lsfb b { display:block; font-weight:500; margin-bottom:2px; } .lsfb small { display:block; margin-top:3px; color:var(--dim); }
+  .lsfb.good { background:rgba(120,220,140,0.12); color:#cdeed3; border:1px solid rgba(120,220,140,0.55); } .lsfb.good b { color:#9be8a8; }
+  .lsfb.bad { background:rgba(255,90,74,0.1); color:#ffd2cc; border:1px solid rgba(255,90,74,0.55); } .lsfb.bad b { color:#ffb0a8; }
+  .lsplay { width:auto; align-self:center; padding:8px 18px; border-radius:18px; font-size:14px; text-align:center; } .lsplay.big { padding:18px 32px; font-size:16px; border-color:var(--cyan); }
+  .lsmatch { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .lsmatch .col { gap:8px; } .lsmatch button { text-align:center; min-height:52px; padding:6px; font-size:16px; }
+  .lsmatch button.on { border-color:var(--cyan); color:var(--cyan); } .lsmatch button.done { opacity:0.2; } .lsmatch button.miss { border-color:var(--red); }
+  .lsdlg { display:flex; flex-direction:column; gap:6px; } .lsline { border:1px solid var(--line); border-radius:10px; padding:6px 10px; max-width:88%; align-self:flex-start; }
+  .lsline.me { align-self:flex-end; border-color:rgba(127,245,255,0.5); } .lsline i { font-style:normal; font-size:11px; color:var(--dim); display:block; } .lsline b { font-weight:500; } .lsline small { display:block; color:var(--dim); font-size:12px; }
+  .lsend { text-align:center; } h3.lsh { margin:6px 0 0; font-size:16px; font-weight:500; }
+  #lg-body .fmac span { line-height:1.2; } #lg-body .chip small { color:var(--dim); }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
@@ -257,7 +281,7 @@
   <h1>SURVIVORS<small>working build. The name is yours to pick.</small></h1>
   <button id="m-update" class="row primary" hidden></button>
   <div class="itip" id="m-refund" hidden><b>The Workshop now opens world by world</b><p>New things now open one world at a time, so every world brings something new. What you owned ahead of your progress was refunded in full and opens again in its world:</p><ul id="m-refund-list"></ul><button id="m-refund-ok">Got it</button></div>
-  <div class="itip" id="m-reset" hidden><b>A fresh start</b><p>Your game progress was reset, as you asked: gold, the Workshop, cleared zones, Endurance, looks, the tutorial and your workout streak. Your workouts, food log, bodyweight, goals and settings are all kept.</p><p>New from now on: log food and a workout on the same day to keep your upgrades. Miss days and Workshop levels start to rust.</p><button id="m-reset-ok">Got it</button></div>
+  <div class="itip" id="m-reset" hidden><b>A fresh start</b><p>Your game progress was reset, as you asked: gold, the Workshop, cleared zones, Endurance, looks, the tutorial and your workout streak. Your workouts, food log, bodyweight, goals and settings are all kept.</p><p>New from now on: log any 2 of food, a workout and a language lesson each day to keep your upgrades. Miss days and Workshop levels start to rust.</p><button id="m-reset-ok">Got it</button></div>
   <div class="itip" id="m-upkeep" hidden><b>Upkeep</b><ul id="m-upkeep-list"></ul><button id="m-upkeep-ok">Got it</button></div>
   <div class="itip" id="m-new" hidden><b>New since you last played</b><ul id="m-new-list"></ul><button id="m-new-ok">Got it</button></div>
   <div class="stat"><b id="m-gold">0</b> gold banked</div>
@@ -271,6 +295,7 @@
   <button id="btn-log">Log a workout</button>
   <button id="btn-food">Food and nutrients</button>
   <button id="btn-fitness">Fitness progress</button>
+  <button id="btn-lang">Languages</button>
   <button id="btn-help">How it works</button>
   <button id="btn-notes">Feedback notes</button>
   <button id="btn-settings">Settings</button>
@@ -461,6 +486,21 @@
   <button class="back">Back</button>
 </div></div>
 
+<div id="lang" class="screen fit"><div class="col">
+  <h2>Languages</h2>
+  <div class="itip" id="it-lang" hidden></div>
+  <div id="lg-tabs" class="tabs"></div>
+  <div id="lg-body" class="col grow"></div>
+  <p id="lg-msg" class="fnote"></p>
+  <button class="back">Back</button>
+</div></div>
+
+<div id="lesson" class="screen fit"><div class="col">
+  <div class="lshead"><button id="ls-quit">Quit</button><div class="lsbar"><i id="ls-prog"></i></div></div>
+  <div id="ls-body" class="col grow"></div>
+  <div id="ls-foot" class="lsfoot"></div>
+</div></div>
+
 <div id="fdckey" class="screen"><div class="col">
   <h2>Food database key</h2>
   <p>Food search uses USDA FoodData Central: the shared DEMO_KEY allows about 30 searches an hour. A free key from api.data.gov/signup lifts that.</p>
@@ -528,12 +568,2396 @@
 </div></div>
 
 <script>
+/*! ts-fsrs 5.4.2 | https://github.com/open-spaced-repetition/ts-fsrs
+MIT License
+
+Copyright (c) 2026 Open Spaced Repetition
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.FSRS = {}));
+})(this, (function (exports) { 'use strict';
+
+  class FSRSError extends Error {
+    constructor(message = "FSRS Error") {
+      var _a;
+      super(message);
+      this.name = "FSRSError";
+      (_a = Error.captureStackTrace) == null ? void 0 : _a.call(Error, this, FSRSError);
+    }
+  }
+  class FSRSValidationError extends FSRSError {
+    constructor(message) {
+      var _a;
+      super(message);
+      this.name = "FSRSValidationError";
+      (_a = Error.captureStackTrace) == null ? void 0 : _a.call(Error, this, FSRSValidationError);
+    }
+  }
+
+  var State = /* @__PURE__ */ ((State2) => {
+    State2[State2["New"] = 0] = "New";
+    State2[State2["Learning"] = 1] = "Learning";
+    State2[State2["Review"] = 2] = "Review";
+    State2[State2["Relearning"] = 3] = "Relearning";
+    return State2;
+  })(State || {});
+  var Rating = /* @__PURE__ */ ((Rating2) => {
+    Rating2[Rating2["Manual"] = 0] = "Manual";
+    Rating2[Rating2["Again"] = 1] = "Again";
+    Rating2[Rating2["Hard"] = 2] = "Hard";
+    Rating2[Rating2["Good"] = 3] = "Good";
+    Rating2[Rating2["Easy"] = 4] = "Easy";
+    return Rating2;
+  })(Rating || {});
+
+  var __defProp$6 = Object.defineProperty;
+  var __defProps$2 = Object.defineProperties;
+  var __getOwnPropDescs$2 = Object.getOwnPropertyDescriptors;
+  var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
+  var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
+  var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues$2 = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp$2.call(b, prop))
+        __defNormalProp$6(a, prop, b[prop]);
+    if (__getOwnPropSymbols$2)
+      for (var prop of __getOwnPropSymbols$2(b)) {
+        if (__propIsEnum$2.call(b, prop))
+          __defNormalProp$6(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps$2 = (a, b) => __defProps$2(a, __getOwnPropDescs$2(b));
+  class TypeConvert {
+    static card(card) {
+      return __spreadProps$2(__spreadValues$2({}, card), {
+        state: TypeConvert.state(card.state),
+        due: TypeConvert.time(card.due),
+        last_review: card.last_review ? TypeConvert.time(card.last_review) : void 0
+      });
+    }
+    static rating(value) {
+      if (typeof value === "string") {
+        const firstLetter = value.charAt(0).toUpperCase();
+        const restOfString = value.slice(1).toLowerCase();
+        const ret = Rating[`${firstLetter}${restOfString}`];
+        if (ret === void 0) {
+          throw new FSRSValidationError(`Invalid rating:[${value}]`);
+        }
+        return ret;
+      } else if (typeof value === "number") {
+        return value;
+      }
+      throw new FSRSValidationError(`Invalid rating:[${value}]`);
+    }
+    static state(value) {
+      if (typeof value === "string") {
+        const firstLetter = value.charAt(0).toUpperCase();
+        const restOfString = value.slice(1).toLowerCase();
+        const ret = State[`${firstLetter}${restOfString}`];
+        if (ret === void 0) {
+          throw new FSRSValidationError(`Invalid state:[${value}]`);
+        }
+        return ret;
+      } else if (typeof value === "number") {
+        return value;
+      }
+      throw new FSRSValidationError(`Invalid state:[${value}]`);
+    }
+    static time(value) {
+      if (value instanceof Date) {
+        return value;
+      }
+      const date = new Date(value);
+      if (typeof value === "object" && value !== null && !Number.isNaN(Date.parse(value) || +date)) {
+        return date;
+      } else if (typeof value === "string") {
+        const timestamp = Date.parse(value);
+        if (!Number.isNaN(timestamp)) {
+          return new Date(timestamp);
+        } else {
+          throw new FSRSValidationError(`Invalid date:[${value}]`);
+        }
+      } else if (typeof value === "number") {
+        return new Date(value);
+      }
+      throw new FSRSValidationError(`Invalid date:[${value}]`);
+    }
+    static review_log(log) {
+      return __spreadProps$2(__spreadValues$2({}, log), {
+        due: TypeConvert.time(log.due),
+        rating: TypeConvert.rating(log.rating),
+        state: TypeConvert.state(log.state),
+        review: TypeConvert.time(log.review)
+      });
+    }
+  }
+
+  /* istanbul ignore next -- @preserve */
+  Date.prototype.scheduler = function(t, isDay) {
+    return date_scheduler(this, t, isDay);
+  };
+  /* istanbul ignore next -- @preserve */
+  Date.prototype.diff = function(pre, unit) {
+    return date_diff(this, pre, unit);
+  };
+  /* istanbul ignore next -- @preserve */
+  Date.prototype.format = function() {
+    return formatDate(this);
+  };
+  /* istanbul ignore next -- @preserve */
+  Date.prototype.dueFormat = function(last_review, unit, timeUnit) {
+    return show_diff_message(this, last_review, unit, timeUnit);
+  };
+  function date_scheduler(now, t, isDay) {
+    return new Date(
+      isDay ? TypeConvert.time(now).getTime() + t * 24 * 60 * 60 * 1e3 : TypeConvert.time(now).getTime() + t * 60 * 1e3
+    );
+  }
+  function date_diff(now, pre, unit) {
+    if (!now || !pre) {
+      throw new FSRSValidationError("Invalid date");
+    }
+    const diff = TypeConvert.time(now).getTime() - TypeConvert.time(pre).getTime();
+    let r = 0;
+    switch (unit) {
+      case "days":
+        r = Math.floor(diff / (24 * 60 * 60 * 1e3));
+        break;
+      case "minutes":
+        r = Math.floor(diff / (60 * 1e3));
+        break;
+    }
+    return r;
+  }
+  function formatDate(dateInput) {
+    const date = TypeConvert.time(dateInput);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const seconds = date.getSeconds();
+    return `${year}-${padZero(month)}-${padZero(day)} ${padZero(hours)}:${padZero(
+    minutes
+  )}:${padZero(seconds)}`;
+  }
+  function padZero(num) {
+    return num < 10 ? `0${num}` : `${num}`;
+  }
+  const TIMEUNIT = [60, 60, 24, 31, 12];
+  const TIMEUNITFORMAT = ["second", "min", "hour", "day", "month", "year"];
+  function show_diff_message(due, last_review, unit, timeUnit = TIMEUNITFORMAT) {
+    due = TypeConvert.time(due);
+    last_review = TypeConvert.time(last_review);
+    if (timeUnit.length !== TIMEUNITFORMAT.length) {
+      timeUnit = TIMEUNITFORMAT;
+    }
+    let diff = due.getTime() - last_review.getTime();
+    let i = 0;
+    diff /= 1e3;
+    for (i = 0; i < TIMEUNIT.length; i++) {
+      if (diff < TIMEUNIT[i]) {
+        break;
+      } else {
+        diff /= TIMEUNIT[i];
+      }
+    }
+    return `${Math.floor(diff)}${unit ? timeUnit[i] : ""}`;
+  }
+  /* istanbul ignore next -- @preserve */
+  function fixDate(value) {
+    return TypeConvert.time(value);
+  }
+  /* istanbul ignore next -- @preserve */
+  function fixState(value) {
+    return TypeConvert.state(value);
+  }
+  /* istanbul ignore next -- @preserve */
+  function fixRating(value) {
+    return TypeConvert.rating(value);
+  }
+  const Grades = Object.freeze([
+    Rating.Again,
+    Rating.Hard,
+    Rating.Good,
+    Rating.Easy
+  ]);
+  const FUZZ_RANGES = [
+    {
+      start: 2.5,
+      end: 7,
+      factor: 0.15
+    },
+    {
+      start: 7,
+      end: 20,
+      factor: 0.1
+    },
+    {
+      start: 20,
+      end: Infinity,
+      factor: 0.05
+    }
+  ];
+  function get_fuzz_range(interval, elapsed_days, maximum_interval) {
+    let delta = 1;
+    for (const range of FUZZ_RANGES) {
+      delta += range.factor * Math.max(Math.min(interval, range.end) - range.start, 0);
+    }
+    interval = Math.min(interval, maximum_interval);
+    let min_ivl = Math.max(2, Math.round(interval - delta));
+    const max_ivl = Math.min(Math.round(interval + delta), maximum_interval);
+    if (interval > elapsed_days) {
+      min_ivl = Math.max(min_ivl, elapsed_days + 1);
+    }
+    min_ivl = Math.min(min_ivl, max_ivl);
+    return { min_ivl, max_ivl };
+  }
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+  function roundTo(num, decimals) {
+    const factor = 10 ** decimals;
+    return Math.round(num * factor) / factor;
+  }
+  function dateDiffInDays(last, cur) {
+    const utc1 = Date.UTC(
+      last.getUTCFullYear(),
+      last.getUTCMonth(),
+      last.getUTCDate()
+    );
+    const utc2 = Date.UTC(
+      cur.getUTCFullYear(),
+      cur.getUTCMonth(),
+      cur.getUTCDate()
+    );
+    return Math.floor(
+      (utc2 - utc1) / 864e5
+      /** 1000 * 60 * 60 * 24*/
+    );
+  }
+
+  const ConvertStepUnitToMinutes = (step) => {
+    const unit = step.slice(-1);
+    const value = parseInt(step.slice(0, -1), 10);
+    if (Number.isNaN(value) || !Number.isFinite(value) || value < 0) {
+      throw new FSRSValidationError(`Invalid step value: ${step}`);
+    }
+    switch (unit) {
+      case "m":
+        return value;
+      case "h":
+        return value * 60;
+      case "d":
+        return value * 1440;
+      default:
+        throw new FSRSValidationError(
+          `Invalid step unit: ${step}, expected m/h/d`
+        );
+    }
+  };
+  const BasicLearningStepsStrategy = (params, state, cur_step) => {
+    const learning_steps = state === State.Relearning || state === State.Review ? params.relearning_steps : params.learning_steps;
+    const steps_length = learning_steps.length;
+    if (steps_length === 0 || cur_step >= steps_length) return {};
+    const firstStep = learning_steps[0];
+    const toMinutes = ConvertStepUnitToMinutes;
+    const getAgainInterval = () => {
+      return toMinutes(firstStep);
+    };
+    const getHardInterval = () => {
+      if (steps_length === 1) return Math.round(toMinutes(firstStep) * 1.5);
+      const nextStep = learning_steps[1];
+      return Math.round((toMinutes(firstStep) + toMinutes(nextStep)) / 2);
+    };
+    const getStepInfo = (index) => {
+      if (index < 0 || index >= steps_length) {
+        return null;
+      } else {
+        return learning_steps[index];
+      }
+    };
+    const getGoodMinutes = (step) => {
+      return toMinutes(step);
+    };
+    const result = {};
+    const step_info = getStepInfo(Math.max(0, cur_step));
+    if (state === State.Review) {
+      result[Rating.Again] = {
+        scheduled_minutes: toMinutes(step_info),
+        next_step: 0
+      };
+      return result;
+    } else {
+      result[Rating.Again] = {
+        scheduled_minutes: getAgainInterval(),
+        next_step: 0
+      };
+      result[Rating.Hard] = {
+        scheduled_minutes: getHardInterval(),
+        next_step: cur_step
+      };
+      const next_info = getStepInfo(cur_step + 1);
+      if (next_info) {
+        const nextMin = getGoodMinutes(next_info);
+        if (nextMin) {
+          result[Rating.Good] = {
+            scheduled_minutes: Math.round(nextMin),
+            next_step: cur_step + 1
+          };
+        }
+      }
+    }
+    return result;
+  };
+
+  function DefaultInitSeedStrategy() {
+    const time = this.review_time.getTime();
+    const reps = this.current.reps;
+    const mul = this.current.difficulty * this.current.stability;
+    return `${time}_${reps}_${mul}`;
+  }
+  function GenSeedStrategyWithCardId(card_id_field) {
+    return function() {
+      var _a;
+      const card_id = (_a = Reflect.get(this.current, card_id_field)) != null ? _a : 0;
+      const reps = this.current.reps;
+      return String(card_id + reps || 0);
+    };
+  }
+
+  var StrategyMode = /* @__PURE__ */ ((StrategyMode2) => {
+    StrategyMode2["SCHEDULER"] = "Scheduler";
+    StrategyMode2["LEARNING_STEPS"] = "LearningSteps";
+    StrategyMode2["SEED"] = "Seed";
+    return StrategyMode2;
+  })(StrategyMode || {});
+
+  var __defProp$5 = Object.defineProperty;
+  var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField$5 = (obj, key, value) => __defNormalProp$5(obj, typeof key !== "symbol" ? key + "" : key, value);
+  class AbstractScheduler {
+    // init
+    constructor(card, now, algorithm, strategies) {
+      __publicField$5(this, "last");
+      __publicField$5(this, "current");
+      __publicField$5(this, "review_time");
+      __publicField$5(this, "next", /* @__PURE__ */ new Map());
+      __publicField$5(this, "algorithm");
+      __publicField$5(this, "strategies");
+      __publicField$5(this, "elapsed_days", 0);
+      this.algorithm = algorithm;
+      this.last = TypeConvert.card(card);
+      this.current = TypeConvert.card(card);
+      this.review_time = TypeConvert.time(now);
+      this.strategies = strategies;
+      this.init();
+    }
+    checkGrade(grade) {
+      if (!Number.isFinite(grade) || grade < 1 || grade > 4) {
+        throw new FSRSValidationError(`Invalid grade "${grade}",expected 1-4`);
+      }
+    }
+    init() {
+      const { state, last_review } = this.current;
+      let interval = 0;
+      if (state !== State.New && last_review) {
+        interval = dateDiffInDays(last_review, this.review_time);
+      }
+      this.current.last_review = this.review_time;
+      this.elapsed_days = interval;
+      this.current.elapsed_days = interval;
+      this.current.reps += 1;
+      let seed_strategy = DefaultInitSeedStrategy;
+      if (this.strategies) {
+        const custom_strategy = this.strategies.get(StrategyMode.SEED);
+        if (custom_strategy) {
+          seed_strategy = custom_strategy;
+        }
+      }
+      this.algorithm.seed = seed_strategy.call(this);
+    }
+    preview() {
+      return {
+        [Rating.Again]: this.review(Rating.Again),
+        [Rating.Hard]: this.review(Rating.Hard),
+        [Rating.Good]: this.review(Rating.Good),
+        [Rating.Easy]: this.review(Rating.Easy),
+        [Symbol.iterator]: this.previewIterator.bind(this)
+      };
+    }
+    *previewIterator() {
+      for (const grade of Grades) {
+        yield this.review(grade);
+      }
+    }
+    review(grade) {
+      const { state } = this.last;
+      let item;
+      this.checkGrade(grade);
+      switch (state) {
+        case State.New:
+          item = this.newState(grade);
+          break;
+        case State.Learning:
+        case State.Relearning:
+          item = this.learningState(grade);
+          break;
+        case State.Review:
+          item = this.reviewState(grade);
+          break;
+      }
+      return item;
+    }
+    buildLog(rating) {
+      const { last_review, due, elapsed_days } = this.last;
+      return {
+        rating,
+        state: this.current.state,
+        due: last_review || due,
+        stability: this.current.stability,
+        difficulty: this.current.difficulty,
+        elapsed_days: this.elapsed_days,
+        last_elapsed_days: elapsed_days,
+        scheduled_days: this.current.scheduled_days,
+        learning_steps: this.current.learning_steps,
+        review: this.review_time
+      };
+    }
+  }
+
+  var __defProp$4 = Object.defineProperty;
+  var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField$4 = (obj, key, value) => __defNormalProp$4(obj, typeof key !== "symbol" ? key + "" : key, value);
+  class Alea {
+    constructor(seed) {
+      __publicField$4(this, "c");
+      __publicField$4(this, "s0");
+      __publicField$4(this, "s1");
+      __publicField$4(this, "s2");
+      const mash = Mash();
+      this.c = 1;
+      this.s0 = mash(" ");
+      this.s1 = mash(" ");
+      this.s2 = mash(" ");
+      if (seed == null) seed = Date.now();
+      this.s0 -= mash(seed);
+      if (this.s0 < 0) this.s0 += 1;
+      this.s1 -= mash(seed);
+      if (this.s1 < 0) this.s1 += 1;
+      this.s2 -= mash(seed);
+      if (this.s2 < 0) this.s2 += 1;
+    }
+    next() {
+      const t = 2091639 * this.s0 + this.c * 23283064365386963e-26;
+      this.s0 = this.s1;
+      this.s1 = this.s2;
+      this.c = t | 0;
+      this.s2 = t - this.c;
+      return this.s2;
+    }
+    set state(state) {
+      this.c = state.c;
+      this.s0 = state.s0;
+      this.s1 = state.s1;
+      this.s2 = state.s2;
+    }
+    get state() {
+      return {
+        c: this.c,
+        s0: this.s0,
+        s1: this.s1,
+        s2: this.s2
+      };
+    }
+  }
+  function Mash() {
+    let n = 4022871197;
+    return function mash(data) {
+      data = String(data);
+      for (let i = 0; i < data.length; i++) {
+        n += data.charCodeAt(i);
+        let h = 0.02519603282416938 * n;
+        n = h >>> 0;
+        h -= n;
+        h *= n;
+        n = h >>> 0;
+        h -= n;
+        n += h * 4294967296;
+      }
+      return (n >>> 0) * 23283064365386963e-26;
+    };
+  }
+  function alea(seed) {
+    const xg = new Alea(seed);
+    const prng = () => xg.next();
+    prng.int32 = () => xg.next() * 4294967296 | 0;
+    prng.double = () => prng() + (prng() * 2097152 | 0) * 11102230246251565e-32;
+    prng.state = () => xg.state;
+    prng.importState = (state) => {
+      xg.state = state;
+      return prng;
+    };
+    return prng;
+  }
+
+  const version="5.4.2";
+
+  const default_request_retention = 0.9;
+  const default_maximum_interval = 36500;
+  const default_enable_fuzz = false;
+  const default_enable_short_term = true;
+  const default_learning_steps = Object.freeze([
+    "1m",
+    "10m"
+  ]);
+  const default_relearning_steps = Object.freeze([
+    "10m"
+  ]);
+  const FSRSVersion = `v${version} using FSRS-6.0`;
+  const S_MIN = 1e-3;
+  const S_MAX = 36500;
+  const INIT_S_MAX = 100;
+  const FSRS5_DEFAULT_DECAY = 0.5;
+  const FSRS6_DEFAULT_DECAY = 0.1542;
+  const default_w = Object.freeze([
+    0.212,
+    1.2931,
+    2.3065,
+    8.2956,
+    6.4133,
+    0.8334,
+    3.0194,
+    1e-3,
+    1.8722,
+    0.1666,
+    0.796,
+    1.4835,
+    0.0614,
+    0.2629,
+    1.6483,
+    0.6014,
+    1.8729,
+    0.5425,
+    0.0912,
+    0.0658,
+    FSRS6_DEFAULT_DECAY
+  ]);
+  const W17_W18_Ceiling = 2;
+  const CLAMP_PARAMETERS = (w17_w18_ceiling, enable_short_term = default_enable_short_term) => [
+    [S_MIN, INIT_S_MAX],
+    [S_MIN, INIT_S_MAX],
+    [S_MIN, INIT_S_MAX],
+    [S_MIN, INIT_S_MAX],
+    [1, 10],
+    [1e-3, 4],
+    [1e-3, 4],
+    [1e-3, 0.75],
+    [0, 4.5],
+    [0, 0.8],
+    [1e-3, 3.5],
+    [1e-3, 5],
+    [1e-3, 0.25],
+    [1e-3, 0.9],
+    [0, 4],
+    [0, 1],
+    [1, 6],
+    [0, w17_w18_ceiling],
+    [0, w17_w18_ceiling],
+    [
+      enable_short_term ? 0.01 : 0,
+      0.8
+    ],
+    [0.1, 0.8]
+  ];
+
+  const clipParameters = (parameters, numRelearningSteps, enableShortTerm = default_enable_short_term) => {
+    const clip = CLAMP_PARAMETERS(W17_W18_Ceiling, enableShortTerm).slice(
+      0,
+      parameters.length
+    );
+    if (Math.max(0, numRelearningSteps) > 1) {
+      const w11 = clamp(parameters[11] || 0, clip[11][0], clip[11][1]);
+      const w13 = clamp(parameters[13] || 0, clip[13][0], clip[13][1]);
+      const w14 = clamp(parameters[14] || 0, clip[14][0], clip[14][1]);
+      const value = -(Math.log(w11) + Math.log(Math.pow(2, w13) - 1) + w14 * 0.3) / numRelearningSteps;
+      const w17_w18_ceiling = clamp(
+        roundTo(Math.sqrt(Math.max(value, 0)), 8),
+        0.01,
+        W17_W18_Ceiling
+      );
+      if (clip[17]) clip[17] = [clip[17][0], w17_w18_ceiling];
+      if (clip[18]) clip[18] = [clip[18][0], w17_w18_ceiling];
+    }
+    return clip.map(
+      ([min, max], index) => clamp(parameters[index] || 0, min, max)
+    );
+  };
+  const checkParameters = (parameters) => {
+    const invalid = parameters.find((param) => !Number.isFinite(param));
+    if (invalid !== void 0) {
+      throw new FSRSValidationError(
+        `Non-finite or NaN value in parameters ${parameters}`
+      );
+    } else if (![17, 19, 21].includes(parameters.length)) {
+      throw new FSRSValidationError(
+        `Invalid parameter length: ${parameters.length}. Must be 17, 19 or 21 for FSRSv4, 5 and 6 respectively.`
+      );
+    }
+    return parameters;
+  };
+  const migrateParameters = (parameters, numRelearningSteps = 0, enableShortTerm = default_enable_short_term) => {
+    if (parameters === void 0) {
+      return [...default_w];
+    }
+    switch (parameters.length) {
+      case 21:
+        return clipParameters(
+          Array.from(parameters),
+          numRelearningSteps,
+          enableShortTerm
+        );
+      case 19:
+        console.debug("[FSRS-6]auto fill w from 19 to 21 length");
+        return clipParameters(
+          Array.from(parameters),
+          numRelearningSteps,
+          enableShortTerm
+        ).concat([0, FSRS5_DEFAULT_DECAY]);
+      case 17: {
+        const w = clipParameters(
+          Array.from(parameters),
+          numRelearningSteps,
+          enableShortTerm
+        );
+        w[4] = +(w[5] * 2 + w[4]).toFixed(8);
+        w[5] = +(Math.log(w[5] * 3 + 1) / 3).toFixed(8);
+        w[6] = +(w[6] + 0.5).toFixed(8);
+        console.debug("[FSRS-6]auto fill w from 17 to 21 length");
+        return w.concat([0, 0, 0, FSRS5_DEFAULT_DECAY]);
+      }
+      default:
+        console.warn("[FSRS]Invalid parameters length, using default parameters");
+        return [...default_w];
+    }
+  };
+  const generatorParameters = (props) => {
+    var _a, _b;
+    const learning_steps = Array.isArray(props == null ? void 0 : props.learning_steps) ? props.learning_steps : default_learning_steps;
+    const relearning_steps = Array.isArray(props == null ? void 0 : props.relearning_steps) ? props.relearning_steps : default_relearning_steps;
+    const enable_short_term = (_a = props == null ? void 0 : props.enable_short_term) != null ? _a : default_enable_short_term;
+    const w = migrateParameters(
+      props == null ? void 0 : props.w,
+      relearning_steps.length,
+      enable_short_term
+    );
+    return {
+      request_retention: (props == null ? void 0 : props.request_retention) || default_request_retention,
+      maximum_interval: (props == null ? void 0 : props.maximum_interval) || default_maximum_interval,
+      w,
+      enable_fuzz: (_b = props == null ? void 0 : props.enable_fuzz) != null ? _b : default_enable_fuzz,
+      enable_short_term,
+      learning_steps,
+      relearning_steps
+    };
+  };
+  function createEmptyCard(now, afterHandler) {
+    const emptyCard = {
+      due: now ? TypeConvert.time(now) : /* @__PURE__ */ new Date(),
+      stability: 0,
+      difficulty: 0,
+      elapsed_days: 0,
+      scheduled_days: 0,
+      reps: 0,
+      lapses: 0,
+      learning_steps: 0,
+      state: State.New,
+      last_review: void 0
+    };
+    if (afterHandler && typeof afterHandler === "function") {
+      return afterHandler(emptyCard);
+    } else {
+      return emptyCard;
+    }
+  }
+
+  var __defProp$3 = Object.defineProperty;
+  var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField$3 = (obj, key, value) => __defNormalProp$3(obj, typeof key !== "symbol" ? key + "" : key, value);
+  const computeDecayFactor = (decayOrParams) => {
+    const decay = typeof decayOrParams === "number" ? -decayOrParams : -decayOrParams[20];
+    const factor = Math.exp(Math.pow(decay, -1) * Math.log(0.9)) - 1;
+    return { decay, factor: roundTo(factor, 8) };
+  };
+  function forgetting_curve(decayOrParams, elapsed_days, stability) {
+    const { decay, factor } = computeDecayFactor(decayOrParams);
+    return roundTo(Math.pow(1 + factor * elapsed_days / stability, decay), 8);
+  }
+  class FSRSAlgorithm {
+    constructor(params) {
+      __publicField$3(this, "param");
+      __publicField$3(this, "intervalModifier");
+      __publicField$3(this, "_seed");
+      __publicField$3(this, "prepare_parameters", (params) => {
+        const generated = generatorParameters(params);
+        generated.w = clipParameters(
+          Array.from(generated.w),
+          generated.relearning_steps.length,
+          generated.enable_short_term
+        );
+        return generated;
+      });
+      /**
+       * The formula used is :
+       * $$R(t,S) = (1 + \text{FACTOR} \times \frac{t}{9 \cdot S})^{\text{DECAY}}$$
+       * @param {number} elapsed_days t days since the last review
+       * @param {number} stability Stability (interval when R=90%)
+       * @return {number} r Retrievability (probability of recall)
+       */
+      __publicField$3(this, "forgetting_curve");
+      this.param = new Proxy(
+        this.prepare_parameters(params),
+        this.params_handler_proxy()
+      );
+      this.intervalModifier = this.calculate_interval_modifier(
+        this.param.request_retention
+      );
+      this.forgetting_curve = forgetting_curve.bind(this, this.param.w);
+    }
+    get interval_modifier() {
+      return this.intervalModifier;
+    }
+    set seed(seed) {
+      this._seed = seed;
+    }
+    /**
+     * @see https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm#fsrs-5
+     *
+     * The formula used is: $$I(r,s) = (r^{\frac{1}{DECAY}} - 1) / FACTOR \times s$$
+     * @param request_retention 0<request_retention<=1,Requested retention rate
+     * @throws {Error} Requested retention rate should be in the range (0,1]
+     */
+    calculate_interval_modifier(request_retention) {
+      if (request_retention <= 0 || request_retention > 1) {
+        throw new FSRSValidationError(
+          "Requested retention rate should be in the range (0,1]"
+        );
+      }
+      const { decay, factor } = computeDecayFactor(this.param.w);
+      return roundTo((Math.pow(request_retention, 1 / decay) - 1) / factor, 8);
+    }
+    /**
+     * Get the parameters of the algorithm.
+     */
+    get parameters() {
+      return this.param;
+    }
+    /**
+     * Set the parameters of the algorithm.
+     * @param params Partial<FSRSParameters>
+     */
+    set parameters(params) {
+      this.update_parameters(params);
+    }
+    params_handler_proxy() {
+      const _this = this;
+      return {
+        set: function(target, prop, value) {
+          if (prop === "request_retention" && Number.isFinite(value)) {
+            _this.intervalModifier = _this.calculate_interval_modifier(
+              Number(value)
+            );
+          } else if (prop === "w") {
+            value = migrateParameters(
+              value,
+              target.relearning_steps.length,
+              target.enable_short_term
+            );
+            value = clipParameters(
+              Array.from(value),
+              target.relearning_steps.length,
+              target.enable_short_term
+            );
+            _this.forgetting_curve = forgetting_curve.bind(this, value);
+            _this.intervalModifier = _this.calculate_interval_modifier(
+              Number(target.request_retention)
+            );
+          }
+          Reflect.set(target, prop, value);
+          return true;
+        }
+      };
+    }
+    update_parameters(params) {
+      const _params = this.prepare_parameters(params);
+      for (const key in _params) {
+        const paramKey = key;
+        this.param[paramKey] = _params[paramKey];
+      }
+    }
+    /**
+       * The formula used is :
+       * $$ S_0(G) = w_{G-1}$$
+       * $$S_0 = \max \lbrace S_0,0.1\rbrace $$
+    
+       * @param g Grade (rating at Anki) [1.again,2.hard,3.good,4.easy]
+       * @return Stability (interval when R=90%)
+       */
+    init_stability(g) {
+      return Math.max(this.param.w[g - 1], 0.1);
+    }
+    /**
+     * The formula used is :
+     * $$D_0(G) = w_4 - e^{(G-1) \cdot w_5} + 1 $$
+     * $$D_0 = \min \lbrace \max \lbrace D_0(G),1 \rbrace,10 \rbrace$$
+     * where the $$D_0(1)=w_4$$ when the first rating is good.
+     *
+     * @param {Grade} g Grade (rating at Anki) [1.again,2.hard,3.good,4.easy]
+     * @return {number} Difficulty $$D \in [1,10]$$
+     */
+    init_difficulty(g) {
+      const w = this.param.w;
+      const d = w[4] - Math.exp((g - 1) * w[5]) + 1;
+      return roundTo(d, 8);
+    }
+    /**
+     * If fuzzing is disabled or ivl is less than 2.5, it returns the original interval.
+     * @param {number} ivl - The interval to be fuzzed.
+     * @param {number} elapsed_days t days since the last review
+     * @return {number} - The fuzzed interval.
+     **/
+    apply_fuzz(ivl, elapsed_days) {
+      if (!this.param.enable_fuzz || ivl < 2.5) return Math.round(ivl);
+      const generator = alea(this._seed);
+      const fuzz_factor = generator();
+      const { min_ivl, max_ivl } = get_fuzz_range(
+        ivl,
+        elapsed_days,
+        this.param.maximum_interval
+      );
+      return Math.floor(fuzz_factor * (max_ivl - min_ivl + 1) + min_ivl);
+    }
+    /**
+     *   @see The formula used is : {@link FSRSAlgorithm.calculate_interval_modifier}
+     *   @param {number} s - Stability (interval when R=90%)
+     *   @param {number} elapsed_days t days since the last review
+     */
+    next_interval(s, elapsed_days) {
+      const newInterval = Math.min(
+        Math.max(1, Math.round(s * this.intervalModifier)),
+        this.param.maximum_interval
+      );
+      return this.apply_fuzz(newInterval, elapsed_days);
+    }
+    /**
+     * @see https://github.com/open-spaced-repetition/fsrs4anki/issues/697
+     */
+    linear_damping(delta_d, old_d) {
+      return roundTo(delta_d * (10 - old_d) / 9, 8);
+    }
+    /**
+     * The formula used is :
+     * $$\text{delta}_d = -w_6 \cdot (g - 3)$$
+     * $$\text{next}_d = D + \text{linear damping}(\text{delta}_d , D)$$
+     * $$D^\prime(D,R) = w_7 \cdot D_0(4) +(1 - w_7) \cdot \text{next}_d$$
+     * @param {number} d Difficulty $$D \in [1,10]$$
+     * @param {Grade} g Grade (rating at Anki) [1.again,2.hard,3.good,4.easy]
+     * @return {number} $$\text{next}_D$$
+     */
+    next_difficulty(d, g) {
+      const delta_d = -this.param.w[6] * (g - 3);
+      const next_d = d + this.linear_damping(delta_d, d);
+      return clamp(
+        this.mean_reversion(this.init_difficulty(Rating.Easy), next_d),
+        1,
+        10
+      );
+    }
+    /**
+     * The formula used is :
+     * $$w_7 \cdot \text{init} +(1 - w_7) \cdot \text{current}$$
+     * @param {number} init $$w_2 : D_0(3) = w_2 + (R-2) \cdot w_3= w_2$$
+     * @param {number} current $$D - w_6 \cdot (R - 2)$$
+     * @return {number} difficulty
+     */
+    mean_reversion(init, current) {
+      const w = this.param.w;
+      return roundTo(w[7] * init + (1 - w[7]) * current, 8);
+    }
+    /**
+     * The formula used is :
+     * $$S^\prime_r(D,S,R,G) = S\cdot(e^{w_8}\cdot (11-D)\cdot S^{-w_9}\cdot(e^{w_{10}\cdot(1-R)}-1)\cdot w_{15}(\text{if} G=2) \cdot w_{16}(\text{if} G=4)+1)$$
+     * @param {number} d Difficulty D \in [1,10]
+     * @param {number} s Stability (interval when R=90%)
+     * @param {number} r Retrievability (probability of recall)
+     * @param {Grade} g Grade (Rating[0.again,1.hard,2.good,3.easy])
+     * @return {number} S^\prime_r new stability after recall
+     */
+    next_recall_stability(d, s, r, g) {
+      const w = this.param.w;
+      const hard_penalty = Rating.Hard === g ? w[15] : 1;
+      const easy_bound = Rating.Easy === g ? w[16] : 1;
+      return roundTo(
+        clamp(
+          s * (1 + Math.exp(w[8]) * (11 - d) * Math.pow(s, -w[9]) * (Math.exp((1 - r) * w[10]) - 1) * hard_penalty * easy_bound),
+          S_MIN,
+          36500
+        ),
+        8
+      );
+    }
+    /**
+     * The formula used is :
+     * $$S^\prime_f(D,S,R) = w_{11}\cdot D^{-w_{12}}\cdot ((S+1)^{w_{13}}-1) \cdot e^{w_{14}\cdot(1-R)}$$
+     * enable_short_term = true : $$S^\prime_f \in \min \lbrace \max \lbrace S^\prime_f,0.01\rbrace, \frac{S}{e^{w_{17} \cdot w_{18}}} \rbrace$$
+     * enable_short_term = false : $$S^\prime_f \in \min \lbrace \max \lbrace S^\prime_f,0.01\rbrace, S \rbrace$$
+     * @param {number} d Difficulty D \in [1,10]
+     * @param {number} s Stability (interval when R=90%)
+     * @param {number} r Retrievability (probability of recall)
+     * @return {number} S^\prime_f new stability after forgetting
+     */
+    next_forget_stability(d, s, r) {
+      const w = this.param.w;
+      return roundTo(
+        clamp(
+          w[11] * Math.pow(d, -w[12]) * (Math.pow(s + 1, w[13]) - 1) * Math.exp((1 - r) * w[14]),
+          S_MIN,
+          36500
+        ),
+        8
+      );
+    }
+    /**
+     * The formula used is :
+     * $$S^\prime_s(S,G) = S \cdot e^{w_{17} \cdot (G-3+w_{18})}$$
+     * @param {number} s Stability (interval when R=90%)
+     * @param {Grade} g Grade (Rating[0.again,1.hard,2.good,3.easy])
+     */
+    next_short_term_stability(s, g) {
+      const w = this.param.w;
+      const sinc = Math.pow(s, -w[19]) * Math.exp(w[17] * (g - 3 + w[18]));
+      const maskedSinc = g >= Rating.Hard ? Math.max(sinc, 1) : sinc;
+      return roundTo(clamp(s * maskedSinc, S_MIN, 36500), 8);
+    }
+    /**
+     * Calculates the next state of memory based on the current state, time elapsed, and grade.
+     *
+     * @param memory_state - The current state of memory, which can be null.
+     * @param t - The time elapsed since the last review.
+     * @param {Rating} g Grade (Rating[0.Manual,1.Again,2.Hard,3.Good,4.Easy])
+     * @param r - Optional retrievability value. If not provided, it will be calculated.
+     * @returns The next state of memory with updated difficulty and stability.
+     */
+    next_state(memory_state, t, g, r) {
+      const { difficulty: d, stability: s } = memory_state != null ? memory_state : {
+        difficulty: 0,
+        stability: 0
+      };
+      if (t < 0) {
+        throw new FSRSValidationError(`Invalid delta_t "${t}"`);
+      }
+      if (g < 0 || g > 4) {
+        throw new FSRSValidationError(`Invalid grade "${g}"`);
+      }
+      if (d === 0 && s === 0) {
+        return {
+          difficulty: clamp(this.init_difficulty(g), 1, 10),
+          stability: this.init_stability(g)
+        };
+      }
+      if (g === 0) {
+        return {
+          difficulty: d,
+          stability: s
+        };
+      }
+      if (d < 1 || s < S_MIN) {
+        throw new FSRSValidationError(
+          `Invalid memory state { difficulty: ${d}, stability: ${s} }`
+        );
+      }
+      const w = this.param.w;
+      r = typeof r === "number" ? r : this.forgetting_curve(t, s);
+      let new_s;
+      if (t === 0 && this.param.enable_short_term) {
+        new_s = this.next_short_term_stability(s, g);
+      } else if (g === 1) {
+        const s_after_fail = this.next_forget_stability(d, s, r);
+        let [w_17, w_18] = [0, 0];
+        if (this.param.enable_short_term) {
+          w_17 = w[17];
+          w_18 = w[18];
+        }
+        const next_s_min = s / Math.exp(w_17 * w_18);
+        new_s = clamp(roundTo(next_s_min, 8), S_MIN, s_after_fail);
+      } else {
+        new_s = this.next_recall_stability(d, s, r, g);
+      }
+      const new_d = this.next_difficulty(d, g);
+      return { difficulty: new_d, stability: new_s };
+    }
+  }
+
+  var __defProp$2 = Object.defineProperty;
+  var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField$2 = (obj, key, value) => __defNormalProp$2(obj, key + "" , value);
+  class BasicScheduler extends AbstractScheduler {
+    constructor(card, now, algorithm, strategies) {
+      super(card, now, algorithm, strategies);
+      __publicField$2(this, "learningStepsStrategy");
+      let learningStepStrategy = BasicLearningStepsStrategy;
+      if (this.strategies) {
+        const custom_strategy = this.strategies.get(StrategyMode.LEARNING_STEPS);
+        if (custom_strategy) {
+          learningStepStrategy = custom_strategy;
+        }
+      }
+      this.learningStepsStrategy = learningStepStrategy;
+    }
+    getLearningInfo(card, grade) {
+      var _a, _b, _c, _d;
+      const parameters = this.algorithm.parameters;
+      card.learning_steps = card.learning_steps || 0;
+      const steps_strategy = this.learningStepsStrategy(
+        parameters,
+        card.state,
+        card.learning_steps
+      );
+      const scheduled_minutes = Math.max(
+        0,
+        (_b = (_a = steps_strategy[grade]) == null ? void 0 : _a.scheduled_minutes) != null ? _b : 0
+      );
+      const next_steps = Math.max(0, (_d = (_c = steps_strategy[grade]) == null ? void 0 : _c.next_step) != null ? _d : 0);
+      return {
+        scheduled_minutes,
+        next_steps
+      };
+    }
+    /**
+     * @description This function applies the learning steps based on the current card's state and grade.
+     */
+    applyLearningSteps(nextCard, grade, to_state) {
+      const { scheduled_minutes, next_steps } = this.getLearningInfo(
+        this.current,
+        grade
+      );
+      if (scheduled_minutes > 0 && scheduled_minutes < 1440) {
+        nextCard.learning_steps = next_steps;
+        nextCard.scheduled_days = 0;
+        nextCard.state = to_state;
+        nextCard.due = date_scheduler(
+          this.review_time,
+          Math.round(scheduled_minutes),
+          false
+          /** true:days false: minute */
+        );
+      } else {
+        nextCard.state = State.Review;
+        if (scheduled_minutes >= 1440) {
+          nextCard.learning_steps = next_steps;
+          nextCard.due = date_scheduler(
+            this.review_time,
+            Math.round(scheduled_minutes),
+            false
+            /** true:days false: minute */
+          );
+          nextCard.scheduled_days = Math.floor(scheduled_minutes / 1440);
+        } else {
+          nextCard.learning_steps = 0;
+          const interval = this.algorithm.next_interval(
+            nextCard.stability,
+            this.elapsed_days
+          );
+          nextCard.scheduled_days = interval;
+          nextCard.due = date_scheduler(this.review_time, interval, true);
+        }
+      }
+    }
+    newState(grade) {
+      const exist = this.next.get(grade);
+      if (exist) {
+        return exist;
+      }
+      const next = this.next_ds(this.elapsed_days, grade);
+      this.applyLearningSteps(next, grade, State.Learning);
+      const item = {
+        card: next,
+        log: this.buildLog(grade)
+      };
+      this.next.set(grade, item);
+      return item;
+    }
+    learningState(grade) {
+      const exist = this.next.get(grade);
+      if (exist) {
+        return exist;
+      }
+      const next = this.next_ds(this.elapsed_days, grade);
+      this.applyLearningSteps(
+        next,
+        grade,
+        this.last.state
+        /** Learning or Relearning */
+      );
+      const item = {
+        card: next,
+        log: this.buildLog(grade)
+      };
+      this.next.set(grade, item);
+      return item;
+    }
+    reviewState(grade) {
+      const exist = this.next.get(grade);
+      if (exist) {
+        return exist;
+      }
+      const interval = this.elapsed_days;
+      const retrievability = this.algorithm.forgetting_curve(
+        interval,
+        this.current.stability
+      );
+      const next_again = this.next_ds(interval, Rating.Again, retrievability);
+      const next_hard = this.next_ds(interval, Rating.Hard, retrievability);
+      const next_good = this.next_ds(interval, Rating.Good, retrievability);
+      const next_easy = this.next_ds(interval, Rating.Easy, retrievability);
+      this.next_interval(next_hard, next_good, next_easy, interval);
+      this.next_state(next_hard, next_good, next_easy);
+      this.applyLearningSteps(next_again, Rating.Again, State.Relearning);
+      next_again.lapses += 1;
+      const item_again = {
+        card: next_again,
+        log: this.buildLog(Rating.Again)
+      };
+      const item_hard = {
+        card: next_hard,
+        log: super.buildLog(Rating.Hard)
+      };
+      const item_good = {
+        card: next_good,
+        log: super.buildLog(Rating.Good)
+      };
+      const item_easy = {
+        card: next_easy,
+        log: super.buildLog(Rating.Easy)
+      };
+      this.next.set(Rating.Again, item_again);
+      this.next.set(Rating.Hard, item_hard);
+      this.next.set(Rating.Good, item_good);
+      this.next.set(Rating.Easy, item_easy);
+      return this.next.get(grade);
+    }
+    /**
+     * Review next_ds
+     */
+    next_ds(t, g, r) {
+      const next_state = this.algorithm.next_state(
+        {
+          difficulty: this.current.difficulty,
+          stability: this.current.stability
+        },
+        t,
+        g,
+        r
+      );
+      const card = TypeConvert.card(this.current);
+      card.difficulty = next_state.difficulty;
+      card.stability = next_state.stability;
+      return card;
+    }
+    /**
+     * Review next_interval
+     */
+    next_interval(next_hard, next_good, next_easy, interval) {
+      let hard_interval, good_interval;
+      hard_interval = this.algorithm.next_interval(next_hard.stability, interval);
+      good_interval = this.algorithm.next_interval(next_good.stability, interval);
+      hard_interval = Math.min(hard_interval, good_interval);
+      good_interval = Math.max(good_interval, hard_interval + 1);
+      const easy_interval = Math.max(
+        this.algorithm.next_interval(next_easy.stability, interval),
+        good_interval + 1
+      );
+      next_hard.scheduled_days = hard_interval;
+      next_hard.due = date_scheduler(this.review_time, hard_interval, true);
+      next_good.scheduled_days = good_interval;
+      next_good.due = date_scheduler(this.review_time, good_interval, true);
+      next_easy.scheduled_days = easy_interval;
+      next_easy.due = date_scheduler(this.review_time, easy_interval, true);
+    }
+    /**
+     * Review next_state
+     */
+    next_state(next_hard, next_good, next_easy) {
+      next_hard.state = State.Review;
+      next_hard.learning_steps = 0;
+      next_good.state = State.Review;
+      next_good.learning_steps = 0;
+      next_easy.state = State.Review;
+      next_easy.learning_steps = 0;
+    }
+  }
+
+  class LongTermScheduler extends AbstractScheduler {
+    newState(grade) {
+      const exist = this.next.get(grade);
+      if (exist) {
+        return exist;
+      }
+      this.current.scheduled_days = 0;
+      this.current.elapsed_days = 0;
+      const first_interval = 0;
+      const next_again = this.next_ds(first_interval, Rating.Again);
+      const next_hard = this.next_ds(first_interval, Rating.Hard);
+      const next_good = this.next_ds(first_interval, Rating.Good);
+      const next_easy = this.next_ds(first_interval, Rating.Easy);
+      this.next_interval(
+        next_again,
+        next_hard,
+        next_good,
+        next_easy,
+        first_interval
+      );
+      this.next_state(next_again, next_hard, next_good, next_easy);
+      this.update_next(next_again, next_hard, next_good, next_easy);
+      return this.next.get(grade);
+    }
+    next_ds(t, g, r) {
+      const next_state = this.algorithm.next_state(
+        {
+          difficulty: this.current.difficulty,
+          stability: this.current.stability
+        },
+        t,
+        g,
+        r
+      );
+      const card = TypeConvert.card(this.current);
+      card.difficulty = next_state.difficulty;
+      card.stability = next_state.stability;
+      return card;
+    }
+    /**
+     * @see https://github.com/open-spaced-repetition/ts-fsrs/issues/98#issuecomment-2241923194
+     */
+    learningState(grade) {
+      return this.reviewState(grade);
+    }
+    reviewState(grade) {
+      const exist = this.next.get(grade);
+      if (exist) {
+        return exist;
+      }
+      const interval = this.elapsed_days;
+      const retrievability = this.algorithm.forgetting_curve(
+        interval,
+        this.current.stability
+      );
+      const next_again = this.next_ds(interval, Rating.Again, retrievability);
+      const next_hard = this.next_ds(interval, Rating.Hard, retrievability);
+      const next_good = this.next_ds(interval, Rating.Good, retrievability);
+      const next_easy = this.next_ds(interval, Rating.Easy, retrievability);
+      this.next_interval(next_again, next_hard, next_good, next_easy, interval);
+      this.next_state(next_again, next_hard, next_good, next_easy);
+      next_again.lapses += 1;
+      this.update_next(next_again, next_hard, next_good, next_easy);
+      return this.next.get(grade);
+    }
+    /**
+     * Review/New next_interval
+     */
+    next_interval(next_again, next_hard, next_good, next_easy, interval) {
+      let again_interval, hard_interval, good_interval, easy_interval;
+      again_interval = this.algorithm.next_interval(
+        next_again.stability,
+        interval
+      );
+      hard_interval = this.algorithm.next_interval(next_hard.stability, interval);
+      good_interval = this.algorithm.next_interval(next_good.stability, interval);
+      easy_interval = this.algorithm.next_interval(next_easy.stability, interval);
+      again_interval = Math.min(again_interval, hard_interval);
+      hard_interval = Math.max(hard_interval, again_interval + 1);
+      good_interval = Math.max(good_interval, hard_interval + 1);
+      easy_interval = Math.max(easy_interval, good_interval + 1);
+      next_again.scheduled_days = again_interval;
+      next_again.due = date_scheduler(this.review_time, again_interval, true);
+      next_hard.scheduled_days = hard_interval;
+      next_hard.due = date_scheduler(this.review_time, hard_interval, true);
+      next_good.scheduled_days = good_interval;
+      next_good.due = date_scheduler(this.review_time, good_interval, true);
+      next_easy.scheduled_days = easy_interval;
+      next_easy.due = date_scheduler(this.review_time, easy_interval, true);
+    }
+    /**
+     * Review/New next_state
+     */
+    next_state(next_again, next_hard, next_good, next_easy) {
+      next_again.state = State.Review;
+      next_again.learning_steps = 0;
+      next_hard.state = State.Review;
+      next_hard.learning_steps = 0;
+      next_good.state = State.Review;
+      next_good.learning_steps = 0;
+      next_easy.state = State.Review;
+      next_easy.learning_steps = 0;
+    }
+    update_next(next_again, next_hard, next_good, next_easy) {
+      const item_again = {
+        card: next_again,
+        log: this.buildLog(Rating.Again)
+      };
+      const item_hard = {
+        card: next_hard,
+        log: super.buildLog(Rating.Hard)
+      };
+      const item_good = {
+        card: next_good,
+        log: super.buildLog(Rating.Good)
+      };
+      const item_easy = {
+        card: next_easy,
+        log: super.buildLog(Rating.Easy)
+      };
+      this.next.set(Rating.Again, item_again);
+      this.next.set(Rating.Hard, item_hard);
+      this.next.set(Rating.Good, item_good);
+      this.next.set(Rating.Easy, item_easy);
+    }
+  }
+
+  var __defProp$1 = Object.defineProperty;
+  var __defProps$1 = Object.defineProperties;
+  var __getOwnPropDescs$1 = Object.getOwnPropertyDescriptors;
+  var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+  var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
+  var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues$1 = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp$1.call(b, prop))
+        __defNormalProp$1(a, prop, b[prop]);
+    if (__getOwnPropSymbols$1)
+      for (var prop of __getOwnPropSymbols$1(b)) {
+        if (__propIsEnum$1.call(b, prop))
+          __defNormalProp$1(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps$1 = (a, b) => __defProps$1(a, __getOwnPropDescs$1(b));
+  var __publicField$1 = (obj, key, value) => __defNormalProp$1(obj, key + "" , value);
+  class Reschedule {
+    /**
+     * Creates an instance of the `Reschedule` class.
+     * @param fsrs - An instance of the FSRS class used for scheduling.
+     */
+    constructor(fsrs) {
+      __publicField$1(this, "fsrs");
+      this.fsrs = fsrs;
+    }
+    /**
+     * Replays a review for a card and determines the next review date based on the given rating.
+     * @param card - The card being reviewed.
+     * @param reviewed - The date the card was reviewed.
+     * @param rating - The grade given to the card during the review.
+     * @returns A `RecordLogItem` containing the updated card and review log.
+     */
+    replay(card, reviewed, rating) {
+      return this.fsrs.next(card, reviewed, rating);
+    }
+    /**
+     * Processes a manual review for a card, allowing for custom state, stability, difficulty, and due date.
+     * @param card - The card being reviewed.
+     * @param state - The state of the card after the review.
+     * @param reviewed - The date the card was reviewed.
+     * @param elapsed_days - The number of days since the last review.
+     * @param stability - (Optional) The stability of the card.
+     * @param difficulty - (Optional) The difficulty of the card.
+     * @param due - (Optional) The due date for the next review.
+     * @returns A `RecordLogItem` containing the updated card and review log.
+     * @throws Will throw an error if the state or due date is not provided when required.
+     */
+    handleManualRating(card, state, reviewed, elapsed_days, stability, difficulty, due) {
+      if (typeof state === "undefined") {
+        throw new FSRSValidationError(
+          "reschedule: state is required for manual rating"
+        );
+      }
+      let log;
+      let next_card;
+      if (state === State.New) {
+        log = {
+          rating: Rating.Manual,
+          state,
+          due: due != null ? due : reviewed,
+          stability: card.stability,
+          difficulty: card.difficulty,
+          elapsed_days,
+          last_elapsed_days: card.elapsed_days,
+          scheduled_days: card.scheduled_days,
+          learning_steps: card.learning_steps,
+          review: reviewed
+        };
+        next_card = createEmptyCard(reviewed);
+        next_card.last_review = reviewed;
+      } else {
+        if (typeof due === "undefined") {
+          throw new FSRSValidationError(
+            "reschedule: due is required for manual rating"
+          );
+        }
+        const scheduled_days = date_diff(due, reviewed, "days");
+        log = {
+          rating: Rating.Manual,
+          state: card.state,
+          due: card.last_review || card.due,
+          stability: card.stability,
+          difficulty: card.difficulty,
+          elapsed_days,
+          last_elapsed_days: card.elapsed_days,
+          scheduled_days: card.scheduled_days,
+          learning_steps: card.learning_steps,
+          review: reviewed
+        };
+        next_card = __spreadProps$1(__spreadValues$1({}, card), {
+          state,
+          due,
+          last_review: reviewed,
+          stability: stability || card.stability,
+          difficulty: difficulty || card.difficulty,
+          elapsed_days,
+          scheduled_days,
+          reps: card.reps + 1
+        });
+      }
+      return { card: next_card, log };
+    }
+    /**
+     * Reschedules a card based on its review history.
+     *
+     * @param current_card - The card to be rescheduled.
+     * @param reviews - An array of review history objects.
+     * @returns An array of record log items representing the rescheduling process.
+     */
+    reschedule(current_card, reviews) {
+      const collections = [];
+      let cur_card = createEmptyCard(current_card.due);
+      for (const review of reviews) {
+        let item;
+        review.review = TypeConvert.time(review.review);
+        if (review.rating === Rating.Manual) {
+          let interval = 0;
+          if (cur_card.state !== State.New && cur_card.last_review) {
+            interval = date_diff(review.review, cur_card.last_review, "days");
+          }
+          item = this.handleManualRating(
+            cur_card,
+            review.state,
+            review.review,
+            interval,
+            review.stability,
+            review.difficulty,
+            review.due ? TypeConvert.time(review.due) : void 0
+          );
+        } else {
+          item = this.replay(cur_card, review.review, review.rating);
+        }
+        collections.push(item);
+        cur_card = item.card;
+      }
+      return collections;
+    }
+    calculateManualRecord(current_card, now, record_log_item, update_memory) {
+      if (!record_log_item) {
+        return null;
+      }
+      const { card: reschedule_card, log } = record_log_item;
+      const cur_card = TypeConvert.card(current_card);
+      if (cur_card.due.getTime() === reschedule_card.due.getTime()) {
+        return null;
+      }
+      cur_card.scheduled_days = date_diff(
+        reschedule_card.due,
+        cur_card.due,
+        "days"
+      );
+      return this.handleManualRating(
+        cur_card,
+        reschedule_card.state,
+        TypeConvert.time(now),
+        log.elapsed_days,
+        update_memory ? reschedule_card.stability : void 0,
+        update_memory ? reschedule_card.difficulty : void 0,
+        reschedule_card.due
+      );
+    }
+  }
+
+  var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  function applyAfterHandler(value, afterHandler) {
+    return typeof afterHandler === "function" ? afterHandler(value) : value;
+  }
+  class FSRS extends FSRSAlgorithm {
+    constructor(param) {
+      super(param);
+      __publicField(this, "strategyHandler", /* @__PURE__ */ new Map());
+      __publicField(this, "Scheduler");
+      const { enable_short_term } = this.parameters;
+      this.Scheduler = enable_short_term ? BasicScheduler : LongTermScheduler;
+    }
+    params_handler_proxy() {
+      const _this = this;
+      return {
+        set: function(target, prop, value) {
+          if (prop === "request_retention" && Number.isFinite(value)) {
+            _this.intervalModifier = _this.calculate_interval_modifier(
+              Number(value)
+            );
+          } else if (prop === "enable_short_term") {
+            _this.Scheduler = value === true ? BasicScheduler : LongTermScheduler;
+          } else if (prop === "w") {
+            value = migrateParameters(
+              value,
+              target.relearning_steps.length,
+              target.enable_short_term
+            );
+            value = clipParameters(
+              Array.from(value),
+              target.relearning_steps.length,
+              target.enable_short_term
+            );
+            _this.forgetting_curve = forgetting_curve.bind(this, value);
+            _this.intervalModifier = _this.calculate_interval_modifier(
+              Number(target.request_retention)
+            );
+          }
+          Reflect.set(target, prop, value);
+          return true;
+        }
+      };
+    }
+    useStrategy(mode, handler) {
+      this.strategyHandler.set(mode, handler);
+      return this;
+    }
+    clearStrategy(mode) {
+      if (mode) {
+        this.strategyHandler.delete(mode);
+      } else {
+        this.strategyHandler.clear();
+      }
+      return this;
+    }
+    getScheduler(card, now) {
+      const schedulerStrategy = this.strategyHandler.get(
+        StrategyMode.SCHEDULER
+      );
+      const Scheduler = schedulerStrategy || this.Scheduler;
+      const instance = new Scheduler(card, now, this, this.strategyHandler);
+      return instance;
+    }
+    /**
+     * Display the collection of cards and logs for the four scenarios after scheduling the card at the current time.
+     * @param card Card to be processed
+     * @param now Current time or scheduled time
+     * @param afterHandler Convert the result to another type. (Optional)
+     * @example
+     * ```typescript
+     * const card: Card = createEmptyCard(new Date());
+     * const f = fsrs();
+     * const recordLog = f.repeat(card, new Date());
+     * ```
+     * @example
+     * ```typescript
+     * interface RevLogUnchecked
+     *   extends Omit<ReviewLog, "due" | "review" | "state" | "rating"> {
+     *   cid: string;
+     *   due: Date | number;
+     *   state: StateType;
+     *   review: Date | number;
+     *   rating: RatingType;
+     * }
+     *
+     * interface RepeatRecordLog {
+     *   card: CardUnChecked; //see method: createEmptyCard
+     *   log: RevLogUnchecked;
+     * }
+     *
+     * function repeatAfterHandler(recordLog: RecordLog) {
+     *     const record: { [key in Grade]: RepeatRecordLog } = {} as {
+     *       [key in Grade]: RepeatRecordLog;
+     *     };
+     *     for (const grade of Grades) {
+     *       record[grade] = {
+     *         card: {
+     *           ...(recordLog[grade].card as Card & { cid: string }),
+     *           due: recordLog[grade].card.due.getTime(),
+     *           state: State[recordLog[grade].card.state] as StateType,
+     *           last_review: recordLog[grade].card.last_review
+     *             ? recordLog[grade].card.last_review!.getTime()
+     *             : null,
+     *         },
+     *         log: {
+     *           ...recordLog[grade].log,
+     *           cid: (recordLog[grade].card as Card & { cid: string }).cid,
+     *           due: recordLog[grade].log.due.getTime(),
+     *           review: recordLog[grade].log.review.getTime(),
+     *           state: State[recordLog[grade].log.state] as StateType,
+     *           rating: Rating[recordLog[grade].log.rating] as RatingType,
+     *         },
+     *       };
+     *     }
+     *     return record;
+     * }
+     * const card: Card = createEmptyCard(new Date(), cardAfterHandler); //see method:  createEmptyCard
+     * const f = fsrs();
+     * const recordLog = f.repeat(card, new Date(), repeatAfterHandler);
+     * ```
+     */
+    repeat(card, now, afterHandler) {
+      const instance = this.getScheduler(card, now);
+      const recordLog = instance.preview();
+      return applyAfterHandler(recordLog, afterHandler);
+    }
+    /**
+     * Display the collection of cards and logs for the card scheduled at the current time, after applying a specific grade rating.
+     * @param card Card to be processed
+     * @param now Current time or scheduled time
+     * @param grade Rating of the review (Again, Hard, Good, Easy)
+     * @param afterHandler Convert the result to another type. (Optional)
+     * @example
+     * ```typescript
+     * const card: Card = createEmptyCard(new Date());
+     * const f = fsrs();
+     * const recordLogItem = f.next(card, new Date(), Rating.Again);
+     * ```
+     * @example
+     * ```typescript
+     * interface RevLogUnchecked
+     *   extends Omit<ReviewLog, "due" | "review" | "state" | "rating"> {
+     *   cid: string;
+     *   due: Date | number;
+     *   state: StateType;
+     *   review: Date | number;
+     *   rating: RatingType;
+     * }
+     *
+     * interface NextRecordLog {
+     *   card: CardUnChecked; //see method: createEmptyCard
+     *   log: RevLogUnchecked;
+     * }
+     *
+    function nextAfterHandler(recordLogItem: RecordLogItem) {
+      const recordItem = {
+        card: {
+          ...(recordLogItem.card as Card & { cid: string }),
+          due: recordLogItem.card.due.getTime(),
+          state: State[recordLogItem.card.state] as StateType,
+          last_review: recordLogItem.card.last_review
+            ? recordLogItem.card.last_review!.getTime()
+            : null,
+        },
+        log: {
+          ...recordLogItem.log,
+          cid: (recordLogItem.card as Card & { cid: string }).cid,
+          due: recordLogItem.log.due.getTime(),
+          review: recordLogItem.log.review.getTime(),
+          state: State[recordLogItem.log.state] as StateType,
+          rating: Rating[recordLogItem.log.rating] as RatingType,
+        },
+      };
+      return recordItem
+    }
+     * const card: Card = createEmptyCard(new Date(), cardAfterHandler); //see method:  createEmptyCard
+     * const f = fsrs();
+     * const recordLogItem = f.repeat(card, new Date(), Rating.Again, nextAfterHandler);
+     * ```
+     */
+    next(card, now, grade, afterHandler) {
+      const instance = this.getScheduler(card, now);
+      const g = TypeConvert.rating(grade);
+      if (g === Rating.Manual) {
+        throw new FSRSValidationError("Cannot review a manual rating");
+      }
+      const recordLogItem = instance.review(g);
+      return applyAfterHandler(recordLogItem, afterHandler);
+    }
+    /**
+     * Get the retrievability of the card
+     * @param card  Card to be processed
+     * @param now  Current time or scheduled time
+     * @param format  default:true , Convert the result to another type. (Optional)
+     * @returns  The retrievability of the card,if format is true, the result is a string, otherwise it is a number
+     */
+    get_retrievability(card, now, format = true) {
+      const processedCard = TypeConvert.card(card);
+      now = now ? TypeConvert.time(now) : /* @__PURE__ */ new Date();
+      const t = processedCard.state !== State.New ? Math.max(date_diff(now, processedCard.last_review, "days"), 0) : 0;
+      const r = processedCard.state !== State.New ? this.forgetting_curve(t, +processedCard.stability.toFixed(8)) : 0;
+      return format ? `${(r * 100).toFixed(2)}%` : r;
+    }
+    /**
+     *
+     * @param card Card to be processed
+     * @param log last review log
+     * @param afterHandler Convert the result to another type. (Optional)
+     * @example
+     * ```typescript
+     * const now = new Date();
+     * const f = fsrs();
+     * const emptyCardFormAfterHandler = createEmptyCard(now);
+     * const repeatFormAfterHandler = f.repeat(emptyCardFormAfterHandler, now);
+     * const { card, log } = repeatFormAfterHandler[Rating.Hard];
+     * const rollbackFromAfterHandler = f.rollback(card, log);
+     * ```
+     *
+     * @example
+     * ```typescript
+     * const now = new Date();
+     * const f = fsrs();
+     * const emptyCardFormAfterHandler = createEmptyCard(now, cardAfterHandler);  //see method: createEmptyCard
+     * const repeatFormAfterHandler = f.repeat(emptyCardFormAfterHandler, now, repeatAfterHandler); //see method: fsrs.repeat()
+     * const { card, log } = repeatFormAfterHandler[Rating.Hard];
+     * const rollbackFromAfterHandler = f.rollback(card, log, cardAfterHandler);
+     * ```
+     */
+    rollback(card, log, afterHandler) {
+      const processedCard = TypeConvert.card(card);
+      const processedLog = TypeConvert.review_log(log);
+      if (processedLog.rating === Rating.Manual) {
+        throw new FSRSValidationError("Cannot rollback a manual rating");
+      }
+      let last_due;
+      let last_review;
+      let last_lapses;
+      switch (processedLog.state) {
+        case State.New:
+          last_due = processedLog.due;
+          last_review = void 0;
+          last_lapses = 0;
+          break;
+        case State.Learning:
+        case State.Relearning:
+        case State.Review:
+          last_due = processedLog.review;
+          last_review = processedLog.due;
+          last_lapses = processedCard.lapses - (processedLog.rating === Rating.Again && processedLog.state === State.Review ? 1 : 0);
+          break;
+      }
+      const prevCard = __spreadProps(__spreadValues({}, processedCard), {
+        due: last_due,
+        stability: processedLog.stability,
+        difficulty: processedLog.difficulty,
+        elapsed_days: processedLog.last_elapsed_days,
+        scheduled_days: processedLog.scheduled_days,
+        reps: Math.max(0, processedCard.reps - 1),
+        lapses: Math.max(0, last_lapses),
+        learning_steps: processedLog.learning_steps,
+        state: processedLog.state,
+        last_review
+      });
+      return applyAfterHandler(prevCard, afterHandler);
+    }
+    /**
+     *
+     * @param card Card to be processed
+     * @param now Current time or scheduled time
+     * @param reset_count Should the review count information(reps,lapses) be reset. (Optional)
+     * @param afterHandler Convert the result to another type. (Optional)
+     * @example
+     * ```typescript
+     * const now = new Date();
+     * const f = fsrs();
+     * const emptyCard = createEmptyCard(now);
+     * const scheduling_cards = f.repeat(emptyCard, now);
+     * const { card, log } = scheduling_cards[Rating.Hard];
+     * const forgetCard = f.forget(card, new Date(), true);
+     * ```
+     *
+     * @example
+     * ```typescript
+     * interface RepeatRecordLog {
+     *   card: CardUnChecked; //see method: createEmptyCard
+     *   log: RevLogUnchecked; //see method: fsrs.repeat()
+     * }
+     *
+     * function forgetAfterHandler(recordLogItem: RecordLogItem): RepeatRecordLog {
+     *     return {
+     *       card: {
+     *         ...(recordLogItem.card as Card & { cid: string }),
+     *         due: recordLogItem.card.due.getTime(),
+     *         state: State[recordLogItem.card.state] as StateType,
+     *         last_review: recordLogItem.card.last_review
+     *           ? recordLogItem.card.last_review!.getTime()
+     *           : null,
+     *       },
+     *       log: {
+     *         ...recordLogItem.log,
+     *         cid: (recordLogItem.card as Card & { cid: string }).cid,
+     *         due: recordLogItem.log.due.getTime(),
+     *         review: recordLogItem.log.review.getTime(),
+     *         state: State[recordLogItem.log.state] as StateType,
+     *         rating: Rating[recordLogItem.log.rating] as RatingType,
+     *       },
+     *     };
+     * }
+     * const now = new Date();
+     * const f = fsrs();
+     * const emptyCardFormAfterHandler = createEmptyCard(now, cardAfterHandler); //see method:  createEmptyCard
+     * const repeatFormAfterHandler = f.repeat(emptyCardFormAfterHandler, now, repeatAfterHandler); //see method: fsrs.repeat()
+     * const { card } = repeatFormAfterHandler[Rating.Hard];
+     * const forgetFromAfterHandler = f.forget(card, date_scheduler(now, 1, true), false, forgetAfterHandler);
+     * ```
+     */
+    forget(card, now, reset_count = false, afterHandler) {
+      const processedCard = TypeConvert.card(card);
+      now = TypeConvert.time(now);
+      const scheduled_days = processedCard.state === State.New ? 0 : date_diff(now, processedCard.due, "days");
+      const forget_log = {
+        rating: Rating.Manual,
+        state: processedCard.state,
+        due: processedCard.due,
+        stability: processedCard.stability,
+        difficulty: processedCard.difficulty,
+        elapsed_days: 0,
+        last_elapsed_days: processedCard.elapsed_days,
+        scheduled_days,
+        learning_steps: processedCard.learning_steps,
+        review: now
+      };
+      const forget_card = __spreadProps(__spreadValues({}, processedCard), {
+        due: now,
+        stability: 0,
+        difficulty: 0,
+        elapsed_days: 0,
+        scheduled_days: 0,
+        reps: reset_count ? 0 : processedCard.reps,
+        lapses: reset_count ? 0 : processedCard.lapses,
+        learning_steps: 0,
+        state: State.New,
+        last_review: processedCard.last_review
+      });
+      const recordLogItem = { card: forget_card, log: forget_log };
+      return applyAfterHandler(recordLogItem, afterHandler);
+    }
+    /**
+     * Reschedules the current card and returns the rescheduled collections and reschedule item.
+     *
+     * @template T - The type of the record log item.
+     * @param {CardInput | Card} current_card - The current card to be rescheduled.
+     * @param {Array<FSRSHistory>} reviews - The array of FSRSHistory objects representing the reviews.
+     * @param {Partial<RescheduleOptions<T>>} options - The optional reschedule options.
+     * @returns {IReschedule<T>} - The rescheduled collections and reschedule item.
+     *
+     * @example
+     * ```typescript
+     * const f = fsrs()
+     * const grades: Grade[] = [Rating.Good, Rating.Good, Rating.Good, Rating.Good]
+     * const reviews_at = [
+     *   new Date(2024, 8, 13),
+     *   new Date(2024, 8, 13),
+     *   new Date(2024, 8, 17),
+     *   new Date(2024, 8, 28),
+     * ]
+     *
+     * const reviews: FSRSHistory[] = []
+     * for (let i = 0; i < grades.length; i++) {
+     *   reviews.push({
+     *     rating: grades[i],
+     *     review: reviews_at[i],
+     *   })
+     * }
+     *
+     * const results_short = scheduler.reschedule(
+     *   createEmptyCard(),
+     *   reviews,
+     *   {
+     *     skipManual: false,
+     *   }
+     * )
+     * console.log(results_short)
+     * ```
+     */
+    reschedule(current_card, reviews = [], options = {}) {
+      const {
+        recordLogHandler,
+        reviewsOrderBy,
+        skipManual = true,
+        now = /* @__PURE__ */ new Date(),
+        update_memory_state: updateMemoryState = false
+      } = options;
+      if (reviewsOrderBy && typeof reviewsOrderBy === "function") {
+        reviews.sort(reviewsOrderBy);
+      }
+      if (skipManual) {
+        reviews = reviews.filter((review) => review.rating !== Rating.Manual);
+      }
+      const rescheduleSvc = new Reschedule(this);
+      const collections = rescheduleSvc.reschedule(
+        options.first_card || createEmptyCard(),
+        reviews
+      );
+      const len = collections.length;
+      const cur_card = TypeConvert.card(current_card);
+      const manual_item = rescheduleSvc.calculateManualRecord(
+        cur_card,
+        now,
+        len ? collections[len - 1] : void 0,
+        updateMemoryState
+      );
+      return {
+        collections: typeof recordLogHandler === "function" ? collections.map(recordLogHandler) : collections,
+        reschedule_item: manual_item ? applyAfterHandler(manual_item, recordLogHandler) : null
+      };
+    }
+  }
+  const fsrs = (params) => {
+    return new FSRS(params || {});
+  };
+
+  exports.AbstractScheduler = AbstractScheduler;
+  exports.BasicLearningStepsStrategy = BasicLearningStepsStrategy;
+  exports.CLAMP_PARAMETERS = CLAMP_PARAMETERS;
+  exports.ConvertStepUnitToMinutes = ConvertStepUnitToMinutes;
+  exports.DefaultInitSeedStrategy = DefaultInitSeedStrategy;
+  exports.FSRS = FSRS;
+  exports.FSRS5_DEFAULT_DECAY = FSRS5_DEFAULT_DECAY;
+  exports.FSRS6_DEFAULT_DECAY = FSRS6_DEFAULT_DECAY;
+  exports.FSRSAlgorithm = FSRSAlgorithm;
+  exports.FSRSVersion = FSRSVersion;
+  exports.GenSeedStrategyWithCardId = GenSeedStrategyWithCardId;
+  exports.Grades = Grades;
+  exports.INIT_S_MAX = INIT_S_MAX;
+  exports.Rating = Rating;
+  exports.S_MAX = S_MAX;
+  exports.S_MIN = S_MIN;
+  exports.State = State;
+  exports.StrategyMode = StrategyMode;
+  exports.TypeConvert = TypeConvert;
+  exports.W17_W18_Ceiling = W17_W18_Ceiling;
+  exports.checkParameters = checkParameters;
+  exports.clamp = clamp;
+  exports.clipParameters = clipParameters;
+  exports.computeDecayFactor = computeDecayFactor;
+  exports.createEmptyCard = createEmptyCard;
+  exports.dateDiffInDays = dateDiffInDays;
+  exports.date_diff = date_diff;
+  exports.date_scheduler = date_scheduler;
+  exports.default_enable_fuzz = default_enable_fuzz;
+  exports.default_enable_short_term = default_enable_short_term;
+  exports.default_learning_steps = default_learning_steps;
+  exports.default_maximum_interval = default_maximum_interval;
+  exports.default_relearning_steps = default_relearning_steps;
+  exports.default_request_retention = default_request_retention;
+  exports.default_w = default_w;
+  exports.fixDate = fixDate;
+  exports.fixRating = fixRating;
+  exports.fixState = fixState;
+  exports.forgetting_curve = forgetting_curve;
+  exports.formatDate = formatDate;
+  exports.fsrs = fsrs;
+  exports.generatorParameters = generatorParameters;
+  exports.get_fuzz_range = get_fuzz_range;
+  exports.migrateParameters = migrateParameters;
+  exports.roundTo = roundTo;
+  exports.show_diff_message = show_diff_message;
+
+}));
+
+/*! wanakana 5.3.1 | https://github.com/WaniKani/WanaKana
+The MIT License (MIT)
+
+Copyright (c) 2013 WaniKani Community Github
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).wanakana={})}(this,(function(e){"use strict";function t(e){return null===e?"null":e!==Object(e)?typeof e:{}.toString.call(e).slice(8,-1).toLowerCase()}function n(e){return"string"!==t(e)||!e.length}function r(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",t=arguments.length>1?arguments[1]:void 0,r=arguments.length>2?arguments[2]:void 0;if(n(e))return!1;const o=e.charCodeAt(0);return t<=o&&o<=r}const o={HIRAGANA:"toHiragana",KATAKANA:"toKatakana"},i={HEPBURN:"hepburn"},a={useObsoleteKana:!1,passRomaji:!1,convertLongVowelMark:!0,upcaseKatakana:!1,IMEMode:!1,romanization:i.HEPBURN},u=65,s=90,c=12353,l=12438,f=12449,d=12540,h=19968,g=40879,v=12293,p=12540,m=12539,b=[65313,65338],j=[65345,65370],y=[65377,65381],E=[[12288,12351],y,[12539,12540],[65281,65295],[65306,65311],[65339,65343],[65371,65376],[65504,65518]],A=[...[[12352,12447],[12448,12543],y,[65382,65439]],...E,b,j,[65296,65305],[19968,40959],[13312,19903]],O=[[0,127],[256,257],[274,275],[298,299],[332,333],[362,363]],N=[[32,47],[58,63],[91,96],[123,126],[8216,8217],[8220,8221]];function w(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return A.some((t=>{let[n,o]=t;return r(e,n,o)}))}function k(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",r=arguments.length>1?arguments[1]:void 0;const o="regexp"===t(r);return!n(e)&&[...e].every((e=>{const t=w(e);return o?t||r.test(e):t}))}var M=Number.isNaN||function(e){return"number"==typeof e&&e!=e};function S(e,t){if(e.length!==t.length)return!1;for(var n=0;n<e.length;n++)if(r=e[n],o=t[n],!(r===o||M(r)&&M(o)))return!1;var r,o;return!0}function C(e,t){void 0===t&&(t=S);var n=null;function r(){for(var r=[],o=0;o<arguments.length;o++)r[o]=arguments[o];if(n&&n.lastThis===this&&t(r,n.lastArgs))return n.lastResult;var i=e.apply(this,r);return n={lastResult:i,lastArgs:r,lastThis:this},i}return r.clear=function(){n=null},r}var K=Object.prototype.hasOwnProperty;function R(e,t,n){for(n of e.keys())if(J(n,t))return n}function J(e,t){var n,r,o;if(e===t)return!0;if(e&&t&&(n=e.constructor)===t.constructor){if(n===Date)return e.getTime()===t.getTime();if(n===RegExp)return e.toString()===t.toString();if(n===Array){if((r=e.length)===t.length)for(;r--&&J(e[r],t[r]););return-1===r}if(n===Set){if(e.size!==t.size)return!1;for(r of e){if((o=r)&&"object"==typeof o&&!(o=R(t,o)))return!1;if(!t.has(o))return!1}return!0}if(n===Map){if(e.size!==t.size)return!1;for(r of e){if((o=r[0])&&"object"==typeof o&&!(o=R(t,o)))return!1;if(!J(r[1],t.get(o)))return!1}return!0}if(n===ArrayBuffer)e=new Uint8Array(e),t=new Uint8Array(t);else if(n===DataView){if((r=e.byteLength)===t.byteLength)for(;r--&&e.getInt8(r)===t.getInt8(r););return-1===r}if(ArrayBuffer.isView(e)){if((r=e.byteLength)===t.byteLength)for(;r--&&e[r]===t[r];);return-1===r}if(!n||"object"==typeof e){for(n in r=0,e){if(K.call(e,n)&&++r&&!K.call(t,n))return!1;if(!(n in t)||!J(e[n],t[n]))return!1}return Object.keys(t).length===r}}return e!=e&&t!=t}const z=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{};return Object.assign({},a,e)};function I(e,t,n){const r=t;function o(e,t){const n=e.charAt(0);return i(Object.assign({"":n},r[n]),e.slice(1),t,t+1)}function i(e,t,r,a){if(!t)return n||1===Object.keys(e).length?e[""]?[[r,a,e[""]]]:[]:[[r,a,null]];if(1===Object.keys(e).length)return[[r,a,e[""]]].concat(o(t,a));const u=function(e,t){if(void 0!==e[t])return Object.assign({"":e[""]+t},e[t])}(e,t.charAt(0));return void 0===u?[[r,a,e[""]]].concat(o(t,a)):i(u,t.slice(1),r,a+1)}return o(e,0)}function L(e){return Object.entries(e).reduce(((e,n)=>{let[r,o]=n;const i="string"===t(o);return e[r]=i?{"":o}:L(o),e}),{})}function T(e,t){return t.split("").reduce(((e,t)=>(void 0===e[t]&&(e[t]={}),e[t])),e)}function H(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{};const n={};return"object"===t(e)&&Object.entries(e).forEach((e=>{let[t,r]=e,o=n;t.split("").forEach((e=>{void 0===o[e]&&(o[e]={}),o=o[e]})),o[""]=r})),function(e){return function e(n,r){return void 0===n||"string"===t(n)?r:Object.entries(r).reduce(((t,r)=>{let[o,i]=r;return t[o]=e(n[o],i),t}),n)}(JSON.parse(JSON.stringify(e)),n)}}function U(e,n){return n?"function"===t(n)?n(e):H(n)(e):e}const $={a:"あ",i:"い",u:"う",e:"え",o:"お",k:{a:"か",i:"き",u:"く",e:"け",o:"こ"},s:{a:"さ",i:"し",u:"す",e:"せ",o:"そ"},t:{a:"た",i:"ち",u:"つ",e:"て",o:"と"},n:{a:"な",i:"に",u:"ぬ",e:"ね",o:"の"},h:{a:"は",i:"ひ",u:"ふ",e:"へ",o:"ほ"},m:{a:"ま",i:"み",u:"む",e:"め",o:"も"},y:{a:"や",u:"ゆ",o:"よ"},r:{a:"ら",i:"り",u:"る",e:"れ",o:"ろ"},w:{a:"わ",i:"ゐ",e:"ゑ",o:"を"},g:{a:"が",i:"ぎ",u:"ぐ",e:"げ",o:"ご"},z:{a:"ざ",i:"じ",u:"ず",e:"ぜ",o:"ぞ"},d:{a:"だ",i:"ぢ",u:"づ",e:"で",o:"ど"},b:{a:"ば",i:"び",u:"ぶ",e:"べ",o:"ぼ"},p:{a:"ぱ",i:"ぴ",u:"ぷ",e:"ぺ",o:"ぽ"},v:{a:"ゔぁ",i:"ゔぃ",u:"ゔ",e:"ゔぇ",o:"ゔぉ"}},x={".":"。",",":"、",":":"：","/":"・","!":"！","?":"？","~":"〜","-":"ー","‘":"「","’":"」","“":"『","”":"』","[":"［","]":"］","(":"（",")":"）","{":"｛","}":"｝"},P={k:"き",s:"し",t:"ち",n:"に",h:"ひ",m:"み",r:"り",g:"ぎ",z:"じ",d:"ぢ",b:"び",p:"ぴ",v:"ゔ",q:"く",f:"ふ"},_={ya:"ゃ",yi:"ぃ",yu:"ゅ",ye:"ぇ",yo:"ょ"},D={a:"ぁ",i:"ぃ",u:"ぅ",e:"ぇ",o:"ぉ"},q={sh:"sy",ch:"ty",cy:"ty",chy:"ty",shy:"sy",j:"zy",jy:"zy",shi:"si",chi:"ti",tsu:"tu",ji:"zi",fu:"hu"},B=Object.assign({tu:"っ",wa:"ゎ",ka:"ヵ",ke:"ヶ"},D,_),V={yi:"い",wu:"う",ye:"いぇ",wi:"うぃ",we:"うぇ",kwa:"くぁ",whu:"う",tha:"てゃ",thu:"てゅ",tho:"てょ",dha:"でゃ",dhu:"でゅ",dho:"でょ"},G={wh:"う",kw:"く",qw:"く",q:"く",gw:"ぐ",sw:"す",ts:"つ",th:"て",tw:"と",dh:"で",dw:"ど",fw:"ふ",f:"ふ"};function W(){const e=L($),t=t=>T(e,t);function n(e){return Object.entries(e).reduce(((e,t)=>{let[r,o]=t;return e[r]=r?n(o):`っ${o}`,e}),{})}return Object.entries(P).forEach((e=>{let[n,r]=e;Object.entries(_).forEach((e=>{let[o,i]=e;t(n+o)[""]=r+i}))})),Object.entries(x).forEach((e=>{let[n,r]=e;t(n)[""]=r})),Object.entries(G).forEach((e=>{let[n,r]=e;Object.entries(D).forEach((e=>{let[o,i]=e;t(n+o)[""]=r+i}))})),["n","n'","xn"].forEach((e=>{t(e)[""]="ん"})),e.c=JSON.parse(JSON.stringify(e.k)),Object.entries(q).forEach((e=>{let[n,r]=e;const o=n.slice(0,n.length-1),i=n.charAt(n.length-1);t(o)[i]=JSON.parse(JSON.stringify(t(r)))})),Object.entries(B).forEach((e=>{let[n,r]=e;const o=e=>e.charAt(e.length-1),i=e=>e.slice(0,e.length-1),a=t(`x${n}`);a[""]=r;var u;t(`l${i(n)}`)[o(n)]=a,(u=n,[...Object.entries(q),["c","k"]].reduce(((e,t)=>{let[n,r]=t;return u.startsWith(r)?e.concat(u.replace(r,n)):e}),[])).forEach((e=>{["l","x"].forEach((r=>{t(r+i(e))[o(e)]=t(r+n)}))}))})),Object.entries(V).forEach((e=>{let[n,r]=e;t(n)[""]=r})),[...Object.keys(P),"c","y","w","j"].forEach((t=>{const r=e[t];r[t]=n(r)})),delete e.n.n,Object.freeze(JSON.parse(JSON.stringify(e)))}let X=null;const Z=H({wi:"ゐ",we:"ゑ"});function F(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&r(e,u,s)}function Q(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&e.charCodeAt(0)===p}function Y(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&e.charCodeAt(0)===m}function ee(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&(!!Q(e)||r(e,c,l))}function te(){const e=[];return(arguments.length>0&&void 0!==arguments[0]?arguments[0]:"").split("").forEach((t=>{if(Q(t)||Y(t))e.push(t);else if(ee(t)){const n=t.charCodeAt(0)+(f-c),r=String.fromCharCode(n);e.push(r)}else e.push(t)})),e.join("")}const ne=C(((e,t,n)=>{let r=(null==X&&(X=W()),X);return r=e?function(e){const t=JSON.parse(JSON.stringify(e));return t.n.n={"":"ん"},t.n[" "]={"":"ん"},t}(r):r,r=t?Z(r):r,n&&(r=U(r,n)),r}),J);function re(){let e,t=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",n=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},r=arguments.length>2?arguments[2]:void 0;return r?e=n:(e=z(n),r=ne(e.IMEMode,e.useObsoleteKana,e.customKanaMapping)),function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},n=arguments.length>2?arguments[2]:void 0;const{IMEMode:r,useObsoleteKana:o,customKanaMapping:i}=t;n||(n=ne(r,o,i));return I(e.toLowerCase(),n,!r)}(t,e,r).map((n=>{const[r,i,a]=n;if(null===a)return t.slice(r);const u=e.IMEMode===o.HIRAGANA,s=e.IMEMode===o.KATAKANA||[...t.slice(r,i)].every(F);return u||!s?a:te(a)})).join("")}let oe=[];function ie(e){const t=Object.assign({},z(e),{IMEMode:e.IMEMode||!0}),n=ne(t.IMEMode,t.useObsoleteKana,t.customKanaMapping),r=[...Object.keys(n),...Object.keys(n).map((e=>e.toUpperCase()))];return function(e){let{target:o}=e;undefined!==o.value&&"true"!==o.dataset.ignoreComposition&&function(e,t,n,r,o){const[i,a,u]=function(){let e,t,n,r=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",o=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,i=arguments.length>2&&void 0!==arguments[2]?arguments[2]:[];0===o&&i.includes(r[0])?[e,t,n]=function(e,t){return["",...ue(e,(e=>t.includes(e)||!k(e,/[0-9]/)))]}(r,i):o>0?[e,t,n]=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0;const[n,r]=ue([...e.slice(0,t)].reverse(),(e=>!k(e)));return[r.reverse().join(""),n.split("").reverse().join(""),e.slice(t)]}(r,o):([e,t]=ue(r,(e=>!i.includes(e))),[t,n]=ue(t,(e=>!k(e))));return[e,t,n]}(e.value,e.selectionEnd,r),s=re(a,t,n);if(a!==s){const t=i.length+s.length,n=i+s+u;e.value=n,u.length?setTimeout((()=>e.setSelectionRange(t,t)),1):e.setSelectionRange(t,t)}else e.value}(o,t,n,r)}}function ae(e){let{type:t,target:n,data:r}=e;/Mac/.test(window.navigator&&window.navigator.platform)&&("compositionupdate"===t&&k(r)&&(n.dataset.ignoreComposition="true"),"compositionend"===t&&(n.dataset.ignoreComposition="false"))}function ue(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{},t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:e=>!!e;const n=[],{length:r}=e;let o=0;for(;o<r&&t(e[o],o);)n.push(e[o]),o+=1;return[n.join(""),e.slice(o)]}const se={input:e=>{let{target:{value:t,selectionStart:n,selectionEnd:r}}=e;return console.log("input:",{value:t,selectionStart:n,selectionEnd:r})},compositionstart:()=>console.log("compositionstart"),compositionupdate:e=>{let{target:{value:t,selectionStart:n,selectionEnd:r},data:o}=e;return console.log("compositionupdate",{data:o,value:t,selectionStart:n,selectionEnd:r})},compositionend:()=>console.log("compositionend")},ce=["TEXTAREA","INPUT"];let le=0;function fe(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&O.some((t=>{let[n,o]=t;return r(e,n,o)}))}function de(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",r=arguments.length>1?arguments[1]:void 0;const o="regexp"===t(r);return!n(e)&&[...e].every((e=>{const t=fe(e);return o?t||r.test(e):t}))}function he(){return r(arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",f,d)}function ge(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&(ee(e)||he(e))}function ve(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&[...e].every(ge)}function pe(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&[...e].every(ee)}function me(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&[...e].every(he)}function be(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&e.charCodeAt(0)===v}function je(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return r(e,h,g)||be(e)}function ye(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&[...e].every(je)}function Ee(){const e=[...arguments.length>0&&void 0!==arguments[0]?arguments[0]:""];let t=!1;return(arguments.length>1&&void 0!==arguments[1]?arguments[1]:{passKanji:!0}).passKanji||(t=e.some(ye)),(e.some(pe)||e.some(me))&&e.some(de)&&!t}const Ae=(e,t)=>Q(e)&&t<1,Oe=(e,t)=>Q(e)&&t>0,Ne=e=>["ヶ","ヵ"].includes(e),we={a:"あ",i:"い",u:"う",e:"え",o:"う"};function ke(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",t=arguments.length>1?arguments[1]:void 0,{isDestinationRomaji:n,convertLongVowelMark:r}=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},o="";return e.split("").reduce(((i,a,u)=>{if(Y(a)||Ae(a,u)||Ne(a))return i.concat(a);if(r&&o&&Oe(a,u)){const r=t(o).slice(-1);return he(e[u-1])&&"o"===r&&n?i.concat("お"):i.concat(we[r])}if(!Q(a)&&he(a)){const e=a.charCodeAt(0)+(c-f),t=String.fromCharCode(e);return o=t,i.concat(t)}return o="",i.concat(a)}),[]).join("")}let Me=null;const Se={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","や":"ya","ゆ":"yu","よ":"yo","わ":"wa","ゐ":"wi","ゑ":"we","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"ji","づ":"zu","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ゔぁ":"va","ゔぃ":"vi","ゔ":"vu","ゔぇ":"ve","ゔぉ":"vo"},Ce={"。":".","、":",","：":":","・":"/","！":"!","？":"?","〜":"~","ー":"-","「":"‘","」":"’","『":"“","』":"”","［":"[","］":"]","（":"(","）":")","｛":"{","｝":"}","　":" "},Ke=["あ","い","う","え","お","や","ゆ","よ"],Re={"ゃ":"ya","ゅ":"yu","ょ":"yo"},Je={"ぃ":"yi","ぇ":"ye"},ze={"ぁ":"a","ぃ":"i","ぅ":"u","ぇ":"e","ぉ":"o"},Ie=["き","に","ひ","み","り","ぎ","び","ぴ","ゔ","く","ふ"],Le={"し":"sh","ち":"ch","じ":"j","ぢ":"j"},Te={"っ":"","ゃ":"ya","ゅ":"yu","ょ":"yo","ぁ":"a","ぃ":"i","ぅ":"u","ぇ":"e","ぉ":"o"},He={b:"b",c:"t",d:"d",f:"f",g:"g",h:"h",j:"j",k:"k",m:"m",p:"p",q:"q",r:"r",s:"s",t:"t",v:"v",w:"w",x:"x",z:"z"};function Ue(){return null==Me&&(Me=function(){const e=L(Se),t=t=>T(e,t),n=(e,n)=>{t(e)[""]=n};return Object.entries(Ce).forEach((e=>{let[n,r]=e;t(n)[""]=r})),[...Object.entries(Re),...Object.entries(ze)].forEach((e=>{let[t,r]=e;n(t,r)})),Ie.forEach((e=>{const r=t(e)[""][0];Object.entries(Re).forEach((t=>{let[o,i]=t;n(e+o,r+i)})),Object.entries(Je).forEach((t=>{let[o,i]=t;n(e+o,r+i)}))})),Object.entries(Le).forEach((e=>{let[t,r]=e;Object.entries(Re).forEach((e=>{let[o,i]=e;n(t+o,r+i[1])})),n(`${t}ぃ`,`${r}yi`),n(`${t}ぇ`,`${r}e`)})),e["っ"]=$e(e),Object.entries(Te).forEach((e=>{let[t,r]=e;n(t,r)})),Ke.forEach((e=>{n(`ん${e}`,`n'${t(e)[""]}`)})),Object.freeze(JSON.parse(JSON.stringify(e)))}()),Me}function $e(e){return Object.entries(e).reduce(((e,t)=>{let[n,r]=t;if(n)e[n]=$e(r);else{const t=r.charAt(0);e[n]=Object.keys(He).includes(t)?He[t]+r:r}return e}),{})}const xe=C(((e,t)=>{let n=function(e){return e===i.HEPBURN?Ue():{}}(e);return t&&(n=U(n,t)),n}),J);function Pe(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",t=arguments.length>2?arguments[2]:void 0;const n=z(arguments.length>1&&void 0!==arguments[1]?arguments[1]:{});return t||(t=xe(n.romanization,n.customRomajiMapping)),function(e,t,n){n||(n=xe(t.romanization,t.customRomajiMapping));const r=Object.assign({},{isDestinationRomaji:!0},t);return I(ke(e,Pe,r),n,!t.IMEMode)}(e,n,t).map((t=>{const[r,o,i]=t;return n.upcaseKatakana&&me(e.slice(r,o))?i.toUpperCase():i})).join("")}function _e(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&N.some((t=>{let[n,o]=t;return r(e,n,o)}))}function De(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return!n(e)&&!be(e)&&E.some((t=>{let[n,o]=t;return r(e,n,o)}))}const qe=e=>" "===e,Be=e=>"　"===e,Ve=e=>/[０-９]/.test(e),Ge=e=>/[0-9]/.test(e),We={EN:"en",JA:"ja",EN_NUM:"englishNumeral",JA_NUM:"japaneseNumeral",EN_PUNC:"englishPunctuation",JA_PUNC:"japanesePunctuation",KANJI:"kanji",HIRAGANA:"hiragana",KATAKANA:"katakana",SPACE:"space",OTHER:"other"};function Xe(e){let t=arguments.length>1&&void 0!==arguments[1]&&arguments[1];const{EN:n,JA:r,EN_NUM:o,JA_NUM:i,EN_PUNC:a,JA_PUNC:u,KANJI:s,HIRAGANA:c,KATAKANA:l,SPACE:f,OTHER:d}=We;if(t)switch(!0){case Ve(e):case Ge(e):return d;case qe(e):return n;case _e(e):return d;case Be(e):return r;case De(e):return d;case w(e):return r;case fe(e):return n;default:return d}else switch(!0){case Be(e):case qe(e):return f;case Ve(e):return i;case Ge(e):return o;case _e(e):return a;case De(e):return u;case je(e):return s;case ee(e):return c;case he(e):return l;case w(e):return r;case fe(e):return n;default:return d}}function Ze(e){let{compact:t=!1,detailed:r=!1}=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{};if(null==e||n(e))return[];const o=[...e];let i=o.shift(),a=Xe(i,t);i=r?{type:a,value:i}:i;return o.reduce(((e,n)=>{const o=Xe(n,t),i=o===a;a=o;let u=n;return i&&(u=(r?e.pop().value:e.pop())+u),r?e.concat({type:o,value:u}):e.concat(u)}),[i])}e.ROMANIZATIONS=i,e.TO_KANA_METHODS=o,e.VERSION="5.3.1",e.bind=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{},t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},n=arguments.length>2&&void 0!==arguments[2]&&arguments[2];if(!ce.includes(e.nodeName))throw new Error(`Element provided to Wanakana bind() was not a valid input or textarea element.\n Received: (${JSON.stringify(e)})`);if(e.hasAttribute("data-wanakana-id"))return;const r=ie(t),o=(le+=1,`${Date.now()}${le}`),i={};var a;[{name:"data-wanakana-id",value:o},{name:"lang",value:"ja"},{name:"autoCapitalize",value:"none"},{name:"autoCorrect",value:"off"},{name:"autoComplete",value:"off"},{name:"spellCheck",value:"false"}].forEach((t=>{i[t.name]=e.getAttribute(t.name),e.setAttribute(t.name,t.value)})),e.dataset.previousAttributes=JSON.stringify(i),e.addEventListener("input",r),e.addEventListener("compositionupdate",ae),e.addEventListener("compositionend",ae),function(e,t,n){oe=oe.concat({id:e,inputHandler:t,compositionHandler:n})}(o,r,ae),!0===n&&(a=e,Object.entries(se).forEach((e=>{let[t,n]=e;return a.addEventListener(t,n)})))},e.isHiragana=pe,e.isJapanese=k,e.isKana=ve,e.isKanji=ye,e.isKatakana=me,e.isMixed=Ee,e.isRomaji=de,e.stripOkurigana=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",{leading:t=!1,matchKanji:n=""}=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{};if(!k(e)||((e,t)=>t&&!ve(e[0]))(e,t)||((e,t)=>!t&&!ve(e[e.length-1]))(e,t)||((e,t)=>t&&![...t].some(ye)||!t&&ve(e))(e,n))return e;const r=n||e,o=new RegExp(t?`^${Ze(r).shift()}`:`${Ze(r).pop()}$`);return e.replace(o,"")},e.toHiragana=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";const t=z(arguments.length>1&&void 0!==arguments[1]?arguments[1]:{});if(t.passRomaji)return ke(e,Pe,t);if(Ee(e,{passKanji:!0})){return re(ke(e,Pe,t).toLowerCase(),t)}return de(e)||_e(e)?re(e.toLowerCase(),t):ke(e,Pe,t)},e.toKana=re,e.toKatakana=function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";const t=z(arguments.length>1&&void 0!==arguments[1]?arguments[1]:{});if(t.passRomaji)return te(e);if(Ee(e)||de(e)||_e(e)){return te(re(e.toLowerCase(),t))}return te(e)},e.toRomaji=Pe,e.tokenize=Ze,e.unbind=function(e){let t=arguments.length>1&&void 0!==arguments[1]&&arguments[1];const n=(r=e)&&oe.find((e=>{let{id:t}=e;return t===r.getAttribute("data-wanakana-id")}));var r;if(null==n)throw new Error(`Element provided to Wanakana unbind() had no listener registered.\n Received: ${JSON.stringify(e)}`);const{inputHandler:o,compositionHandler:i}=n,a=JSON.parse(e.dataset.previousAttributes);var u;Object.keys(a).forEach((t=>{a[t]?e.setAttribute(t,a[t]):e.removeAttribute(t)})),e.removeAttribute("data-previous-attributes"),e.removeAttribute("data-ignore-composition"),e.removeEventListener("input",o),e.removeEventListener("compositionstart",i),e.removeEventListener("compositionupdate",i),e.removeEventListener("compositionend",i),function(e){let{id:t}=e;oe=oe.filter((e=>{let{id:n}=e;return n!==t}))}(n),!0===t&&(u=e,Object.entries(se).forEach((e=>{let[t,n]=e;return u.removeEventListener(t,n)})))}}));
+
+
+
+/* s54 Languages (Lance 10-19: "a nearly full language learning app like duolingo style lessons ... I should be able to
+   tell it what words I want my sentences and scenarios to be based on. I want portuguese, french, and japanese"). He
+   chose: inside this app, Brazilian Portuguese, mixed levels with a placement check, gold and a streak per lesson, and a
+   lesson counts toward upkeep (any 2 of food, a workout, a lesson).
+   Open source used: ts-fsrs (MIT, the FSRS scheduler Anki uses) decides when a word or sentence comes back; wanakana
+   (MIT) turns romaji into kana so Japanese can be typed on an English keyboard. The exercise kinds follow LibreLingo's
+   design (new word, pick, word bank, type, listen, match); none of its code is used. Lessons come from Claude (his key),
+   built around his own words and scenarios; two starter lessons a language, the placement check and the kana course are
+   built in, so the page works offline too. Pure logic here; the pages are in game.js. */
+var LANGLIB = (function () {
+  'use strict';
+  const FS = typeof FSRS !== 'undefined' ? FSRS : require('./vendor/ts-fsrs.js');
+  const WK = typeof wanakana !== 'undefined' ? wanakana : require('./vendor/wanakana.js');
+
+  const LANGS = {
+    pt: { name: 'Portuguese', full: 'Brazilian Portuguese', tts: 'pt-BR', sep: ' ' },
+    fr: { name: 'French', full: 'French', tts: 'fr-FR', sep: ' ' },
+    ja: { name: 'Japanese', full: 'Japanese', tts: 'ja-JP', sep: '' },
+  };
+  const LANG_CODES = ['pt', 'fr', 'ja'];
+  const LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2'];
+  const LEVEL_NAME = { A0: 'Brand new', A1: 'Beginner', A2: 'Elementary', B1: 'Intermediate', B2: 'Upper intermediate' };
+  const LANG = { cards: 1000, ready: 6, ahead: 2, mine: 200, themes: 30, recent: 40, gold: 60, bonus: 20, bonusAt: 0.9, reviewGold: 30, reviewMin: 10,
+    reviewMax: 20, reviewPaid: 2, upAfter: 12, upAcc: 0.85, maxTokens: 8000, days: 60 };
+
+  /* ---------- answers ---------- */
+  const PUNCT = /[.,!?¿¡;:"“”«»…()\[\]、。！？「」『』・～〜\-–—]/g;
+  const norm = t => String(t || '').normalize('NFC').toLowerCase().replace(/[’‘`´]/g, "'").replace(PUNCT, ' ').replace(/'/g, '').replace(/\s+/g, ' ').trim();
+  const bare = t => t.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC');
+  function lev(a, b) { // edit distance, small strings only
+    if (Math.abs(a.length - b.length) > 2) return 3;
+    let p = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) { const q = [i]; for (let j = 1; j <= b.length; j++) q[j] = Math.min(p[j] + 1, q[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = q; }
+    return p[b.length];
+  }
+  // Japanese typed as kana, kanji or romaji: compare as loose romaji (particles as said, long vowels folded)
+  const jaKey = t => {
+    const r = WK.toRomaji(WK.toHiragana(norm(t).replace(/ー/g, '-'))).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[\s'-]/g, '');
+    return r.replace(/wo/g, 'o').replace(/ou/g, 'o').replace(/oo/g, 'o').replace(/uu/g, 'u').replace(/ii/g, 'i').replace(/ei/g, 'e').replace(/aa/g, 'a'); /* long vowels folded */
+  };
+  /* given vs one or more accepted answers; code 'en' checks English. Accents missing still count (with a note); one typo
+     in a long answer counts (with a note); Japanese also takes its reading or romaji. */
+  function checkAnswer(code, given, accepts, strict) { // strict: word tiles, where a near miss is a wrong tile
+    const list = (Array.isArray(accepts) ? accepts : [accepts]).filter(Boolean), g = norm(given);
+    if (!g) return { ok: false };
+    for (const a of list) if (norm(a) === g || (code === 'ja' && norm(a).replace(/ /g, '') === g.replace(/ /g, ''))) return { ok: true };
+    if (strict) return { ok: false };
+    if (code === 'ja') { const k = jaKey(g); for (const a of list) if (k && jaKey(a) === k) return { ok: true }; return { ok: false }; }
+    for (const a of list) if (bare(norm(a)) === bare(g)) return { ok: true, note: 'Watch the accents: ' + a };
+    for (const a of list) { const n = norm(a); if (n.length >= 6 && lev(bare(n), bare(g)) === 1) return { ok: true, note: 'Almost: ' + a }; }
+    return { ok: false };
+  }
+  const kanaPreview = t => (/[a-z]/i.test(t) ? WK.toKana(String(t).toLowerCase(), { IMEMode: true }) : '');
+
+  /* ---------- spaced repetition (ts-fsrs) ---------- */
+  let F = null;
+  const fsrs = () => F || (F = FS.fsrs(FS.generatorParameters({ enable_fuzz: false, maximum_interval: 365 })));
+  const packCard = c => ({ due: +c.due, s: c.stability, d: c.difficulty, el: c.elapsed_days, sc: c.scheduled_days, r: c.reps, l: c.lapses, ls: c.learning_steps, st: c.state, lr: c.last_review ? +c.last_review : 0 });
+  const unpackCard = p => ({ due: new Date(p.due), stability: p.s, difficulty: p.d, elapsed_days: p.el, scheduled_days: p.sc, reps: p.r, lapses: p.l, learning_steps: p.ls, state: p.st, last_review: p.lr ? new Date(p.lr) : undefined });
+  const srsNew = now => packCard(FS.createEmptyCard(now));
+  const srsGrade = (p, ok, now) => packCard(fsrs().next(unpackCard(p), now, ok ? FS.Rating.Good : FS.Rating.Again).card);
+  const hashStr = t => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+  const cardId = (k, t) => k + ':' + hashStr(norm(t));
+  function dueCards(st, now) { const t = +now; return Object.values(st.cards || {}).filter(c => c.f.due <= t).sort((a, b) => a.f.due - b.f.due); }
+  // cards from a finished lesson: new ones join, every one is graded on how it went
+  function gradeCards(st, items, results, now) {
+    const C = st.cards || (st.cards = {}), out = { added: 0, graded: 0 };
+    for (const it of items) {
+      const id = it.id; if (!id) continue;
+      if (!C[id]) { C[id] = Object.assign({}, it, { f: srsNew(now), at: +now }); out.added++; }
+      C[id].f = srsGrade(C[id].f, results[id] !== false, now); out.graded++;
+    }
+    const all = Object.values(C); if (all.length > LANG.cards) for (const c of all.sort((a, b) => a.at - b.at).slice(0, all.length - LANG.cards)) delete C[c.id];
+    return out;
+  }
+  const lessonCards = (L, code) => [
+    ...L.words.map(w => ({ id: cardId('w', w.target), k: 'w', t: w.target, r: w.reading || '', ro: w.romaji || '', en: w.english })),
+    ...L.sentences.map(s => ({ id: cardId('s', s.target), k: 's', t: s.target, r: s.reading || '', ro: s.romaji || '', en: s.english, tiles: s.tiles, dis: s.distractors })),
+  ];
+
+  /* ---------- the lesson Claude writes ---------- */
+  const S = { type: 'string' }, SA = { type: 'array', items: S };
+  const obj = (props, desc) => ({ type: 'object', additionalProperties: false, required: Object.keys(props), properties: props, ...(desc ? { description: desc } : {}) });
+  const READ = { type: 'string', description: 'Japanese only: the same text written fully in hiragana and katakana. Empty for other languages.' };
+  const ROMA = { type: 'string', description: 'Japanese only: Hepburn romaji with spaces between words, particles as said (wa, o, e). Empty for other languages.' };
+  const LANG_SCHEMA = obj({
+    title: { type: 'string', description: 'Short lesson title in English' },
+    scenario: { type: 'string', description: 'The scenario of the dialog, in English, a few words' },
+    tip: { type: 'string', description: 'One short grammar or usage point from this lesson, in English, two sentences at most' },
+    words: { type: 'array', items: obj({ target: S, reading: READ, romaji: ROMA, english: S, note: { type: 'string', description: 'A short usage note, or empty' } }) },
+    sentences: { type: 'array', items: obj({ target: S, reading: READ, romaji: ROMA, english: S,
+      tiles: Object.assign({ description: 'The target sentence split into the words a learner taps, in order, without punctuation' }, SA),
+      distractors: Object.assign({ description: '2 or 3 plausible wrong tiles in the target language' }, SA) }) },
+    dialog: { type: 'array', items: obj({ who: { type: 'string', description: 'Speaker label in English, e.g. Barista or You' }, target: S, reading: READ, romaji: ROMA, english: S }) },
+  });
+  const LANG_SYSTEM = 'You write short lessons for one adult learning a language in a phone app, in the style of Duolingo. Build every lesson around the words and scenarios the learner asked for, at their level, in natural everyday language a native speaker would actually say. Recycle words they already know so the new ones stand out. Keep sentences short: up to 7 words at A0 and A1, up to 12 later. Never mix languages inside a target sentence. English translations are natural English, not word for word.';
+  const LANG_RULE = {
+    pt: 'The language is Brazilian Portuguese as spoken in Brazil (not Portugal): você for you, Brazilian vocabulary and spelling (ônibus, celular, café da manhã).',
+    fr: 'The language is French as spoken in France. Use tu with friends and vous with strangers and staff, as a native would.',
+    ja: 'The language is Japanese. Use natural Japanese with kanji suited to the level: mostly kana at A0 and A1 (common kanji like 私, 水, 人 are fine), more kanji from A2. Polite です/ます form unless the scenario is between friends. reading is the whole text in hiragana and katakana; romaji is Hepburn. For tiles, split at words and particles (私 / は / コーヒー / が / 好き / です), so joined with no spaces they give the target without punctuation.',
+  };
+  /* st: the language's save. opts.focus: teach exactly these now. Picks his least-used words and scenarios so each
+     lesson brings different ones. */
+  function lessonAsk(code, st, opts) {
+    opts = opts || {};
+    const byUse = (a, n) => a.slice().sort((x, y) => (x.u || 0) - (y.u || 0) || (y.t || 0) - (x.t || 0)).slice(0, n);
+    const focus = (opts.focus || []).filter(Boolean), mine = focus.length ? focus : byUse(st.words || [], 6).map(w => w.w);
+    const theme = opts.theme || (byUse(st.themes || [], 1)[0] || {}).w || '';
+    const known = Object.values(st.cards || {}).filter(c => c.k === 'w').sort((a, b) => b.at - a.at).slice(0, LANG.recent).map(c => c.t);
+    const lines = [
+      `Write one lesson of ${LANGS[code].full} for a learner at CEFR level ${st.level} (${LEVEL_NAME[st.level]}).`,
+      LANG_RULE[code],
+      mine.length ? `${focus.length ? 'Teach exactly these words now' : 'Words I want to learn (use several of them)'}: ${mine.join(', ')}. They may be in English or in ${LANGS[code].name}; teach the ${LANGS[code].name}.` : 'Pick useful everyday words for my level.',
+      theme ? `Scenario for the dialog and the sentences: ${theme}.` : 'Pick an everyday scenario for the dialog.',
+      known.length ? `Words I already know (reuse some, do not teach them as new): ${known.join(', ')}.` : 'I know no words yet.',
+      'Give 5 to 7 new words, 5 or 6 sentences that use them, and a dialog of 4 to 6 lines in the scenario where I am one speaker (label me You).',
+    ];
+    if (code === 'ja' && !(st.kana && st.kana.known)) lines.push('I am still learning kana: keep kanji to a few very common ones.');
+    return { mine: focus.length ? [] : mine, theme, text: lines.join('\n') };
+  }
+  function lessonBody(code, st, opts, model) {
+    const ask = lessonAsk(code, st, opts);
+    return { model, max_tokens: LANG.maxTokens, fallbacks: 'default', system: LANG_SYSTEM, output_config: { effort: 'low', format: { type: 'json_schema', schema: LANG_SCHEMA } }, messages: [{ role: 'user', content: ask.text }] };
+  }
+  // the reply checked and tidied; null when it cannot make a lesson
+  function cleanLesson(raw, code) {
+    if (!raw || typeof raw !== 'object') return null;
+    const str = v => (typeof v === 'string' ? v.trim() : ''), sep = LANGS[code].sep;
+    const words = (raw.words || []).filter(w => w && str(w.target) && str(w.english)).slice(0, 8).map(w => ({ target: str(w.target), reading: code === 'ja' ? str(w.reading) : '', romaji: code === 'ja' ? str(w.romaji) : '', english: str(w.english), note: str(w.note) }));
+    const sentences = (raw.sentences || []).filter(s => s && str(s.target) && str(s.english)).slice(0, 7).map(s => {
+      let tiles = (s.tiles || []).map(str).filter(Boolean);
+      const joined = norm(tiles.join(sep)), want = norm(s.target);
+      if (code === 'ja' ? joined.replace(/ /g, '') !== want.replace(/ /g, '') : joined !== want) tiles = code === 'ja' ? [] : String(s.target).replace(PUNCT, ' ').split(/\s+/).filter(Boolean); /* tiles that do not make the sentence are rebuilt (or dropped in Japanese) */
+      const dis = (s.distractors || []).map(str).filter(d => d && !tiles.some(t => norm(t) === norm(d))).slice(0, 3);
+      return { target: str(s.target), reading: code === 'ja' ? str(s.reading) : '', romaji: code === 'ja' ? str(s.romaji) : '', english: str(s.english), tiles, distractors: dis };
+    });
+    const dialog = (raw.dialog || []).filter(d => d && str(d.target)).slice(0, 8).map(d => ({ who: str(d.who) || '?', target: str(d.target), reading: code === 'ja' ? str(d.reading) : '', romaji: code === 'ja' ? str(d.romaji) : '', english: str(d.english) }));
+    if (words.length < 2 || sentences.length < 2) return null;
+    return { title: str(raw.title) || 'Lesson', scenario: str(raw.scenario), tip: str(raw.tip), words, sentences, dialog };
+  }
+
+  /* ---------- exercises ---------- */
+  const shuffle = (a, rnd) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const uniq = a => { const seen = new Set(); return a.filter(x => { const k = norm(x); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
+  const opts4 = (right, pool, rnd) => shuffle([right, ...shuffle(uniq(pool).filter(x => norm(x) !== norm(right)), rnd).slice(0, 3)], rnd);
+  const enWords = t => String(t).replace(PUNCT, ' ').split(/\s+/).filter(Boolean);
+  const show = o => ({ t: o.target, r: o.reading || '', ro: o.romaji || '' });
+  /* the items of one lesson: new words first (a card, then a pick), then sentences (word bank both ways, typing,
+     listening), then match pairs and the dialog. voice: listening items only when the phone can speak it. */
+  function buildLesson(L, code, o) {
+    o = o || {}; const rnd = o.rnd || Math.random, voice = !!o.voice, items = [], name = LANGS[code].name, sep = LANGS[code].sep;
+    const wid = w => cardId('w', w.target), sid = s => cardId('s', s.target);
+    const allT = [...L.words.map(w => w.target), ...(o.known || [])], allE = [...L.words.map(w => w.english), ...L.sentences.flatMap(s => enWords(s.english)).filter(w => w.length > 3)];
+    L.words.forEach((w, i) => { /* every word is taught: each becomes a review card */
+      items.push({ k: 'intro', word: show(w), en: w.english, note: w.note || '', say: w.target });
+      items.push(i % 2 === 0
+        ? { k: 'pick', ask: 'What does this mean?', word: show(w), say: w.target, opts: opts4(w.english, allE, rnd), answer: w.english, code: 'en', card: wid(w) }
+        : { k: 'pick', ask: `Which one means "${w.english}"?`, opts: opts4(w.target, allT, rnd), answer: w.target, code, card: wid(w), say: w.target, optRead: Object.fromEntries(L.words.map(x => [x.target, x.reading || ''])) });
+    });
+    const sents = L.sentences, pool = sents.flatMap(s => s.tiles);
+    sents.forEach((s, i) => {
+      const kind = ['to', 'from', voice ? 'listen' : 'to', 'type', 'from', 'to'][i % 6];
+      if ((kind === 'to' || kind === 'listen') && s.tiles.length) {
+        const extra = s.distractors.length ? s.distractors : shuffle(pool.filter(t => !s.tiles.includes(t)), rnd).slice(0, 2);
+        items.push({ k: 'tiles', ask: kind === 'listen' ? 'Tap what you hear' : `Write this in ${name}`, en: kind === 'listen' ? '' : s.english, listen: kind === 'listen', say: s.target, bank: shuffle([...s.tiles, ...extra], rnd), sep, answer: s.tiles.join(sep), accepts: [s.tiles.join(sep), s.target], code, card: sid(s), after: show(s) });
+      } else if (kind === 'from' || ((kind === 'to' || kind === 'listen') && !s.tiles.length)) {
+        const t = enWords(s.english), extra = shuffle(uniq(sents.filter(x => x !== s).flatMap(x => enWords(x.english))).filter(w => !t.some(y => norm(y) === norm(w))), rnd).slice(0, 3);
+        items.push({ k: 'tiles', ask: 'Write this in English', word: show(s), say: s.target, bank: shuffle([...t, ...extra], rnd), sep: ' ', answer: t.join(' '), accepts: [s.english], code: 'en', card: sid(s) });
+      } else items.push({ k: 'type', ask: `Type this in ${name}`, en: s.english, say: s.target, answer: s.target, accepts: [s.target, s.reading, s.romaji].filter(Boolean), code, card: sid(s), after: show(s) });
+    });
+    const mw = L.words.filter((w, i, a) => a.findIndex(x => norm(x.english) === norm(w.english) || norm(x.target) === norm(w.target)) === i); /* two words with one meaning cannot both be matched */
+    if (mw.length >= 3) { const m = shuffle(mw, rnd).slice(0, 5); items.push({ k: 'match', ask: 'Tap the pairs', left: shuffle(m.map(w => w.target), rnd), right: shuffle(m.map(w => w.english), rnd), pairs: Object.fromEntries(m.map(w => [w.target, w.english])), reads: Object.fromEntries(m.map(w => [w.target, w.reading || ''])), cards: m.map(wid) }); }
+    const d = L.dialog.findIndex((x, i) => i > 0 && /^you$/i.test(x.who) && (code === 'ja' ? x.target.length > 1 : enWords(x.target).length > 1));
+    if (L.dialog.length >= 2 && d > 0) { /* the dialog read out, with one of your lines to finish */
+      const line = L.dialog[d], toks = code === 'ja' ? (L.sentences.flatMap(s => s.tiles).filter(t => line.target.includes(t) && t.length > 1)) : enWords(line.target);
+      const gap = toks.length ? toks.slice().sort((a, b) => b.length - a.length)[0] : null;
+      if (gap) items.push({ k: 'dialog', ask: L.scenario ? 'Finish the conversation: ' + L.scenario : 'Finish the conversation', lines: L.dialog.slice(0, d + 1).map(show).map((x, i) => Object.assign(x, { who: L.dialog[i].who, en: L.dialog[i].english })), gapLine: d, gap, opts: opts4(gap, [...pool, ...L.words.map(w => w.target)], rnd), answer: gap, code, rest: L.dialog.slice(d + 1).map((x, i) => Object.assign(show(x), { who: x.who, en: x.english })) });
+    }
+    return items;
+  }
+  // a review from due cards: words picked one way or the other, sentences on the word bank or typed
+  function buildReview(cards, code, o) {
+    o = o || {}; const rnd = o.rnd || Math.random, sep = LANGS[code].sep, name = LANGS[code].name, items = [];
+    const allT = cards.filter(c => c.k === 'w').map(c => c.t).concat(o.moreT || []), allE = cards.filter(c => c.k === 'w').map(c => c.en).concat(o.moreE || []);
+    const sw = c => ({ t: c.t, r: c.r || '', ro: c.ro || '' });
+    cards.slice(0, LANG.reviewMax).forEach((c, i) => {
+      if (c.k === 'kana') items.push({ k: 'pick', ask: 'How do you read this?', word: { t: c.t, r: '', ro: '' }, big: true, say: c.t, opts: opts4(c.en, [...allE, ...KANA_ALL.map(x => x[1])], rnd), answer: c.en, code: 'en', card: c.id });
+      else if (c.k === 'w') items.push(i % 2 ? { k: 'pick', ask: 'What does this mean?', word: sw(c), say: c.t, opts: opts4(c.en, allE, rnd), answer: c.en, code: 'en', card: c.id }
+        : { k: 'type', ask: `Type this in ${name}`, en: c.en, say: c.t, answer: c.t, accepts: [c.t, c.r, c.ro].filter(Boolean), code, card: c.id, after: sw(c) });
+      else if (c.tiles && c.tiles.length && i % 3 !== 2) items.push({ k: 'tiles', ask: `Write this in ${name}`, en: c.en, say: c.t, bank: shuffle([...c.tiles, ...(c.dis || [])], rnd), sep, answer: c.tiles.join(sep), accepts: [c.tiles.join(sep), c.t], code, card: c.id, after: sw(c) });
+      else items.push({ k: 'type', ask: `Type this in ${name}`, en: c.en, say: c.t, answer: c.t, accepts: [c.t, c.r, c.ro].filter(Boolean), code, card: c.id, after: sw(c) });
+    });
+    return items;
+  }
+
+  /* ---------- Japanese kana course: one row a lesson, hiragana then katakana ---------- */
+  const KANA_ROWS = ['あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと', 'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ', 'らりるれろ', 'わをん', 'がぎぐげご', 'ざじずぜぞ', 'だぢづでど', 'ばびぶべぼ', 'ぱぴぷぺぽ'];
+  const KANA_ROW_NAMES = KANA_ROWS.map(r => WK.toRomaji(r[0]).toUpperCase() + ' row');
+  const kanaOf = (row, kata) => [...KANA_ROWS[row]].map(h => [kata ? WK.toKatakana(h) : h, WK.toRomaji(h)]);
+  const KANA_ALL = [...KANA_ROWS.keys()].flatMap(r => [...kanaOf(r, false), ...kanaOf(r, true)]);
+  const KANA_LESSONS = KANA_ROWS.length * 2;
+  const kanaLessonName = n => (n < KANA_ROWS.length ? 'Hiragana' : 'Katakana') + ': ' + KANA_ROW_NAMES[n % KANA_ROWS.length];
+  function buildKana(n, o) {
+    o = o || {}; const rnd = o.rnd || Math.random, row = n % KANA_ROWS.length, kata = n >= KANA_ROWS.length, now = kanaOf(row, kata), items = [];
+    const before = n > 0 ? kanaOf((n - 1) % KANA_ROWS.length, (n - 1) >= KANA_ROWS.length) : [], pool = KANA_ALL.filter(x => x[0] !== '');
+    const romaOpts = (k, r) => shuffle([r, ...shuffle(uniq(pool.filter(x => x[1] !== r).map(x => x[1])), rnd).slice(0, 3)], rnd);
+    const kanaOpts = (k, r) => shuffle([k, ...shuffle(pool.filter(x => x[1] !== r && x[0] !== k && (kata ? x[0] !== WK.toHiragana(x[0]) : x[0] === WK.toHiragana(x[0]))).map(x => x[0]), rnd).slice(0, 3)], rnd);
+    const id = k => 'kana:' + k;
+    for (const [k, r] of now) items.push({ k: 'intro', label: 'New character', word: { t: k, r: '', ro: '' }, en: r, big: true, say: k, note: kata ? 'Katakana: used for words from other languages and for emphasis.' : '' });
+    for (const [k, r] of shuffle(now.concat(before), rnd)) items.push({ k: 'pick', ask: 'How do you read this?', word: { t: k, r: '', ro: '' }, big: true, say: k, opts: romaOpts(k, r), answer: r, code: 'en', card: id(k) });
+    for (const [k, r] of shuffle(now, rnd)) items.push({ k: 'pick', ask: `Which one is "${r}"?`, opts: kanaOpts(k, r), answer: k, code: 'ja', card: id(k), say: k, big: true });
+    if (now.length >= 3) items.push({ k: 'match', ask: 'Tap the pairs', left: shuffle(now.map(x => x[0]), rnd), right: shuffle(now.map(x => x[1]), rnd), pairs: Object.fromEntries(now), reads: {}, cards: now.map(x => id(x[0])) });
+    return { items, cards: now.map(([k, r]) => ({ id: id(k), k: 'kana', t: k, r: '', ro: r, en: r })) };
+  }
+
+  /* ---------- placement: ten questions a language, two per level, in order ---------- */
+  const q = (lvl, s, a, ...o) => ({ lvl, s, a, o });
+  const PLACEMENT = {
+    pt: [q('A0', 'Bom dia!', 'Good morning!', 'Good night!', 'Thank you!', 'See you later!'), q('A0', 'Eu gosto de café.', 'I like coffee.', 'I drink tea.', 'I want water.', 'I do not like coffee.'),
+      q('A1', 'Onde fica o banheiro?', 'Where is the bathroom?', 'Where is the bank?', 'When does the store open?', 'Is the bathroom free?'), q('A1', 'Nós moramos perto da praia.', 'We live near the beach.', 'We are going to the beach.', 'They live far from the beach.', 'We swam at the beach.'),
+      q('A2', 'Ontem eu fui ao mercado com a minha irmã.', 'Yesterday I went to the market with my sister.', 'Tomorrow I will go to the market with my sister.', 'Yesterday my sister went to the market alone.', 'Yesterday I went to the market with my brother.'), q('A2', 'Você já experimentou pão de queijo?', 'Have you ever tried cheese bread?', 'Do you want to buy cheese bread?', 'Did you make cheese bread?', 'Do you like bread with cheese?'),
+      q('B1', 'Se eu tivesse mais tempo, aprenderia a tocar violão.', 'If I had more time, I would learn to play the guitar.', 'When I have more time, I will learn to play the guitar.', 'I had more time, so I learned to play the guitar.', 'If I had had more time, I would have learned the guitar.'), q('B1', 'Embora estivesse chovendo, eles saíram para correr.', 'Although it was raining, they went out for a run.', 'Because it was raining, they did not go running.', 'It started raining while they were running.', 'They went running before it rained.'),
+      q('B2', 'Caso você não consiga vir, me avise com antecedência.', 'In case you cannot come, let me know in advance.', 'If you come, tell me ahead of time.', 'Since you could not come, you warned me in advance.', 'Even if you cannot come, do not worry about telling me.'), q('B2', 'Ele fez questão de pagar a conta, apesar dos meus protestos.', 'He insisted on paying the bill, despite my protests.', 'He asked me to pay the bill, despite his protests.', 'He refused to pay the bill because I protested.', 'He questioned the bill before paying it.')],
+    fr: [q('A0', 'Bonsoir !', 'Good evening!', 'Good morning!', 'Goodbye!', 'Please!'), q('A0', "J'ai un chien.", 'I have a dog.', 'I am a dog.', 'I have a cat.', 'I want a dog.'),
+      q('A1', 'Où est la gare ?', 'Where is the train station?', 'Where is the bus stop?', 'When does the train leave?', 'Is the station far?'), q('A1', 'Nous mangeons à huit heures.', 'We eat at eight o\'clock.', 'We ate at eight o\'clock.', 'We eat at nine o\'clock.', 'They eat at eight o\'clock.'),
+      q('A2', "Hier, j'ai acheté du pain à la boulangerie.", 'Yesterday I bought bread at the bakery.', 'Tomorrow I will buy bread at the bakery.', 'Yesterday I ate bread at the bakery.', 'I buy bread at the bakery every day.'), q('A2', 'Tu es déjà allé au Canada ?', 'Have you ever been to Canada?', 'Are you going to Canada?', 'Did you leave Canada?', 'Do you live in Canada?'),
+      q('B1', "Si j'avais su, je serais venu plus tôt.", 'If I had known, I would have come earlier.', 'If I know, I will come earlier.', 'I knew, so I came earlier.', 'If I had known, I would come later.'), q('B1', "Bien qu'il soit fatigué, il continue de travailler.", 'Although he is tired, he keeps working.', 'Because he is tired, he stops working.', 'He is tired because he keeps working.', 'Even when he works, he is never tired.'),
+      q('B2', "Il aurait fallu qu'on s'y prenne plus tôt.", 'We should have got started on it earlier.', 'We need to leave earlier next time.', 'We started it too early.', 'It would be better to do it later.'), q('B2', "Quoi qu'il en soit, je ne regrette rien.", 'Be that as it may, I regret nothing.', 'Whatever he says, I regret everything.', 'Whoever he is, I do not regret meeting him.', 'Since that is so, I regret nothing yet.')],
+    ja: [q('A0', 'あ', 'a', 'o', 'i', 'e'), q('A0', 'カ', 'ka', 'ta', 'na', 'ra'),
+      q('A1', 'コーヒーを ください。', 'Coffee, please.', 'I like coffee.', 'Is there coffee?', 'No coffee, thank you.'), q('A1', 'えきは どこですか。', 'Where is the station?', 'Is this the station?', 'When does the train come?', 'The station is over there.'),
+      q('A2', 'きのう ともだちと えいがを みました。', 'Yesterday I watched a movie with a friend.', 'Tomorrow I will watch a movie with a friend.', 'Yesterday my friend watched a movie alone.', 'I want to watch a movie with a friend.'), q('A2', '日本に 行ったことが ありますか。', 'Have you ever been to Japan?', 'Do you want to go to Japan?', 'When are you going to Japan?', 'Are you from Japan?'),
+      q('B1', '雨が 降ったら、家で 本を 読みます。', 'If it rains, I will read a book at home.', 'Because it rained, I read a book at home.', 'I read a book at home before the rain.', 'When it rains, I go to the library.'), q('B1', '時間が あれば、手伝って もらえませんか。', 'If you have time, could you help me?', 'I have time, so I can help you.', 'Do you have time to help him?', 'When you are free, I will help you.'),
+      q('B2', '忙しいにもかかわらず、彼は 毎日 運動している。', 'Despite being busy, he exercises every day.', 'Because he is busy, he cannot exercise every day.', 'He is busy because he exercises every day.', 'Even if he is busy, he will exercise tomorrow.'), q('B2', 'そう 言われてみれば、確かに そうかもしれない。', 'Now that you mention it, that may well be true.', 'If you say so, it must be wrong.', 'I was told that, but it is certainly not true.', 'Say it again and I might believe you.')],
+  };
+  function buildPlacement(code, o) {
+    const rnd = (o && o.rnd) || Math.random;
+    return PLACEMENT[code].map((x, i) => ({ k: 'pick', ask: code === 'ja' && i < 2 ? 'How do you read this?' : 'What does this mean?', word: { t: x.s, r: '', ro: '' }, big: code === 'ja' && i < 2, say: x.s, opts: shuffle([x.a, ...x.o], rnd), answer: x.a, code: 'en', lvl: x.lvl, place: i }));
+  }
+  /* the level to work at: the questions are in level order, two a level; count the right answers up to the second miss,
+     and each two of them is a level passed (A0 questions right: start at A1). Lucky guesses further on do not count. */
+  function placeLevel(code, right) {
+    const P = PLACEMENT[code]; let n = 0, miss = 0;
+    for (let j = 0; j < P.length && miss < 2; j++) if (right[j]) n++; else miss++;
+    return { level: LEVELS[Math.min(LEVELS.length - 1, Math.floor(n / 2))], right: P.filter((x, j) => right[j]).length, kana: code === 'ja' ? !!(right[0] && right[1]) : false };
+  }
+
+  /* ---------- built-in starter lessons (offline; first in each language) ---------- */
+  const W = (target, english, note, reading, romaji) => ({ target, reading: reading || '', romaji: romaji || '', english, note: note || '' });
+  const Sn = (target, english, tiles, distractors, reading, romaji) => ({ target, reading: reading || '', romaji: romaji || '', english, tiles, distractors });
+  const D = (who, target, english, reading, romaji) => ({ who, target, reading: reading || '', romaji: romaji || '', english });
+  const STARTERS = {
+    pt: [
+      { title: 'At a café', scenario: 'Ordering at a café', tip: 'Say obrigado if you are a man and obrigada if you are a woman: it agrees with the speaker, not with who you thank.',
+        words: [W('olá', 'hello'), W('obrigado', 'thank you', 'A woman says obrigada.'), W('por favor', 'please'), W('sim', 'yes'), W('não', 'no'), W('café', 'coffee'), W('água', 'water')],
+        sentences: [Sn('Olá, tudo bem?', 'Hello, how are you?', ['Olá', 'tudo', 'bem'], ['não', 'café']), Sn('Um café, por favor.', 'A coffee, please.', ['Um', 'café', 'por', 'favor'], ['água', 'sim']),
+          Sn('Sim, obrigado.', 'Yes, thank you.', ['Sim', 'obrigado'], ['não', 'olá']), Sn('Uma água, por favor.', 'A water, please.', ['Uma', 'água', 'por', 'favor'], ['Um', 'café']), Sn('Não, obrigado.', 'No, thank you.', ['Não', 'obrigado'], ['sim', 'por'])],
+        dialog: [D('Barista', 'Olá, tudo bem?', 'Hello, how are you?'), D('You', 'Tudo bem, obrigado.', 'Fine, thank you.'), D('Barista', 'O que você vai querer?', 'What will you have?'), D('You', 'Um café, por favor.', 'A coffee, please.')] },
+      { title: 'Meeting someone', scenario: 'Meeting someone at the gym', tip: 'Você is the everyday "you" in Brazil. Its verbs look like the ones for he or she: você é, ele é.',
+        words: [W('eu', 'I'), W('você', 'you'), W('nome', 'name'), W('prazer', 'nice to meet you', 'Literally "pleasure".'), W('sou', 'I am'), W('onde', 'where')],
+        sentences: [Sn('Meu nome é Lance.', 'My name is Lance.', ['Meu', 'nome', 'é', 'Lance'], ['você', 'sou']), Sn('Eu sou dos Estados Unidos.', 'I am from the United States.', ['Eu', 'sou', 'dos', 'Estados', 'Unidos'], ['você', 'nome']),
+          Sn('Muito prazer.', 'Nice to meet you.', ['Muito', 'prazer'], ['nome', 'eu']), Sn('Qual é o seu nome?', 'What is your name?', ['Qual', 'é', 'o', 'seu', 'nome'], ['meu', 'sou']), Sn('De onde você é?', 'Where are you from?', ['De', 'onde', 'você', 'é'], ['sou', 'meu'])],
+        dialog: [D('Ana', 'Oi! Qual é o seu nome?', 'Hi! What is your name?'), D('You', 'Meu nome é Lance. E o seu?', 'My name is Lance. And yours?'), D('Ana', 'Ana. Muito prazer!', 'Ana. Nice to meet you!'), D('You', 'Prazer! De onde você é?', 'Nice to meet you! Where are you from?')] },
+    ],
+    fr: [
+      { title: 'At a café', scenario: 'Ordering at a café', tip: 'Vous is the polite "you" for strangers and staff; tu is for friends and family. S\'il vous plaît means "if it pleases you".',
+        words: [W('bonjour', 'hello'), W('merci', 'thank you'), W("s'il vous plaît", 'please'), W('oui', 'yes'), W('non', 'no'), W('café', 'coffee'), W('eau', 'water', 'Usually de l\'eau, some water.')],
+        sentences: [Sn('Bonjour, ça va ?', 'Hello, how are you?', ['Bonjour', 'ça', 'va'], ['merci', 'non']), Sn("Un café, s'il vous plaît.", 'A coffee, please.', ['Un', 'café', "s'il", 'vous', 'plaît'], ['eau', 'oui']),
+          Sn('Oui, merci.', 'Yes, thank you.', ['Oui', 'merci'], ['Non', 'Bonjour']), Sn("De l'eau, s'il vous plaît.", 'Some water, please.', ['De', "l'eau", "s'il", 'vous', 'plaît'], ['café', 'Un']), Sn('Non, merci.', 'No, thank you.', ['Non', 'merci'], ['Oui', 'vous'])],
+        dialog: [D('Waiter', 'Bonjour ! Vous désirez ?', 'Hello! What would you like?'), D('You', "Un café, s'il vous plaît.", 'A coffee, please.'), D('Waiter', 'Et avec ça ?', 'Anything else?'), D('You', 'Non, merci.', 'No, thank you.')] },
+      { title: 'Meeting someone', scenario: 'Meeting someone at the gym', tip: 'A man says enchanté, a woman enchantée: it agrees with the speaker, and both sound the same.',
+        words: [W('je', 'I'), W('tu', 'you', 'For friends; vous for strangers.'), W('nom', 'name'), W('enchanté', 'nice to meet you'), W('suis', 'am'), W('où', 'where')],
+        sentences: [Sn("Je m'appelle Lance.", 'My name is Lance.', ['Je', "m'appelle", 'Lance'], ['tu', 'suis']), Sn('Je suis américain.', 'I am American.', ['Je', 'suis', 'américain'], ['tu', 'nom']),
+          Sn("Comment tu t'appelles ?", 'What is your name?', ['Comment', 'tu', "t'appelles"], ['je', 'suis']), Sn("Tu es d'où ?", 'Where are you from?', ['Tu', 'es', "d'où"], ['je', 'suis']), Sn('Je suis des États-Unis.', 'I am from the United States.', ['Je', 'suis', 'des', 'États-Unis'], ['tu', 'nom'])],
+        dialog: [D('Claire', "Salut ! Comment tu t'appelles ?", 'Hi! What is your name?'), D('You', "Je m'appelle Lance. Et toi ?", 'My name is Lance. And you?'), D('Claire', 'Claire. Enchantée !', 'Claire. Nice to meet you!'), D('You', "Enchanté ! Tu es d'où ?", 'Nice to meet you! Where are you from?')] },
+    ],
+    ja: [
+      { title: 'At a café', scenario: 'Ordering at a café', tip: 'を (written wo, said o) marks what you want or act on: コーヒーを ください, coffee, please.',
+        words: [W('こんにちは', 'hello', '', 'こんにちは', 'konnichiwa'), W('ありがとう', 'thank you', '', 'ありがとう', 'arigatou'), W('ください', 'please (give me)', '', 'ください', 'kudasai'), W('はい', 'yes', '', 'はい', 'hai'), W('いいえ', 'no', '', 'いいえ', 'iie'), W('コーヒー', 'coffee', '', 'コーヒー', 'koohii'), W('水', 'water', '', 'みず', 'mizu')],
+        sentences: [Sn('コーヒーを ください。', 'Coffee, please.', ['コーヒー', 'を', 'ください'], ['水', 'はい'], 'コーヒーをください', 'koohii o kudasai'), Sn('水を ください。', 'Water, please.', ['水', 'を', 'ください'], ['コーヒー', 'いいえ'], 'みずをください', 'mizu o kudasai'),
+          Sn('はい、ありがとう。', 'Yes, thank you.', ['はい', 'ありがとう'], ['いいえ', '水'], 'はい、ありがとう', 'hai, arigatou'), Sn('いいえ、けっこうです。', 'No, thank you (I am fine).', ['いいえ', 'けっこうです'], ['はい', 'ください'], 'いいえ、けっこうです', 'iie, kekkou desu')],
+        dialog: [D('Staff', 'いらっしゃいませ！', 'Welcome!', 'いらっしゃいませ', 'irasshaimase'), D('You', 'こんにちは。コーヒーを ください。', 'Hello. Coffee, please.', 'こんにちは。コーヒーをください。', 'konnichiwa. koohii o kudasai.'), D('Staff', 'はい、どうぞ。', 'Here you go.', 'はい、どうぞ', 'hai, douzo'), D('You', 'ありがとう。', 'Thank you.', 'ありがとう', 'arigatou')] },
+      { title: 'Meeting someone', scenario: 'Meeting someone at the gym', tip: 'は (written ha, said wa) marks the topic: 私は ランスです, as for me, I am Lance. Japanese often leaves out 私 when it is clear.',
+        words: [W('私', 'I', '', 'わたし', 'watashi'), W('名前', 'name', 'Say お名前 for someone else\'s name.', 'なまえ', 'namae'), W('アメリカ', 'America', '', 'アメリカ', 'amerika'), W('人', 'person (from)', 'アメリカ人, an American.', 'じん', 'jin'), W('です', 'is, am', '', 'です', 'desu'), W('よろしく', 'nice to meet you', '', 'よろしく', 'yoroshiku')],
+        sentences: [Sn('私は ランスです。', 'I am Lance.', ['私', 'は', 'ランス', 'です'], ['名前', 'を'], 'わたしはランスです', 'watashi wa ransu desu'), Sn('アメリカ人です。', 'I am American.', ['アメリカ', '人', 'です'], ['私', 'は'], 'アメリカじんです', 'amerikajin desu'),
+          Sn('お名前は？', 'What is your name?', ['お名前', 'は'], ['です', '私'], 'おなまえは', 'onamae wa'), Sn('よろしく おねがいします。', 'Nice to meet you.', ['よろしく', 'おねがいします'], ['です', 'は'], 'よろしくおねがいします', 'yoroshiku onegaishimasu')],
+        dialog: [D('Yuki', 'はじめまして。ゆきです。', 'Nice to meet you. I am Yuki.', 'はじめまして。ゆきです。', 'hajimemashite. yuki desu.'), D('You', 'はじめまして。ランスです。', 'Nice to meet you. I am Lance.', 'はじめまして。ランスです。', 'hajimemashite. ransu desu.'), D('Yuki', 'アメリカ人ですか。', 'Are you American?', 'アメリカじんですか', 'amerikajin desu ka'), D('You', 'はい。よろしく おねがいします。', 'Yes. Nice to meet you.', 'はい。よろしくおねがいします。', 'hai. yoroshiku onegaishimasu.')] },
+    ],
+  };
+
+  /* ---------- the save, rewards and streak ---------- */
+  const newLang = () => ({ level: 'A0', placed: 0, words: [], themes: [], cards: {}, ready: [], done: 0, starter: 0, streak: 0, lastDay: null, kana: { n: 0, known: 0 }, lvlN: 0, lvlAcc: 0, paid: {} });
+  function langOf(s, code) { const L = s.lang || (s.lang = { cur: 'pt', days: {} }); if (!L.days) L.days = {}; return L[code] || (L[code] = newLang()); }
+  // his words or scenarios typed as one line: split at commas, semicolons or new lines; repeats are dropped
+  function addMine(list, text, now, cap) {
+    const got = String(text || '').split(/[,;\n、，]+/).map(x => x.trim().replace(/\s+/g, ' ')).filter(x => x && x.length <= 60), added = [];
+    for (const w of got) if (!list.some(x => norm(x.w) === norm(w))) { list.push({ w, u: 0, t: +now }); added.push(w); }
+    while (list.length > cap) list.shift();
+    return added;
+  }
+  const keyTime = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
+  const lessonGold = acc => LANG.gold + (acc >= LANG.bonusAt ? LANG.bonus : 0);
+  // a finished lesson: streak (per language), the day's count for upkeep, and a level up after a run of good lessons
+  function finishDay(s, code, today, yesterday, acc) {
+    const st = langOf(s, code), L = s.lang, out = {};
+    if (st.lastDay !== today) { st.streak = st.lastDay === yesterday ? st.streak + 1 : 1; st.lastDay = today; out.streak = st.streak; }
+    L.days[today] = (L.days[today] || 0) + 1;
+    for (const k of Object.keys(L.days)) if (!/^\d+-\d+-\d+$/.test(k) || keyTime(today) - keyTime(k) > LANG.days * 864e5) delete L.days[k];
+    if (acc != null) { st.lvlN++; st.lvlAcc += acc; st.done++;
+      const i = LEVELS.indexOf(st.level); if (st.lvlN >= LANG.upAfter && st.lvlAcc / st.lvlN >= LANG.upAcc && i < LEVELS.length - 1) { st.level = LEVELS[i + 1]; st.lvlN = 0; st.lvlAcc = 0; out.levelUp = st.level; } }
+    return out;
+  }
+  const lessonOn = (s, day) => !!(s.lang && s.lang.days && s.lang.days[day]);
+  const langActive = (s, now) => !!(s.lang && s.lang.days && Object.keys(s.lang.days).some(k => +now - keyTime(k) < 14 * 864e5)); // language quests only once you use Languages
+
+  return { LANGS, LANG_CODES, LEVELS, LEVEL_NAME, LANG, norm, checkAnswer, kanaPreview, jaKey, srsNew, srsGrade, dueCards, gradeCards, cardId, lessonCards, LANG_SCHEMA, LANG_SYSTEM,
+    lessonAsk, lessonBody, cleanLesson, buildLesson, buildReview, KANA_ROWS, KANA_LESSONS, kanaLessonName, buildKana, PLACEMENT, buildPlacement, placeLevel, STARTERS, newLang, langOf,
+    addMine, lessonGold, finishDay, lessonOn, langActive, shuffle, toKana: t => WK.toKana(t), isJapanese: t => WK.isJapanese(t) };
+})();
+if (typeof module !== 'undefined' && module.exports && typeof window === 'undefined') module.exports = LANGLIB;
+
+</script>
+<script>
 /* Survivors (working build), geometric pack.
    Single-verb survivors loop + fog of war with walls + drones + heat/base assault + workshop meta + workout ledger.
    Runs in a browser; the logic also runs headless in Node for testing. */
 'use strict';
 
 const HAS_DOM = typeof document !== 'undefined';
+const LX = typeof LANGLIB !== 'undefined' ? LANGLIB : require('./lang.js'); // s54 Languages: inlined before this script by build.py
 const el = id => HAS_DOM ? document.getElementById(id) : null;
 
 /* ---------- tuning tables ---------- */
@@ -1464,7 +3888,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-16 s53';
+const BUILD_ID = 'playtest 2026-10-19 s54';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -1507,6 +3931,7 @@ const WHATS_NEW = [
   { s: 51, items: ['Two new ground bots from Robo-Sport, in the Workshop under Bots: the Guard (World 5, 30 parts), armored, at your side toward the nearest enemy, shooting and stopping shots, never knocked out by a shot; and the Raider (World 7, 20 parts), fast and fragile, which runs at the core of a hive you have found.'] },
   { s: 52, items: ['Feedback notes in the app: it says plainly that this app cannot send notes to Claude, and Copy new notes copies just the ones Claude has not had yet, ready to paste in your chat.'] },
   { s: 53, items: ['Belts: with the Engineer at level 2, the Belt button has it lay a belt from an extractor to your base (2 parts a piece). Parts ride home on it by themselves; enemies walking over it can cut it, and the Engineer repairs it. Haulers keep serving extractors without a belt.'] },
+  { s: 54, items: ['Languages (menu): Portuguese (Brazil), French and Japanese. Start from zero or take a placement check, then do short lessons: new words, picking, word tiles, typing, matching pairs and a conversation.', 'My words and scenarios: tell it the words and situations you want; Claude writes each lesson around them (with your Claude key, the same one as photo logging). Two lessons in each language are built in.', 'Review brings words back just before you would forget them. Japanese has a hiragana and katakana course, and you can type in romaji.', 'A lesson pays gold and keeps a streak, and upkeep is now any 2 of food, a workout and a lesson.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -1537,7 +3962,7 @@ function resetProgress(s, now) {
   s.upkeep = newUpkeep(dayKey(now));
 }
 /* s37 (Lance 10-11: "start losing upgrades and stuff if I'm not entering food and entering workouts"). Upkeep: a kept
-   day has food (a meal, not only supplements) AND a workout. A missed day spends a grace day (2, one back after 7 kept
+   day had food (a meal, not only supplements) AND a workout; since s54 any 2 of food, a workout and a lesson. A missed day spends a grace day (2, one back after 7 kept
    days in a row); with none left it rusts the most expensive Workshop level you have. A rusted level does not work. Each
    kept day repairs one (newest first). Rust older than 7 days is lost for good. Today is only judged once it is over. */
 const UPKEEP = { grace: 2, regain: 7, lose: 7 };
@@ -1545,21 +3970,24 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const dayName = key => { const [y, m, d] = key.split('-').map(Number); return DAY_NAMES[new Date(y, m - 1, d).getDay()]; };
 function upkeepLine(e) { // one event, in plain words, for the menu card
   const n = e.id ? LATTICE.find(u => u.id === e.id).name : '';
-  return e.kind === 'rust' ? `${dayName(e.day)}: food and a workout were not both logged. ${n} rusted (one level stops working until you repair it).`
-    : e.kind === 'repair' ? `${dayName(e.day)}: food and a workout logged. ${n} repaired.`
+  return e.kind === 'rust' ? `${dayName(e.day)}: fewer than 2 of food, a workout and a lesson. ${n} rusted (one level stops working until you repair it).`
+    : e.kind === 'repair' ? `${dayName(e.day)}: kept (2 of food, a workout, a lesson). ${n} repaired.`
     : e.kind === 'lost' ? `${n}: one level lost for good (rusted on ${dayName(e.day)}, more than ${UPKEEP.lose} days ago).`
-    : e.kind === 'graceUsed' ? `${dayName(e.day)}: not both logged. A grace day covered it (${e.left} left).`
+    : e.kind === 'graceUsed' ? `${dayName(e.day)}: fewer than 2 of food, a workout and a lesson. A grace day covered it (${e.left} left).`
     : e.kind === 'grace' ? `${UPKEEP.regain} kept days in a row: a grace day back.`
     : e.kind === 'filled' ? `${dayName(e.day)} filled in: ${n ? n + ' repaired' : e.grace != null ? 'its grace day is back (' + e.grace + ' now)' : 'it counts as kept now'}.`
-    : `${dayName(e.day)}: not both logged, but there was nothing to rust.`;
+    : `${dayName(e.day)}: fewer than 2 of food, a workout and a lesson, but there was nothing to rust.`;
 }
 function upkeepStatus(s, now) { // the menu line: grace, rust, and what today still needs
-  const U = s.upkeep || newUpkeep(dayKey(now)), d = dayKey(now), food = (s.meals || []).some(m => m.day === d && m.meal !== 'Supplements'), work = (s.logs || []).some(l => l.day === d);
-  const today = food && work ? 'today is kept' : food ? 'today still needs a workout' : work ? 'today still needs food' : 'today needs food and a workout';
+  const U = s.upkeep || newUpkeep(dayKey(now)), d = dayKey(now), food = foodOn(s, d), work = (s.logs || []).some(l => l.day === d), les = LX.lessonOn(s, d);
+  const today = food + work + les >= 2 ? 'today is kept' : food ? 'today still needs a workout or a lesson' : work ? 'today still needs food or a lesson' : les ? 'today still needs food or a workout' : 'today needs 2 of: food, a workout, a lesson';
   return `Upkeep: ${U.grace} grace day${U.grace === 1 ? '' : 's'}, ${U.rust.length ? U.rust.length + ' rusted' : 'nothing rusted'}; ${today}.`;
 }
 const newUpkeep = from => ({ from, checked: null, grace: UPKEEP.grace, keptRun: 0, rust: [], rustN: {} });
-const keptDay = (s, d) => (s.meals || []).some(m => m.day === d && m.meal !== 'Supplements') && (s.logs || []).some(l => l.day === d);
+const foodOn = (s, d) => (s.meals || []).some(m => m.day === d && m.meal !== 'Supplements');
+/* s54 (Lance 10-19: a lesson "also counts for upkeep", "2 out of 3 is fine"): a kept day has any 2 of a meal, a workout
+   and a language lesson. Days already judged keep their verdict. */
+const keptDay = (s, d) => foodOn(s, d) + (s.logs || []).some(l => l.day === d) + LX.lessonOn(s, d) >= 2;
 const rustN = (s, id) => (s.upkeep && s.upkeep.rustN && s.upkeep.rustN[id]) || 0;
 function addDays(key, n) { const [y, m, d] = key.split('-').map(Number); return dayKey(new Date(y, m - 1, d + n)); }
 function rustPick(s) { // the most expensive level still working
@@ -1737,6 +4165,8 @@ const QUESTS = {
     { stat: 'meals', need: 3, gold: 120, text: 'Log 3 meals', food: true },
     { stat: 'proteindays', need: 1, gold: 150, text: 'Hit your protein target', food: true },
     { stat: 'supps', need: 1, gold: 60, text: 'Log your supplements', food: true },
+    { stat: 'lessons', need: 1, gold: 100, text: 'Finish a language lesson', lang: true },
+    { stat: 'cards', need: 20, gold: 80, text: 'Review 20 language cards', lang: true },
   ],
   week: [
     { stat: 'workouts', need: 3, gold: 600, text: 'Log 3 workouts', fit: true },
@@ -1745,6 +4175,7 @@ const QUESTS = {
     { stat: 'kills', need: 2000, gold: 400, text: 'Defeat 2000 enemies' },
     { stat: 'perches', need: 25, gold: 400, text: 'Perch a Drone 25 times' },
     { stat: 'fooddays', need: 5, gold: 500, text: 'Log food on 5 days', food: true },
+    { stat: 'lessons', need: 5, gold: 500, text: 'Finish 5 language lessons', lang: true },
   ],
   perDay: 3, perWeek: 2,
 };
@@ -1792,16 +4223,17 @@ const modVal = (run, k, d) => (run.mod && run.mod[k] != null ? run.mod[k] : d);
 const playerSight = run => PLAYER_VISION * (run.p.area || 1) * modVal(run, 'sight', 1) * (ruleOf(run).sight || 1) * (run.stormOn ? ruleOf(run).storm[2] : 1); // Aperture widens it, 'dim' shortens it
 function weekKey(d) { const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return dayKey(m); } // Monday
 function statAdd(k, n, now) { ensureQuests(now); SAVE.stat[k] = (SAVE.stat[k] || 0) + (n || 1); } // deal first: the first event of a new day counts
-function pickQuests(pool, n, seed, food) { // deterministic from the date; a fitness quest always makes the list, and a food one once you log food
+function pickQuests(pool, n, seed, food, lang) { // deterministic from the date; a fitness quest always makes the list, a food one once you log food, a language one once you take lessons
   const mix = qs => qs.map(q => [hashStr(seed + q.text), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
   pool = pool.filter(q => !q.needs || q.needs()); /* a quest you cannot do yet stays out */
-  const fit = pool.filter(q => q.fit), meal = food ? mix(pool.filter(q => q.food)).slice(0, 1) : [], rest = mix(pool.filter(q => !q.fit && !q.food));
-  return [...fit, ...meal, ...rest].slice(0, n);
+  const fit = pool.filter(q => q.fit), meal = food ? mix(pool.filter(q => q.food)).slice(0, 1) : [], les = lang ? mix(pool.filter(q => q.lang)).slice(0, 1) : [], rest = mix(pool.filter(q => !q.fit && !q.food && !q.lang));
+  return [...fit, ...meal, ...les, ...rest].slice(0, n);
 }
 function ensureQuests(now) {
   now = now || new Date(); const st = SAVE.stat || (SAVE.stat = {}), Q = SAVE.quests || (SAVE.quests = {});
-  const deal = (period, key, pool, n) => { if (Q[period] && Q[period].key === key) return; Q[period] = { key, list: pickQuests(pool, n, key, foodActive(now)).map(q => ({ ...q, base: st[q.stat] || 0, claimed: false })) }; };
-  const fa = foodActive(now) ? 1 : 0; // the food quest is an extra slot, never instead of a game quest
+  const la = LX.langActive(SAVE, now);
+  const deal = (period, key, pool, n) => { if (Q[period] && Q[period].key === key) return; Q[period] = { key, list: pickQuests(pool, n, key, foodActive(now), la).map(q => ({ ...q, base: st[q.stat] || 0, claimed: false })) }; };
+  const fa = (foodActive(now) ? 1 : 0) + (la ? 1 : 0); // the food and language quests are extra slots, never instead of a game quest
   deal('day', dayKey(now), QUESTS.day, QUESTS.perDay + fa); deal('week', weekKey(now), QUESTS.week, QUESTS.perWeek + fa);
   return Q;
 }
@@ -2192,15 +4624,20 @@ function photoBody(images, note) { // images: [{ b64, when: Date|null }]
   return { model: PHOTO.model, max_tokens: 16000, fallbacks: 'default', system: PHOTO_SYSTEM, output_config: { effort: 'medium', format: { type: 'json_schema', schema: PHOTO_SCHEMA } }, messages: [{ role: 'user', content }] };
 }
 const photoHeaders = key => ({ 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01', 'anthropic-dangerous-direct-browser-access': 'true' });
+// what went wrong with a Claude request, in plain words; null when it answered (s54: photos and lessons share it)
+function claudeHttp(status, j) {
+  const err = j && j.error && j.error.message ? j.error.message : '';
+  if (status === 401) return 'Claude did not accept that API key. Check it in Settings, Food keys.';
+  if (status === 403) return 'That API key is not allowed to do this. ' + err;
+  if (status === 429) return 'Too many requests for your key right now. Try again in a minute.';
+  if (status === 529 || status >= 500) return 'Claude is busy right now. Try again in a minute.';
+  if (status !== 200) return 'Claude could not read that request (' + status + '). ' + err;
+  if (!j) return 'Claude answered in a way the game could not read. Try again.';
+  return null;
+}
 // the reply as items, or an error in plain words
 function photoReply(status, j) {
-  const err = j && j.error && j.error.message ? j.error.message : '';
-  if (status === 401) return { error: 'Claude did not accept that API key. Check it in Settings, Food keys.' };
-  if (status === 403) return { error: 'That API key is not allowed to do this. ' + err };
-  if (status === 429) return { error: 'Too many requests for your key right now. Try again in a minute.' };
-  if (status === 529 || status >= 500) return { error: 'Claude is busy right now. Try again in a minute.' };
-  if (status !== 200) return { error: 'Claude could not read that request (' + status + '). ' + err };
-  if (!j) return { error: 'Claude answered in a way the game could not read. Try again.' };
+  { const e = claudeHttp(status, j); if (e) return { error: e }; }
   if (j.stop_reason === 'refusal') return { error: 'Claude would not read these photos. Try fewer or clearer ones.' };
   if (j.stop_reason === 'max_tokens') return { error: 'Too much in one go. Try fewer photos at a time.' };
   const t = (j.content || []).find(b => b.type === 'text'); let out = null; try { out = t && JSON.parse(t.text); } catch (e) { out = null; }
@@ -2225,6 +4662,19 @@ async function readPhotos(images, note, key) {
   if (!key) return { error: 'Add your Claude API key first (Settings, Food keys).' };
   try { const r = await postJSON(PHOTO.url, photoHeaders(key), photoBody(images, note), PHOTO.timeout); return photoReply(r.status, r.json); }
   catch (e) { return { error: e && (e.name === 'AbortError' || /time ?out/i.test(String(e.message || e))) ? 'That took too long. Try fewer photos.' : 'Could not reach Claude. Check the connection and try again.' }; }
+}
+/* s54: a language lesson from Claude, built from his words and scenarios (lang.js has the request and the checks) */
+function lessonReply(status, j, code) {
+  { const e = claudeHttp(status, j); if (e) return { error: e }; }
+  if (j.stop_reason === 'refusal') return { error: 'Claude would not write that lesson. Try other words.' };
+  if (j.stop_reason === 'max_tokens') return { error: 'The lesson came out too long. Try again.' };
+  const t = (j.content || []).find(b => b.type === 'text'); let out = null; try { out = LX.cleanLesson(t && JSON.parse(t.text), code); } catch (e) { out = null; }
+  return out ? { lesson: out } : { error: 'Claude answered in a way the game could not read. Try again.' };
+}
+async function writeLesson(code, st, opts, key) {
+  if (!key) return { error: 'Add your Claude API key first.' };
+  try { const r = await postJSON(PHOTO.url, photoHeaders(key), LX.lessonBody(code, st, opts, PHOTO.model), PHOTO.timeout); return lessonReply(r.status, r.json, code); }
+  catch (e) { return { error: e && (e.name === 'AbortError' || /time ?out/i.test(String(e.message || e))) ? 'That took too long. Try again.' : 'Could not reach Claude. Check the connection and try again.' }; }
 }
 function setServings(id, n, now) { // 0 removes it
   const m = (SAVE.meals || []).find(x => x.id === id); if (!m) return false; const before = foodDayState(m.day);
@@ -3060,6 +5510,7 @@ const TIPS = {
   zones:    { group: 'Between runs', title: 'Zones', body: 'Each zone is a survival plus the boss: 3 minutes for a world\'s first zone, up to 10 for its last. Later zones send more enemies and more evolved forms. Clear one to unlock the next.' },
   quests:   { group: 'Between runs', title: 'Quests and goals', body: 'Three quests a day (one is always a workout) and two a week, each paying gold when you claim it. Goals are dealt for you from what you log: each week a small step past your best, each month halfway to your next rating, each year the next rating. Log it in the workout ledger before the deadline and claim 400, 1500 or 6000 gold.' },
   fitness:  { group: 'Between runs', title: 'Fitness progress', body: 'Your training week by week for the last 12 weeks: workouts, pounds lifted, run miles, your best squat + bench + deadlift against 1000 lb, your rating, bodyweight and protein. Pick one above the chart; tap the chart to read a week.' },
+  lang:     { group: 'Between runs', title: 'Languages', body: 'Portuguese (Brazil), French and Japanese. Start from zero or take the placement check. Continue plays your next lesson; Claude writes each one from your own words and scenarios (My words and scenarios). Review brings words back just before you would forget them. A finished lesson pays gold, keeps your streak, and counts toward upkeep: any 2 of food, a workout and a lesson keep a day. Swipe between languages.' },
   food:     { group: 'Between runs', title: 'Food and nutrients', body: 'Log what you eat by meal. On Add: snap photos and Claude lists what you ate, or search one box for foods, restaurant meals, supplements or a barcode number, or make your own. The meal comes from the time of day; change it beside the search. Nutrients shows a day or a week against the daily values (protein from your bodyweight); tap one for its 30-day trend. Swipe between tabs.' },
   ratings:  { group: 'Between runs', title: 'Ratings', body: 'Each exercise you log gets a level from Beginner to Elite, from published standards for your sex and bodyweight (lifts), your best mile pace, your best Cindy, and how often you train BJJ and dance. The bar shows how close the next level is and the number that gets you there.' },
   modifier: { group: 'Between runs', title: "Today's modifier", body: 'Each day has one twist you can turn on from the zone list, like faster Rushers or an extra hive. It makes runs harder and pays more gold. It stays off unless you turn it on.' },
@@ -5386,7 +7837,7 @@ if (HAS_DOM) {
 
   const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const show = (id, on) => { const e = el(id); if (e) e.classList.toggle('on', !!on); };
-  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile', 'food', 'fdckey', 'fitness', 'orders'];
+  UI.screens = ['menu', 'zones', 'lattice', 'log', 'tree', 'pause', 'end', 'help', 'notes', 'note', 'logform', 'hist', 'backup', 'settings', 'dial', 'quests', 'profile', 'food', 'fdckey', 'fitness', 'orders', 'lang', 'lesson'];
   let curScreen = 'menu';
   UI.go = id => { curScreen = id; armBack(); for (const s of UI.screens) show(s, s === id); show('hud', id === null || id === 'tree' || id === 'pause'); el('toasts').style.visibility = id === null ? '' : 'hidden'; if (id === null || id === 'menu') for (const b of document.querySelectorAll('.itip')) b.dataset.live = ''; };
 
@@ -5879,7 +8330,7 @@ if (HAS_DOM) {
     const [branch, detail] = LATTICE_INFO[u.id], ul = latUnlocks(u.id);
     box.innerHTML = `<div class="t"><b>${u.name}</b><small>${branch}</small></div>`
       + `<p>${lvl ? 'Now: ' + u.fmt(eff * u.per) : 'Not bought yet'}${maxed ? '. Maxed.' : '. Next level: ' + u.fmt((eff + 1) * u.per)}</p>`
-      + (rusted ? `<p class="why">${rusted} level${rusted > 1 ? 's' : ''} rusted: not working. Log food and a workout on the same day to repair one. Rust older than ${UPKEEP.lose} days is lost.</p>` : '')
+      + (rusted ? `<p class="why">${rusted} level${rusted > 1 ? 's' : ''} rusted: not working. Keep a day (any 2 of food, a workout and a language lesson) to repair one. Rust older than ${UPKEEP.lose} days is lost.</p>` : '')
       + (why ? `<p class="why">${why}</p>` : '') + (ul.length ? `<p>Opens: ${ul.join(', ')}</p>` : '')
       + `<details class="wdet"><summary>Details</summary><p>${detail}</p></details>`;
     const buy = document.createElement('button'); buy.className = 'buybig'; buy.disabled = !can;
@@ -5896,6 +8347,252 @@ if (HAS_DOM) {
       hs.id = 'lat-sell'; box.appendChild(hs);
     } else if (sb !== 'none') { const p = document.createElement('p'); p.style.cssText = 'font-size:12px;text-align:right'; p.textContent = `Can't sell: ${sb}`; box.appendChild(p); }
   }
+  /* s54 Languages: the language page (tabs Portuguese, French, Japanese) and the lesson player. Logic in lang.js. */
+  let langView = 'main', langMsg = '', langKeyAsk = false, LES = null, langErrAt = {};
+  const langBusy = {}, langPending = {}, langVoiced = {};
+  const curLang = () => { const L = SAVE.lang || (SAVE.lang = { cur: 'pt', days: {} }); if (!LX.LANGS[L.cur]) L.cur = 'pt'; return L.cur; };
+  const voiceList = () => { try { return window.speechSynthesis ? window.speechSynthesis.getVoices() || [] : []; } catch (e) { return []; } };
+  const voiceFor = code => { const t = LX.LANGS[code].tts.toLowerCase(), v = voiceList(), l = x => String(x.lang || '').toLowerCase().replace('_', '-'); return v.find(x => l(x) === t) || v.find(x => l(x).startsWith(t.slice(0, 2))) || null; };
+  try { if (window.speechSynthesis) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { /* voices load late on some phones: redraw for the voice note, never over something being typed */
+    const c = curLang(), v = !!voiceFor(c); if (curScreen === 'lang' && langView === 'main' && !langKeyAsk && langVoiced[c] !== v) UI.lang(); }; } } catch (e) { /* no speech on this phone */ }
+  function sayIt(code, text) {
+    const v = voiceFor(code); if (!v || !text) return false;
+    try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.voice = v; u.lang = v.lang; u.rate = 0.9; window.speechSynthesis.speak(u); return true; } catch (e) { return false; }
+  }
+  const langEl = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const langBtn = (box, id, cls, html, on) => { const b = langEl('button', cls, html); if (id) b.id = id; b.onclick = on; box.appendChild(b); return b; };
+  function nextLesson(code, st) {
+    if (st.ready.length) return { src: 'ready', lesson: st.ready[0] };
+    const S = LX.STARTERS[code]; if (st.starter < S.length && LX.LEVELS.indexOf(st.level) <= 1) return { src: 'starter', lesson: LX.cleanLesson(S[st.starter], code), i: st.starter };
+    return { src: 'claude' };
+  }
+  // a lesson written by Claude joins the ready list; his words and the scenario it used count as used
+  function langWrite(code, opts) { // one request at a time per language: a second ask waits for the one already out (each costs money)
+    if (langPending[code] && !(opts && opts.focus)) return langPending[code];
+    const p = (langPending[code] || Promise.resolve()).then(() => langWrite1(code, opts));
+    langPending[code] = p; langBusy[code] = true;
+    p.then(() => { if (langPending[code] === p) { langPending[code] = null; langBusy[code] = false; } });
+    return p;
+  }
+  async function langWrite1(code, opts) {
+    const st = LX.langOf(SAVE, code), ask = LX.lessonAsk(code, st, opts), lvl = st.level;
+    const r = await writeLesson(code, st, opts, SAVE.claudeKey);
+    if (r.lesson) {
+      for (const w of st.words) if (ask.mine.includes(w.w)) w.u = (w.u || 0) + 1;
+      for (const t of st.themes) if (t.w === ask.theme) t.u = (t.u || 0) + 1;
+      if (st.level === lvl) { const les = Object.assign(r.lesson, { at: Date.now() }); if (opts && opts.focus) st.ready.unshift(les); else st.ready.push(les); st.ready = st.ready.slice(0, LX.LANG.ready); } /* a level changed meanwhile: that lesson is not used */
+      persist(SAVE);
+    } else langErrAt[code] = Date.now();
+    return r;
+  }
+  function langAhead(code) { // the next lessons are written in the background, so Continue starts at once
+    const st = LX.langOf(SAVE, code);
+    if (!SAVE.claudeKey || inClaude() || langBusy[code] || !st.placed || st.ready.length >= LX.LANG.ahead || Date.now() - (langErrAt[code] || 0) < 120000) return;
+    const S = LX.STARTERS[code]; if (st.starter < S.length - 1 && LX.LEVELS.indexOf(st.level) <= 1) return; /* built-in lessons first: Claude only once the last one is up */
+    langWrite(code).then(r => { if (curScreen === 'lang' && curLang() === code && langView === 'main') UI.lang(r.error && nextLesson(code, st).src === 'claude' ? 'The next lesson could not be written: ' + r.error : undefined); });
+  }
+  el('btn-lang').onclick = () => { langView = 'main'; langMsg = ''; langKeyAsk = false; UI.lang(); };
+  swipeTabs(el('lang'), dir => { const c = cycle(LX.LANG_CODES, curLang(), dir); SAVE.lang.cur = c; langView = 'main'; langKeyAsk = false; langMsg = ''; persist(SAVE); UI.lang(); slideIn(el('lg-body'), dir); });
+  UI.lang = msg => {
+    UI.go('lang'); inlineTip('it-lang', 'lang');
+    const code = curLang(), st = LX.langOf(SAVE, code), box = el('lg-body');
+    langAhead(code); langVoiced[code] = !!voiceFor(code); /* first, so the page shows a lesson already being written */
+    renderTabs(el('lg-tabs'), LX.LANG_CODES, code, c => { SAVE.lang.cur = c; langView = 'main'; langKeyAsk = false; langMsg = ''; persist(SAVE); UI.lang(); }, c => LX.LANGS[c].name);
+    if (typeof msg === 'string') langMsg = msg;
+    box.innerHTML = ''; if (langView === 'words') langWords(box, code, st); else langMain(box, code, st);
+    el('lg-msg').textContent = langMsg;
+  };
+  function langMain(box, code, st) {
+    const name = LX.LANGS[code].name;
+    if (!st.placed) {
+      box.appendChild(langEl('p', '', `New to ${name}, or already know some? Start from zero, or take a 10 question check and start at your level.`));
+      langBtn(box, 'lg-zero', 'primary', 'Start from zero', () => { st.placed = 1; st.level = 'A0'; persist(SAVE); UI.lang(`Starting ${name} from zero.`); });
+      langBtn(box, 'lg-place', '', 'Placement check (10 questions)', () => startLesson({ kind: 'place' }));
+      return;
+    }
+    const due = LX.dueCards(st, new Date()).length, words = Object.values(st.cards).filter(c => c.k === 'w').length;
+    box.appendChild(langEl('div', 'fmac', `<span><b>${st.level}</b>${LX.LEVEL_NAME[st.level]}</span><span><b>${st.streak && st.lastDay && daysBetween(st.lastDay, dayKey(new Date())) <= 1 ? st.streak : 0}</b>day streak</span><span><b>${words}</b>words</span><span><b>${st.done}</b>lessons</span>`));
+    const nx = nextLesson(code, st), busy = langBusy[code];
+    const cont = langBtn(box, 'lg-next', 'row primary', nx.src === 'claude'
+      ? `<b>Next lesson</b><em>${busy ? 'writing...' : 'new'}</em><span>${busy ? 'Claude is writing it from your words. This takes a little while.' : 'Claude writes it from your words and scenarios.'}</span>`
+      : `<b>Continue: ${esc(nx.lesson.title)}</b><em>${nx.lesson.words.length} words</em><span>${esc(nx.lesson.scenario || '')}</span>`, async () => {
+      if (nx.src !== 'claude') { startLesson({ kind: 'lesson', lesson: nx.lesson, src: nx.src, i: nx.i }); return; }
+      if (inClaude()) { UI.lang('This copy cannot reach Claude. New lessons are written in the app; reviews and the built-in lessons work here.'); return; }
+      if (!SAVE.claudeKey) { langKeyAsk = true; UI.lang(''); return; }
+      const r0 = langWrite(code); UI.lang(''); const r = await r0; if (curScreen !== 'lang') return;
+      if (r.lesson) startLesson({ kind: 'lesson', lesson: st.ready[0], src: 'ready' }); else UI.lang(r.error);
+    });
+    cont.disabled = !!busy && nx.src === 'claude';
+    langBtn(box, 'lg-review', 'row', `<b>Review</b><em>${due} due</em><span>${due ? 'Words and sentences coming back before you forget them.' : Object.keys(st.cards).length ? 'Nothing due right now. Come back later.' : 'Finish a lesson and its words come back here.'}</span>`, () => startLesson({ kind: 'review' })).disabled = !due;
+    if (code === 'ja') { const n = st.kana.n, all = LX.KANA_LESSONS;
+      langBtn(box, 'lg-kana', 'row', `<b>Hiragana and katakana</b><em>${Math.min(n, all)} of ${all}</em><span>${n < all ? 'Next: ' + LX.kanaLessonName(n) + (st.kana.known ? ' (you already read kana; this is optional)' : '') : 'All done. Tap to go through the last one again.'}</span>`, () => startLesson({ kind: 'kana', n: Math.min(n, all - 1) })); }
+    langBtn(box, 'lg-words', 'row', `<b>My words and scenarios</b><em>${st.words.length} word${st.words.length === 1 ? '' : 's'}, ${st.themes.length} scenario${st.themes.length === 1 ? '' : 's'}</em><span>Lessons are built from these.</span>`, () => { langView = 'words'; langMsg = ''; UI.lang(); });
+    const lv = langEl('div', 'chips modes'); lv.appendChild(langEl('span', 'fnote', 'Level ')); box.appendChild(lv);
+    for (const l of LX.LEVELS) langBtn(lv, 'lg-lvl-' + l, 'chip' + (l === st.level ? ' on' : ''), l, () => { if (l === st.level) return; st.level = l; st.lvlN = 0; st.lvlAcc = 0; st.ready = []; persist(SAVE); UI.lang(`Level set to ${l} (${LX.LEVEL_NAME[l]}). New lessons are written for it.`); });
+    if (code === 'ja') langBtn(lv, 'lg-romaji', 'chip' + (SAVE.lang.romaji !== 0 ? ' on' : ''), 'Romaji', () => { SAVE.lang.romaji = SAVE.lang.romaji === 0 ? 1 : 0; persist(SAVE); UI.lang(); });
+    if (!voiceFor(code)) box.appendChild(langEl('p', 'fnote', `This phone has no ${name} voice, so listening exercises are skipped.`));
+    if (inClaude()) box.appendChild(langEl('p', 'fnote', 'This copy cannot reach Claude: the built-in lessons, reviews and kana work here; new lessons need the app.'));
+    else if (!SAVE.claudeKey) langKeyForm(box);
+  }
+  function langKeyForm(box) { // the same Claude key as photo logging, entered right here
+    if (!langKeyAsk) { box.appendChild(langEl('p', 'fnote', 'After the built-in lessons, Claude writes each lesson from your words. ')).appendChild(Object.assign(langEl('button', 'linkbtn', 'Add your Claude key ›'), { id: 'lg-key-open', onclick: () => { langKeyAsk = true; UI.lang(''); } })); return; }
+    box.appendChild(langEl('p', 'fnote', 'Claude writes your lessons from your words and scenarios. It needs your own Anthropic API key from console.anthropic.com (about a cent a lesson; a separate key with a low monthly limit is safest). It is the same key as photo logging, stays on this phone and is never in a backup.'));
+    const f = langEl('form', 'fsearch', '<input id="lg-key" type="password" autocomplete="off" placeholder="sk-ant-..."><button class="primary" id="lg-key-save">Save</button>');
+    f.onsubmit = ev => { ev.preventDefault(); const k = f.querySelector('input').value.trim(); if (!CLAUDE_KEY.re.test(k)) { UI.lang(CLAUDE_KEY.bad); return; } SAVE.claudeKey = k; persist(SAVE); langKeyAsk = false; UI.lang('Key saved on this phone.'); };
+    box.appendChild(f);
+  }
+  function langWords(box, code, st) {
+    const name = LX.LANGS[code].name;
+    const list = (title, help, arr, id, ph, cap) => {
+      box.appendChild(langEl('h3', 'lsh', title)); box.appendChild(langEl('p', 'fnote', help));
+      const f = langEl('form', 'fsearch', `<input id="${id}-in" type="text" autocomplete="off" placeholder="${ph}"><button class="primary" id="${id}-add">Add</button>`);
+      f.onsubmit = ev => { ev.preventDefault(); const got = LX.addMine(arr, f.querySelector('input').value, Date.now(), cap); persist(SAVE); UI.lang(got.length ? 'Added: ' + got.join(', ') + '.' : 'Nothing new to add.'); };
+      box.appendChild(f);
+      const c = langEl('div', 'chips'); c.id = id + '-list'; box.appendChild(c);
+      for (const w of arr.slice().reverse()) { const b = langEl('button', 'chip', esc(w.w) + ' <small>×</small>'); b.setAttribute('aria-label', 'Remove ' + w.w); b.onclick = () => { arr.splice(arr.indexOf(w), 1); persist(SAVE); UI.lang('Removed: ' + w.w + '.'); }; c.appendChild(b); }
+    };
+    langBtn(box, 'lg-words-back', '', `Back to ${name}`, () => { langView = 'main'; langMsg = ''; UI.lang(); });
+    const grow = langEl('div', 'col grow'); box.appendChild(grow); const keep = box; box = grow;
+    list('Words', `Words you want to learn, in English or ${name}. Commas between them.`, st.words, 'lg-word', 'gym, chicken, tired', LX.LANG.mine);
+    list('Scenarios', 'Situations for the dialogs and sentences.', st.themes, 'lg-theme', 'ordering coffee, at the gym, my dog Luna', LX.LANG.themes);
+    box = keep;
+    const teach = langBtn(box, 'lg-teach', 'primary', langBusy[code] ? 'Claude is writing it...' : 'Teach me these now', async () => {
+      const typed = (el('lg-word-in').value || '').trim(); if (typed) LX.addMine(st.words, typed, Date.now(), LX.LANG.mine);
+      const focus = typed ? typed.split(/[,;\n、，]+/).map(x => x.trim()).filter(Boolean) : st.words.slice(-6).map(w => w.w);
+      if (!focus.length) { UI.lang('Add a few words first.'); return; }
+      if (inClaude()) { UI.lang('This copy cannot reach Claude. Use the app to have a lesson written.'); return; }
+      if (!SAVE.claudeKey) { langView = 'main'; langKeyAsk = true; UI.lang(''); return; }
+      persist(SAVE); const r0 = langWrite(code, { focus: focus.slice(0, 8) }); UI.lang(''); const r = await r0; if (curScreen !== 'lang') return;
+      if (r.lesson) startLesson({ kind: 'lesson', lesson: st.ready[0], src: 'ready' }); else UI.lang(r.error);
+    });
+    teach.disabled = !!langBusy[code];
+  }
+
+  /* the lesson player: one item at a time, Check then Continue; a miss comes back at the end */
+  const ROMAJI = () => !SAVE.lang || SAVE.lang.romaji !== 0;
+  function startLesson(spec) {
+    const code = curLang(), st = LX.langOf(SAVE, code), voice = !!voiceFor(code); let items = [], cards = null;
+    if (spec.kind === 'lesson') items = LX.buildLesson(spec.lesson, code, { voice, known: Object.values(st.cards).filter(c => c.k === 'w').map(c => c.t).slice(0, 20) });
+    else if (spec.kind === 'review') { cards = LX.dueCards(st, new Date()).slice(0, LX.LANG.reviewMax); const more = Object.values(st.cards).filter(c => c.k === 'w'); items = LX.buildReview(cards, code, { moreT: more.map(c => c.t), moreE: more.map(c => c.en) }); }
+    else if (spec.kind === 'place') items = LX.buildPlacement(code);
+    else { const k = LX.buildKana(spec.n); items = k.items; cards = k.cards; }
+    if (!items.length) { UI.lang('Nothing to practise there yet.'); return; }
+    LES = { spec, code, items, cards, i: 0, results: {}, graded: 0, right: 0, place: {}, state: 'ask', pick: null, sel: [], typed: '', mL: null, done: {}, miss: 0, voice, end: null };
+    UI.go('lesson'); drawLes(); if (items[0].k === 'intro' || items[0].listen) setTimeout(() => LES && sayIt(code, items[0].say), 250);
+  }
+  const wordHtml = (w, big, code) => `<div class="lsword${big ? ' big' : ''}"><b lang="${LX.LANGS[code].tts}">${esc(w.t)}</b>${w.r && w.r !== w.t ? `<small>${esc(w.r)}</small>` : ''}${w.ro && ROMAJI() ? `<small class="ro">${esc(w.ro)}</small>` : ''}</div>`;
+  function drawLes() {
+    const L = LES, body = el('ls-body'), foot = el('ls-foot'); body.innerHTML = ''; foot.innerHTML = '';
+    el('ls-prog').style.width = Math.round(100 * Math.min(L.i, L.items.length) / L.items.length) + '%';
+    if (L.end) { lesEnd(body, foot); return; }
+    const it = L.items[L.i], code = L.code, play = (big) => { if (!L.voice || !it.say) return; langBtn(body, 'ls-play', 'lsplay' + (big ? ' big' : ''), big ? 'Play again' : 'Play', () => sayIt(code, it.say)); };
+    if (it.k !== 'intro') body.appendChild(langEl('div', 'lsask', esc(it.ask) + (it.retry ? ' <small>(again)</small>' : '')));
+    if (it.k === 'intro') {
+      body.appendChild(langEl('div', 'lsask', it.label || 'New word')); body.appendChild(langEl('div', '', wordHtml(it.word, it.big, code))); play();
+      body.appendChild(langEl('p', 'lsen', esc(it.en))); if (it.note) body.appendChild(langEl('p', 'fnote', esc(it.note)));
+    } else if (it.k === 'pick' || it.k === 'dialog') {
+      if (it.k === 'dialog') { const d = langEl('div', 'lsdlg'); it.lines.forEach((x, i) => { const me = /^you$/i.test(x.who), t = i === it.gapLine && L.state === 'ask' ? esc(x.t).replace(esc(it.gap), '____') : esc(x.t);
+          d.appendChild(langEl('div', 'lsline' + (me ? ' me' : ''), `<i>${esc(x.who)}</i><b>${t}</b>${x.ro && ROMAJI() && (i !== it.gapLine || L.state !== 'ask') ? `<small class="ro">${esc(x.ro)}</small>` : ''}<small>${esc(x.en)}</small>`)); });
+        if (L.state !== 'ask') for (const x of it.rest) d.appendChild(langEl('div', 'lsline' + (/^you$/i.test(x.who) ? ' me' : ''), `<i>${esc(x.who)}</i><b>${esc(x.t)}</b><small>${esc(x.en)}</small>`));
+        body.appendChild(d); }
+      if (it.word) { body.appendChild(langEl('div', '', wordHtml(it.word, it.big, code))); play(); }
+      const o = langEl('div', 'lsopts'); body.appendChild(o);
+      for (const x of it.opts) { const b = langBtn(o, '', 'lsopt' + (L.pick === x ? ' on' : '') + (L.state !== 'ask' && x === it.answer ? ' right' : ''), esc(x) + (it.optRead && it.optRead[x] && it.optRead[x] !== x ? `<small>${esc(it.optRead[x])}</small>` : ''), () => { if (L.state !== 'ask') return; L.pick = x; if (it.code !== 'en' && L.voice) sayIt(code, x); drawLes(); }); b.disabled = L.state !== 'ask' && x !== it.answer && x !== L.pick; }
+    } else if (it.k === 'tiles') {
+      if (it.listen) { langBtn(body, 'ls-play', 'lsplay big', 'Play', () => sayIt(code, it.say)); }
+      else if (it.word) { body.appendChild(langEl('div', '', wordHtml(it.word, false, code))); play(); }
+      else body.appendChild(langEl('p', 'lsen', esc(it.en)));
+      const ans = langEl('div', 'lsans'); ans.id = 'ls-ans'; body.appendChild(ans); const bank = langEl('div', 'lsbank'); bank.id = 'ls-bank'; body.appendChild(bank);
+      L.sel.forEach((bi, j) => langBtn(ans, '', 'tile', esc(it.bank[bi]), () => { if (L.state !== 'ask') return; L.sel.splice(j, 1); drawLes(); }));
+      it.bank.forEach((t, bi) => langBtn(bank, '', 'tile' + (L.sel.includes(bi) ? ' gone' : ''), esc(t), () => { if (L.state !== 'ask' || L.sel.includes(bi)) return; L.sel.push(bi); drawLes(); }));
+    } else if (it.k === 'type') {
+      body.appendChild(langEl('p', 'lsen', esc(it.en)));
+      const f = langEl('form', 'col'); const inp = langEl('input'); inp.type = 'text'; inp.id = 'ls-type'; inp.autocomplete = 'off'; inp.setAttribute('autocapitalize', 'off'); inp.spellcheck = false; inp.value = L.typed; inp.disabled = L.state !== 'ask';
+      inp.placeholder = code === 'ja' ? 'Type in romaji, kana or kanji' : `Type it in ${LX.LANGS[code].name}`; f.appendChild(inp);
+      const pv = langEl('p', 'fnote'); pv.id = 'ls-kana'; if (code === 'ja') { pv.textContent = LX.kanaPreview(L.typed); f.appendChild(pv); }
+      inp.oninput = () => { L.typed = inp.value; if (code === 'ja') pv.textContent = LX.kanaPreview(inp.value); const c = el('ls-check'); if (c) c.disabled = !inp.value.trim(); };
+      f.onsubmit = ev => { ev.preventDefault(); if (L.typed.trim()) lesCheck(); }; body.appendChild(f);
+      if (L.state === 'ask') setTimeout(() => { if (document.activeElement !== inp && LES === L) try { inp.focus({ preventScroll: true }); } catch (e) { /* old WebView */ } }, 50);
+    } else if (it.k === 'match') {
+      const m = langEl('div', 'lsmatch'), a = langEl('div', 'col'), b = langEl('div', 'col'); m.append(a, b); body.appendChild(m);
+      for (const x of it.left) { const btn = langBtn(a, '', (L.mL === x ? 'on' : '') + (L.done[x] ? ' done' : ''), esc(x) + (it.reads[x] && it.reads[x] !== x ? `<small>${esc(it.reads[x])}</small>` : ''), () => { if (L.done[x]) return; L.mL = x; if (L.voice) sayIt(code, x); drawLes(); }); btn.disabled = !!L.done[x]; }
+      for (const y of it.right) { const left = Object.keys(it.pairs).find(k => it.pairs[k] === y), btn = langBtn(b, '', L.done[left] ? 'done' : '', esc(y), () => {
+        if (!L.mL || L.done[left]) return;
+        if (it.pairs[L.mL] === y) { L.done[L.mL] = 1; L.mL = null; beep(880, 0.05, 'triangle', 0.04); if (Object.keys(it.pairs).every(k => L.done[k])) { lesMark(it, L.miss <= 1); L.state = L.miss <= 1 ? 'good' : 'bad'; } }
+        else { L.miss++; beep(200, 0.08, 'square', 0.03); btn.classList.add('miss'); setTimeout(() => btn.classList.remove('miss'), 300); return; }
+        drawLes(); }); btn.disabled = !!L.done[left]; }
+    }
+    // the foot: feedback and the one big button
+    if (L.state === 'good' || L.state === 'bad') {
+      const good = L.state === 'good', after = it.after || null;
+      const fb = langEl('div', 'lsfb ' + (good ? 'good' : 'bad'), good ? `<b>${L.note ? 'Correct, with a note' : 'Correct'}</b>${L.note ? esc(L.note) : ''}` : `<b>Correct answer:</b>${esc(it.k === 'match' ? 'some pairs took more than one try' : it.answer)}`);
+      if (after && (after.r || after.ro) && code === 'ja') fb.appendChild(langEl('small', 'lsread', esc([after.t, LX.norm(after.r) !== LX.norm(after.t) ? after.r : '', ROMAJI() ? after.ro : ''].filter(Boolean).join(' · '))));
+      foot.appendChild(fb);
+    }
+    const ready = it.k === 'intro' || L.state !== 'ask' ? true : it.k === 'pick' || it.k === 'dialog' ? L.pick != null : it.k === 'tiles' ? L.sel.length > 0 : it.k === 'type' ? !!L.typed.trim() : false;
+    if (it.k === 'match' && L.state === 'ask') return;
+    const go = langBtn(foot, it.k === 'intro' || L.state !== 'ask' ? 'ls-next' : 'ls-check', 'primary lsgo', it.k === 'intro' || L.state !== 'ask' ? 'Continue' : 'Check', () => (it.k === 'intro' || L.state !== 'ask' ? lesNext() : lesCheck()));
+    go.disabled = !ready;
+  }
+  function lesMark(it, ok) { // first tries make the score; any miss marks its card for an early review
+    const L = LES;
+    if (!it.retry) { L.graded++; if (ok) L.right++; if (it.place != null) L.place[it.place] = ok; }
+    for (const id of it.cards || (it.card ? [it.card] : [])) L.results[id] = L.results[id] === false ? false : ok;
+    if (!ok && !it.retry && it.place == null) L.items.push(Object.assign({}, it, { retry: true, bank: it.bank ? LX.shuffle(it.bank, Math.random) : it.bank, opts: it.opts ? LX.shuffle(it.opts, Math.random) : it.opts }));
+  }
+  function lesCheck() {
+    const L = LES, it = L.items[L.i]; if (!it || L.state !== 'ask') return;
+    let r = { ok: false };
+    if (it.k === 'pick' || it.k === 'dialog') r = { ok: L.pick === it.answer };
+    else if (it.k === 'tiles') r = LX.checkAnswer(it.code, L.sel.map(i => it.bank[i]).join(it.sep), it.accepts, true);
+    else if (it.k === 'type') r = LX.checkAnswer(it.code, L.typed, it.accepts);
+    L.note = r.note || ''; L.state = r.ok ? 'good' : 'bad'; lesMark(it, r.ok);
+    if (r.ok) beep(880, 0.08, 'triangle', 0.05); else { beep(220, 0.12, 'square', 0.03); buzz(30); }
+    if (it.say && L.voice && it.code !== 'en' && it.place == null) sayIt(L.code, it.say); else if (it.say && L.voice && it.k === 'tiles') sayIt(L.code, it.say);
+    drawLes();
+  }
+  function lesNext() {
+    const L = LES; L.i++; L.state = 'ask'; L.pick = null; L.sel = []; L.typed = ''; L.mL = null; L.done = {}; L.miss = 0; L.note = '';
+    if (L.i >= L.items.length) lesFinish(); else { const it = L.items[L.i]; if ((it.k === 'intro' || it.listen) && L.voice) sayIt(L.code, it.say); }
+    drawLes(); const b = el('ls-body'); if (b) b.scrollTop = 0;
+  }
+  function lesFinish() {
+    const L = LES, code = L.code, st = LX.langOf(SAVE, code), now = new Date(), today = dayKey(now), acc = L.graded ? L.right / L.graded : 1, name = LX.LANGS[code].name;
+    const out = { acc, gold: 0, lines: [] }, yday = addDays(today, -1);
+    if (L.spec.kind === 'place') {
+      const res = LX.placeLevel(code, L.place); st.level = res.level; st.placed = 1; st.ready = []; if (res.kana) st.kana.known = 1;
+      out.title = 'Placement done'; out.lines.push(`${res.right} of 10 right. You start at <b>${res.level}</b> (${LX.LEVEL_NAME[res.level]}). Change it any time on the ${name} page.`);
+      if (code === 'ja') out.lines.push(res.kana ? 'You read kana, so the kana course is optional.' : 'Start with the hiragana and katakana course on the Japanese page.');
+    } else {
+      const graded = LX.gradeCards(st, L.spec.kind === 'lesson' ? LX.lessonCards(L.spec.lesson, code) : L.cards, L.results, now);
+      const n = L.spec.kind === 'review' ? L.cards.length : 0, counts = L.spec.kind !== 'review' || n >= LX.LANG.reviewMin;
+      if (L.spec.kind === 'lesson') { if (L.spec.src === 'ready') { const i = st.ready.indexOf(L.spec.lesson); if (i >= 0) st.ready.splice(i, 1); } else if (L.spec.src === 'starter') st.starter = Math.max(st.starter, L.spec.i + 1); }
+      const replay = L.spec.kind === 'kana' && L.spec.n < st.kana.n; /* a kana lesson done before: practice only, no gold or credit */
+      if (L.spec.kind === 'kana') st.kana.n = Math.max(st.kana.n, L.spec.n + 1);
+      if (L.spec.kind === 'review') { statAdd('cards', n, now); const p = st.paid || (st.paid = {}); for (const k of Object.keys(p)) if (k !== today) delete p[k];
+        if (counts && (p[today] || 0) < LX.LANG.reviewPaid) { out.gold = LX.LANG.reviewGold; p[today] = (p[today] || 0) + 1; } }
+      else if (!replay) { out.gold = LX.lessonGold(acc); statAdd('lessons', 1, now); }
+      const before = keptDay(SAVE, today), day = counts && !replay ? LX.finishDay(SAVE, code, today, yday, L.spec.kind === 'lesson' ? acc : null) : {};
+      SAVE.gold += out.gold;
+      out.title = L.spec.kind === 'review' ? 'Review done' : 'Lesson done';
+      out.lines.push(`${Math.round(acc * 100)}% right the first time. +${out.gold} gold.`);
+      if (L.spec.kind === 'lesson') out.lines.push(`${graded.added} new words and sentences will come back in Review.`);
+      if (L.spec.kind === 'review' && !counts) out.lines.push(`A review of ${LX.LANG.reviewMin} or more counts toward your streak and upkeep.`);
+      if (replay) out.lines.push('A kana lesson you had done: practice only, no gold this time.');
+      if (day.streak) out.lines.push(`${name} streak: ${day.streak} day${day.streak === 1 ? '' : 's'}.`);
+      if (day.levelUp) out.lines.push(`Your lessons have gone well: level up to <b>${day.levelUp}</b> (${LX.LEVEL_NAME[day.levelUp]}).`);
+      if (counts && !replay && !before && keptDay(SAVE, today)) out.lines.push('Today is kept for upkeep.');
+    }
+    persist(SAVE); L.end = out; beep(660, 0.1, 'triangle', 0.05); setTimeout(() => beep(990, 0.12, 'triangle', 0.05), 110);
+  }
+  function lesEnd(body, foot) {
+    const e = LES.end; body.appendChild(langEl('h2', 'lsend', esc(e.title)));
+    for (const t of e.lines) body.appendChild(langEl('p', 'lsend', t));
+    if (LES.spec.kind === 'lesson' && LES.spec.lesson.tip) body.appendChild(langEl('div', 'itip', `<b>Tip</b><p>${esc(LES.spec.lesson.tip)}</p>`));
+    langBtn(foot, 'ls-done', 'primary lsgo', 'Done', () => { LES = null; UI.lang(); });
+  }
+  window.lesNow = () => LES; // for tests
+  el('ls-quit').onclick = () => { const done = LES && LES.end; LES = null; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { /* no speech */ } UI.lang(done ? undefined : 'Lesson stopped. It is still there when you come back.'); };
   swipeTabs(el('lattice'), dir => { latTab = cycle(LAT_TABS, latTab, dir); latSel = null; UI.lattice(); slideIn(el('lat-sky'), dir); });
   el('lat-sky').addEventListener('click', ev => { const k = skyPick(el('lat-sky'), ev, LAT_POS[latTab]); if (k) { latSel = k; latCache = null; latPanel(LATTICE.find(u => u.id === k)); beep(900, 0.03, 'sine', 0.02); } });
   /* workout ledger: pick an activity, fill in details, undo mistakes, see history */
@@ -6251,7 +8948,7 @@ if (HAS_DOM) {
   };
   el('btn-zones').onclick = UI.zones; el('btn-quests').onclick = () => UI.quests('', true); el('btn-lattice').onclick = () => UI.lattice(); el('btn-log').onclick = () => { logDay = 0; UI.log(); }; /* the menu always opens on today */ el('btn-help').onclick = () => UI.go('help'); el('btn-pause-help').onclick = () => UI.go('help');
   /* one back rule for on-screen Back buttons and the phone's back button (via a history entry the WebView pops) */
-  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', fitness: 'menu', logform: 'log', hist: 'log' };
+  const BACK = { zones: 'menu', lattice: 'menu', log: 'menu', help: 'menu', notes: 'menu', settings: 'menu', backup: 'settings', profile: 'settings', fdckey: 'settings', food: 'menu', fitness: 'menu', lang: 'menu', logform: 'log', hist: 'log' };
   function goBack() {
     const id = curScreen;
     if (id === null) { if (R && R.aim) R.aim = null; else if (R && screen === 'run') togglePause(); return; } // in a run: pause
@@ -6262,6 +8959,7 @@ if (HAS_DOM) {
     if (id === 'tree') { el('btn-tree-close').onclick(); return; }
     if (id === 'note') { el('btn-note-cancel').onclick(); return; }
     if (id === 'end') { el('btn-end-menu').onclick(); return; }
+    if (id === 'lesson') { el('ls-quit').onclick(); return; }
     if (id === 'menu') return;
     const t = BACK[id] || 'menu';
     if (t === 'settings') UI.settings(); else if (t === 'log') UI.log(); else UI.menu();
@@ -6604,7 +9302,7 @@ if (HAS_DOM) {
   requestAnimationFrame(frame);
 }
 
-if (typeof module !== 'undefined') module.exports = { BELT, orderBelt, beltPath, beltWorks, updateBelts, TREE_SKY, GUARD, RAIDER, runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
+if (typeof module !== 'undefined') module.exports = { LX, lessonReply, claudeHttp, upkeepStatus, upkeepLine, foodOn, BELT, orderBelt, beltPath, beltWorks, updateBelts, TREE_SKY, GUARD, RAIDER, runPack, runUnpack, endSaveRun, endLoadRun, endClearSave, endSavedMeta, ENDLESS, OUTPOST, winOff, inWin, endlessInit, endTile, endlessShift, updateEndless, buildOutpost, buildCount, buildCap, TERRAIN, terrainOf, PERCH_KIND, perchSight, perchDmg, canLand, DRONE_HIT, MAST, buildMast, mastOn, isSeen, BASE_R, LOOK_ART, artProps, turretSight, ART_Q, artTick, GROUND, effortGold, effortMin, EFFORT, pctOf, RATINGS, SUPP_WORDS, viewZ, exifDate, photoBody, photoReply, photoFood, readPhotos, mealAt, PHOTO, PHOTO_SCHEMA, WORKOUTS, dayKey, rejudgeDay, unjudgeDay, replayStreak, BW_MOVES, LOG_BACK, visEdges, LIFT, BASE_SIGHT, baseSight, computeVision, lat, resetProgress, judgeUpkeep, keptDay, rustN, newUpkeep, addDays, UPKEEP, handoverR, loadSave, PULSE_REACH, maxPassives, scavHandover, scavTarget, recallMote, PERCH, formation, autoPerchOn, autoPerch, meAnchor, WORLD_RULES, ruleOf, playerSight, damageEnemy, nearestEnemy, drawRuleGround, drawRuleScreen, inLight, coldFactor, moteVis, updateRule, factoryOn, freeCount, LAT_WORLD, CHAIN_WORLD, worldReached, latWorld, latOpen, worldOpens, relockSave, HURT_NAME, reportOf, reportLines, trackReport, endBestOf, endShort, EB_CAP, validHiveSpot, endStage, endEnter, endName, RESTAURANTS, restFood, foodWords, wordsMatched, searchRestaurants, rankFoods, parseNix, fdcPortions, atPortion, fdcDetails, buildNo, buildOf, takeUpdate, WHATS_NEW, newSince, drawWorldPreview, THEMES, LOOK_DRAW, LOOK_KINDS, LOOK_WORLD, lookEarned, lookChoices, chosenSkin, skinFor, NIGHT, SHOT_R, ENEMY_SIZE, SHOT_BLOCK, blockShots, ENDURANCE, startEndurance, updateEndurance, AUTO_SLOTS, ORDERS, orders, updateFactory, guardJob, placeTurretAt, repairBelow, BUILDS, CHAIN, buildExtractor, startChain, paceMin, ZONE_DUR, BUILD_ID, ELITE, eliteShare, WORLDS, grandfatherBots, defaultSave, BOTS, botLvl, bot, form, ENEMY, EVOLVED, evoShare, JAM_R, LANCE, LAT_SKY, LATTICE_INFO, ENG, FORTIFY, engSlots, engStand, placeBarricade, updateBarricades, wallsChanged, VIEW25, viewT, toggleCamera, SWIPE, GUNNER_INTEL, gunnerKnows, updateSpotting, castRay, pushOut, validHiveSpot, forNeighbours, FIT_METRICS, weeklySeries, weekStarts, bestTotal, weeklyAverage, NUTRIENTS, NUT, FOOD, parseFdc, parseOff, parseDsld, myFood, saveFood, logFood, setServings, dayTotals, nutrientSeries, dvOf, foodActive, searchFoods, lookupBarcode, searchSupps, pickQuests, GOAL_DAYS, fmtPace, RATINGS, RATED, ratingOf, overallLevel, goalTarget, dealGoals, periodStart, liftBars, makeEnemy, TREE_LINKS, AIM_SKILLS, HOMING, aimAt, gateWhy, TREE_TIERS, SKILL_INFO, EVO_COST, pointsBelow, latWhy, fmtGoal, THEMES, WORLDS, EMBER_AT, QUESTS, GOALS, MODS, todayMod, weekKey, ensureQuests, questProg, claimQuest, addGoal, goalBest, goalMet, claimGoal, anyClaimable, statAdd, cellIdx, buildUnit, UNITS, droneGun, mountGun, ammoCap, AMMO_BASE, MOUNT, DRONE_GUN, TOW, INTERCEPT, inWall, losClear, FOG, ZOOM, updateSightings, callStrike, visibleTo, build, newRun, update, input, sendMote, recallAll, applyDraft, draftOptions, logWorkout, ZONES, LATTICE, latticeCost, streakMult, get screen() { return screen; }, set screen(v) { screen = v; }, get SAVE() { return SAVE; }, coverage, render, endRun, startAim, reapDead, buildBlocked, HIVE, placeHives, updateHives, hiveDecide, hiveLook, fieldTo, steer, addHive, buyNode, sellNode, treeNodes, computeStatsForTest: computeStats, makeEnemyForTest: (run, x, y) => { const e = makeEnemy(run, 'static', x, y); e.hitDmg = (10 + 4 * (run.p.weapons.pulse || 1)) * run.p.dmgMult; return e; }, undoLog, e1rm, liftBand, LIFTS, TIPS, tip, MODES, TUTORIAL, startTutorial, endTutorial };
 
 </script>
 </body>
