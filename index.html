@@ -2956,11 +2956,13 @@ var LANGLIB = (function () {
     max = max || 8; idx = idx || bankIndex(bank, code); const out = [], seen = new Set(), missing = [], per = Math.max(2, Math.ceil(max / Math.max(1, terms.length)));
     for (const term of terms) {
       const t = norm(term), want = code === 'ja' ? t.replace(/ /g, '') : ' ' + bare(t) + ' '; if (!t) continue; let n = 0;
+      let found = false;
       for (let i = 0; i < bank.length; i++) {
-        if (out.length >= max || n >= per) break; const p = bank[i]; if (seen.has(p[2])) continue;
-        if (idx[i][0].includes(' ' + t + ' ') || idx[i][1].includes(want)) { out.push(p); seen.add(p[2]); n++; }
+        if (!(idx[i][0].includes(' ' + t + ' ') || idx[i][1].includes(want))) continue;
+        found = true; const p = bank[i]; if (out.length >= max || n >= per) break; if (seen.has(p[2])) continue;
+        out.push(p); seen.add(p[2]); n++;
       }
-      if (!n) missing.push(term);
+      if (!found) missing.push(term); /* only words the library has nothing for, not ones crowded out of a full lesson */
     }
     return { pairs: out, missing };
   }
@@ -3952,7 +3954,7 @@ const LOG_BACK = 7; // s42: workouts can be filled in up to a week back (the rus
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'survivors_v2';
-const BUILD_ID = 'playtest 2026-10-19 s55';
+const BUILD_ID = 'playtest 2026-10-19 s56';
 /* Builds reaching the phone (Lance 10-09: his app was still on s22-s24 after s27 shipped). The APK launcher gives the
    network 4 s, then runs its cached copy. The game itself looks for a newer build without a time limit and stores it
    where the launcher looks (LAUNCHER_KEY), so the next start runs it; the menu says when one is ready. */
@@ -3997,6 +3999,7 @@ const WHATS_NEW = [
   { s: 53, items: ['Belts: with the Engineer at level 2, the Belt button has it lay a belt from an extractor to your base (2 parts a piece). Parts ride home on it by themselves; enemies walking over it can cut it, and the Engineer repairs it. Haulers keep serving extractors without a belt.'] },
   { s: 54, items: ['Languages (menu): Portuguese (Brazil), French and Japanese. Start from zero or take a placement check, then do short lessons: new words, picking, word tiles, typing, matching pairs and a conversation.', 'My words and scenarios: tell it the words and situations you want; Claude writes each lesson around them (with your Claude key, the same one as photo logging). Two lessons in each language are built in.', 'Review brings words back just before you would forget them. Japanese has a hiragana and katakana course, and you can type in romaji.', 'A lesson pays gold and keeps a streak, and upkeep is now any 2 of food, a workout and a lesson.'] },
   { s: 55, items: ['No API key needed anywhere now.', 'Languages: a built-in course of 30 lessons in each language; Continue walks it at your level.', 'With Claude: Claude writes a lesson around your words, or plays a conversation in your scenario and corrects you, in the Claude app on your subscription. Paste back what it gives you.', 'Food photos: Claude reads them in the Claude app and you paste its list back (in the claude.ai copy it reads them right on the page).'] },
+  { s: 56, items: ['My words: Lesson from my words now builds a lesson out of 20,000 real sentences in each language (from Tatoeba) that use your words. It downloads once, then works offline.'] },
 ];
 const newSince = last => { const n = (/s(\d+)\s*$/.exec(last || '') || [])[1]; const cur = +(/s(\d+)\s*$/.exec(BUILD_ID) || [])[1]; return WHATS_NEW.filter(w => w.s <= cur && (n == null ? true : w.s > +n)).slice(-5); }; // up to five builds back (s25 onward for a phone stuck on s24)
 let memStore = null;
@@ -8497,7 +8500,7 @@ if (HAS_DOM) {
       if (!terms.length) { UI.lang('Add a few words or a scenario first.'); return; }
       langBusy = true; persist(SAVE); UI.lang(''); const bank = await loadBank(code); langBusy = false; if (curScreen !== 'lang') return;
       if (!bank) { UI.lang(bankMissing[code] ? 'The sentence library is not published yet. For now, With Claude writes a lesson around your words.' : 'The sentence library is not on this phone yet (it downloads once, then works offline). Check the connection, or use With Claude.'); return; }
-      const f = LX.bankFind(bank.pairs, code, terms, 8, bank.idx);
+      const f = LX.bankFind(bank.pairs, code, terms, Math.max(6, Math.min(12, terms.length * 2)), bank.idx);
       for (const w of st.words) if (words.includes(w.w)) w.u = (w.u || 0) + 1; persist(SAVE);
       if (f.pairs.length < 3) { UI.lang(`Too few sentences with ${terms.join(', ')} in the library. Try other words, or With Claude for a lesson written around them.`); return; }
       startLesson({ kind: 'bank', pairs: f.pairs, missing: f.missing });
